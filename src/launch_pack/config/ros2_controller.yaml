@@ -1,0 +1,30 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 500
+
+    # 控制器声明：必须在这里定义控制器名称和类型
+    dog_controller:
+      type: dog_controller/DogController
+
+# 具体控制器的参数配置：必须与 controller_manager 同级
+dog_controller:
+  ros__parameters:
+    joints:
+      - lf_joint1
+      - lf_joint2
+      - lf_joint3
+      - rf_joint1
+      - rf_joint2
+      - rf_joint3
+      - lb_joint1
+      - lb_joint2
+      - lb_joint3
+      - rb_joint1
+      - rb_joint2
+      - rb_joint3
+    command_interfaces:
+      - effort    # 注意：在 ign_ros2_control 中，力矩通常写作 effort 而不是 torque
+    state_interfaces:
+      - position
+      - velocity
+      - effort
