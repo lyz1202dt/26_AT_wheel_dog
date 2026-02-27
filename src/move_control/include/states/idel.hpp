@@ -13,5 +13,5 @@ public:
     std::string update(Robot* robot) override;
     
 private:
-
+    int debug_cnt;
 };

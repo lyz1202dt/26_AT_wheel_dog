@@ -26,6 +26,10 @@ LegCalc::LegCalc(KDL::Chain& chain)
     C.resize(3);
     G.resize(3);
     M.resize(3);
+
+    last_exp_joint_pos(0)=0.0;
+    last_exp_joint_pos(1)=0.0;
+    last_exp_joint_pos(2)=0.0;
 }
 
 LegCalc::~LegCalc() {
@@ -183,7 +187,17 @@ Eigen::Vector3d LegCalc::foot_pos(const Eigen::Vector3d& joint_rad) {
     _temp_joint3_array(0)=joint_rad[0];  //避免运行时动态分配内存，提高效率
     _temp_joint3_array(1)=joint_rad[1];
     _temp_joint3_array(2)=joint_rad[2];
-    fk_solver.JntToCart(_temp_joint3_array, frame);
+    
+    int fk_result = fk_solver.JntToCart(_temp_joint3_array, frame);
+    
+    // 添加调试：检查 FK 计算结果
+        std::cout << "[FK DEBUG] Joint angles: [" << joint_rad[0] << ", " 
+                  << joint_rad[1] << ", " << joint_rad[2] << "]" << std::endl;
+        std::cout << "[FK DEBUG] FK result code: " << fk_result << std::endl;
+        std::cout << "[FK DEBUG] Frame position: [" << frame.p.x() << ", " 
+                  << frame.p.y() << ", " << frame.p.z() << "]" << std::endl;
+        std::cout << "[FK DEBUG] pos_offset: [" << pos_offset[0] << ", " 
+                  << pos_offset[1] << ", " << pos_offset[2] << "]" << std::endl;
 
     Eigen::Vector3d temp;
     temp[0]=frame.p.x();
@@ -192,4 +206,3 @@ Eigen::Vector3d LegCalc::foot_pos(const Eigen::Vector3d& joint_rad) {
 
     return temp-pos_offset; //temp是在机器人坐标系下的足端位置，要转换成支撑相中型点的坐标输出
 }
-

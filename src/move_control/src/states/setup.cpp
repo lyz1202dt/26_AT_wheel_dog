@@ -9,6 +9,7 @@ SetupState::SetupState(Robot* robot)
 bool SetupState::enter(Robot* robot, const std::string& last_status) {
     (void)robot;
     (void)last_status;
+    setup_stage=0;
     return true;
 }
 

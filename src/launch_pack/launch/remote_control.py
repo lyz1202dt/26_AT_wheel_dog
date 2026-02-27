@@ -24,8 +24,8 @@ def generate_launch_description():
     )
 
     leg_calc = Node(
-        package="leg_calc",
-        executable="leg_calc"
+        package="move_control",
+        executable="move_control"
     )
 
     rviz2_config_path=os.path.join(

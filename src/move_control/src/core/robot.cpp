@@ -19,6 +19,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     // 初始化参数回调vector
     param_cb_vector.clear();
     joint_display_msg.position.resize(16);
+    joint_display_msg.name = joint_names;
 
     lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 0.2, 0.1, 10ms);
     rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 0.2, 0.1, 10ms);
@@ -60,6 +61,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);
     node_->declare_parameter("rb_dx", 0.0);
+    node_->declare_parameter("body_height", 0.25);
 
 
     param_server_ = node_->add_on_set_parameters_callback([this](const std::vector<rclcpp::Parameter>& params) {
@@ -119,6 +121,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->get_parameter("lb_grivate", robot_lb_grivate);
     node_->get_parameter("rb_grivate", robot_rb_grivate);
 
+    node_->get_parameter("body_height", body_height);
+
     // ========== foot x offset ==========
     double lf_dx_temp, rf_dx_temp, lb_dx_temp, rb_dx_temp;
     node_->get_parameter("lf_dx", lf_dx_temp);
@@ -129,10 +133,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     rf_base_offset << 0.25 + rf_dx_temp, -0.18, -body_height;
     lb_base_offset << -0.22 + lb_dx_temp, 0.18, -body_height;
     rb_base_offset << -0.22 + rb_dx_temp, -0.18, -body_height;
-
-    // ========== body height (FIXED BUG) ==========
-    node_->get_parameter("body_height", body_height);
-
+    
 
     robot_rotation.setRPY(0.0, 0.0, 0.0);
 
@@ -192,6 +193,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
                 lb_joint_torque[i] = (double)msg.legs[2].joints[i].torque;
                 rb_joint_torque[i] = (double)msg.legs[3].joints[i].torque;
             }
+            legs_data_updated=true;
         });
 
     // 订阅机器人的运动期望
@@ -223,11 +225,6 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     lb_leg_calc->pos_offset = lb_base_offset;
     rb_leg_calc->pos_offset = rb_base_offset;
 
-    lf_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
-    rb_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
-    lb_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
-    rf_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
-
     int result;
     comm_pos = get_grivate_center_pose(
         lf_leg_calc->joint_pos(lf_leg_stop_pos, &result), rf_leg_calc->joint_pos(rf_leg_stop_pos, &result),
@@ -238,12 +235,11 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<SetupState>(this));
     fsm.register_state(std::make_unique<StopState>(this));
 
-    control_timer = node->create_wall_timer(4ms, [this]() { fsm.run(); });
-    ui_update_timer   = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
+    control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
+    ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
 }
 
-Robot::~Robot() {
-}
+Robot::~Robot() {}
 
 robot_interfaces::msg::Leg Robot::signal_leg_calc(
     const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
@@ -526,22 +522,22 @@ void Robot::show_callback() {
     joint_display_msg.position[0] = lf_joint_pos[0];
     joint_display_msg.position[1] = lf_joint_pos[1];
     joint_display_msg.position[2] = lf_joint_pos[2];
-    joint_display_msg.position[3]=0.0;
+    joint_display_msg.position[3] = 0.0;
 
     joint_display_msg.position[4] = rf_joint_pos[0];
     joint_display_msg.position[5] = rf_joint_pos[1];
     joint_display_msg.position[6] = rf_joint_pos[2];
-    joint_display_msg.position[7]=0.0;
+    joint_display_msg.position[7] = 0.0;
 
-    joint_display_msg.position[8] = lb_joint_pos[0];
-    joint_display_msg.position[9] = lb_joint_pos[1];
+    joint_display_msg.position[8]  = lb_joint_pos[0];
+    joint_display_msg.position[9]  = lb_joint_pos[1];
     joint_display_msg.position[10] = lb_joint_pos[2];
-    joint_display_msg.position[11]=0.0;
+    joint_display_msg.position[11] = 0.0;
 
-    joint_display_msg.position[12]  = rb_joint_pos[0];
+    joint_display_msg.position[12] = rb_joint_pos[0];
     joint_display_msg.position[13] = rb_joint_pos[1];
     joint_display_msg.position[14] = rb_joint_pos[2];
-    joint_display_msg.position[15]=0.0;
+    joint_display_msg.position[15] = 0.0;
 
     joint_display_msg.header.stamp = node_->get_clock()->now();
     rviz_joint_publisher->publish(joint_display_msg);

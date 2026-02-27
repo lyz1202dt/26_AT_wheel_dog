@@ -32,11 +32,10 @@ private:
     double joint_torque_filter_gate{0.8};
     double joint_omega_filter_gate{0.8};
     double joint_kp[3],joint_kd[3];
+    double wheel_kd{0.0};
     std::ofstream csv_file_;
     bool csv_initialized_;
     std::chrono::steady_clock::time_point start_time_;
-    std::chrono::duration<double> soft_start_duration_{5.0};
-    std::chrono::steady_clock::time_point soft_start_start_time;
     int debug_cnt=0;
 };
 } // namespace dog_controller

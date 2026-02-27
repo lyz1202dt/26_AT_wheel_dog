@@ -130,6 +130,7 @@ public:
 
 
     // 共享参数
+    bool legs_data_updated{false};
     Vector3D comm_pos;
     Eigen::Vector3d lf_base_offset, rf_base_offset, lb_base_offset, rb_base_offset;
     double body_height{0.25};
