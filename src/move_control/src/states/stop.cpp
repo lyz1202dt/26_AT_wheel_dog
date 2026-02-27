@@ -4,10 +4,14 @@
 
 StopState::StopState(Robot* robot)
     : BaseState<Robot>("stop") {
-        
+        (void)robot;
     }
 
-bool StopState::enter(Robot* robot, const std::string& last_status) {}
+bool StopState::enter(Robot* robot, const std::string& last_status) {
+    (void)robot;
+    (void)last_status;
+    return true;
+}
 
 std::string StopState::update(Robot* robot) {
     Eigen::Vector3d lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
@@ -71,6 +75,8 @@ std::string StopState::update(Robot* robot) {
         rb_foot_exp_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), rb_foot_exp_force, robot->rb_leg_calc,
         &robot->rb_forward_torque);
     robot->legs_target_pub->publish(joints_target);
+
+    return "stop";
 }
 
 std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>

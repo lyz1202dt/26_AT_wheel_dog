@@ -2,9 +2,15 @@
 #include "core/robot.hpp"
 
 IdelState::IdelState(Robot* robot)
-    : BaseState<Robot>("idel") {}
+    : BaseState<Robot>("idel") {
+    (void)robot;
+}
 
-bool IdelState::enter(Robot* robot, const std::string& last_status) { return true; }
+bool IdelState::enter(Robot* robot, const std::string& last_status) {
+    (void)robot;
+    (void)last_status;
+    return true;
+}
 
 std::string IdelState::update(Robot* robot) {
     // TODO:更新状态
@@ -15,16 +21,15 @@ std::string IdelState::update(Robot* robot) {
 
     int result;
     robot_interfaces::msg::Robot joints_target;
-    auto lf_joint_target=robot->lf_leg_calc->joint_pos(lf_foot_exp_pos, &result);
-    auto rf_joint_target=robot->rf_leg_calc->joint_pos(rf_foot_exp_pos, &result);
-    auto lb_joint_target=robot->lb_leg_calc->joint_pos(lb_foot_exp_pos, &result);
-    auto rb_joint_target=robot->rb_leg_calc->joint_pos(rb_foot_exp_pos, &result);
-    for(int i=0;i<3;i++)
-    {
-        joints_target.legs[0].joints[i].rad=static_cast<float>(lf_joint_target[i]);
-        joints_target.legs[1].joints[i].rad=static_cast<float>(rf_joint_target[i]);
-        joints_target.legs[2].joints[i].rad=static_cast<float>(lb_joint_target[i]);
-        joints_target.legs[3].joints[i].rad=static_cast<float>(rb_joint_target[i]);
+    auto lf_joint_target = robot->lf_leg_calc->joint_pos(lf_foot_exp_pos, &result);
+    auto rf_joint_target = robot->rf_leg_calc->joint_pos(rf_foot_exp_pos, &result);
+    auto lb_joint_target = robot->lb_leg_calc->joint_pos(lb_foot_exp_pos, &result);
+    auto rb_joint_target = robot->rb_leg_calc->joint_pos(rb_foot_exp_pos, &result);
+    for (int i = 0; i < 3; i++) {
+        joints_target.legs[0].joints[i].rad = static_cast<float>(lf_joint_target[i]);
+        joints_target.legs[1].joints[i].rad = static_cast<float>(rf_joint_target[i]);
+        joints_target.legs[2].joints[i].rad = static_cast<float>(lb_joint_target[i]);
+        joints_target.legs[3].joints[i].rad = static_cast<float>(rb_joint_target[i]);
     }
     robot->legs_target_pub->publish(joints_target);
 

@@ -49,9 +49,9 @@ public:
 
 
     enum DogReqState { // 请求的机器人状态
-        DOG_REQ_IDEL,
-        DOG_REQ_STOP,
-        DOG_REQ_RUN
+        DOG_REQ_IDEL=0,
+        DOG_REQ_STOP=1,
+        DOG_REQ_RUN=2
     };
 
     static constexpr double WHEEL_RADIUS = 0.065;

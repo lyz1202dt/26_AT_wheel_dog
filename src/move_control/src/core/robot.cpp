@@ -242,6 +242,9 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     ui_update_timer   = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
 }
 
+Robot::~Robot() {
+}
+
 robot_interfaces::msg::Leg Robot::signal_leg_calc(
     const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
     std::shared_ptr<LegCalc> leg_calc, Vector3D* torque, double wheel_vel, double wheel_force) {

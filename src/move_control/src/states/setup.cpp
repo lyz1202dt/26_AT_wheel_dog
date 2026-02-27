@@ -3,11 +3,12 @@
 
 SetupState::SetupState(Robot* robot)
     : BaseState<Robot>("setup") {
-
-    }
+    (void)robot;
+}
 
 bool SetupState::enter(Robot* robot, const std::string& last_status) {
-    // TODO:进入空闲状态
+    (void)robot;
+    (void)last_status;
     return true;
 }
 
@@ -41,7 +42,7 @@ std::string SetupState::update(Robot* robot) {
     auto rf_target = rf_leg_step.get_target((now - setup_time).seconds(), success);
     auto lb_target = lb_leg_step.get_target((now - setup_time).seconds(), success);
     auto rb_target = rb_leg_step.get_target((now - setup_time).seconds(), success);
-    
+
     robot_interfaces::msg::Robot joints_target;
     for (int i = 0; i < 3; i++) {
         joints_target.legs[0].joints[i].rad = static_cast<float>(std::get<0>(lf_target)[i]);

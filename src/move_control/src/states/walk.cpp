@@ -21,6 +21,8 @@ WalkState::WalkState(Robot* robot)
     }
 
 bool WalkState::enter(Robot* robot, const std::string& last_status) {
+    (void)last_status;
+    
     calc_foot_vel(robot, Vector3D(robot->move_cmd.vx, robot->move_cmd.vy, robot->move_cmd.vz));
 
     auto now                = robot->node_->get_clock()->now();
@@ -47,6 +49,7 @@ bool WalkState::enter(Robot* robot, const std::string& last_status) {
     step1_flight_updated  = true;
     step2_flight_updated  = false;
     step2_support_updated = true;
+    return true;
 }
 
 std::string WalkState::update(Robot* robot) {
