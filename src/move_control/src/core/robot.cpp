@@ -210,10 +210,11 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     }
 
     kdl_parser::treeFromString(urdf_xml, tree); // 解析四条腿的KDL树结构
-    tree.getChain("body_link", "lf_link4", lf_leg_chain);
-    tree.getChain("body_link", "rf_link4", rf_leg_chain);
-    tree.getChain("body_link", "lb_link4", lb_leg_chain);
-    tree.getChain("body_link", "rb_link4", rb_leg_chain);
+    // 注意：只提取到 link3，不包括 link4（轮子），因为我们只需要 3 个关节的运动学
+    tree.getChain("body_link", "lf_link3", lf_leg_chain);
+    tree.getChain("body_link", "rf_link3", rf_leg_chain);
+    tree.getChain("body_link", "lb_link3", lb_leg_chain);
+    tree.getChain("body_link", "rb_link3", rb_leg_chain);
 
     // 初始化狗腿解算器，定义足端中性点位置
     lf_leg_calc             = std::make_shared<LegCalc>(lf_leg_chain);
