@@ -83,7 +83,6 @@ private:
     std::shared_ptr<VMC> rf_z_vmc, rf_x_vmc, rf_y_vmc;
     std::shared_ptr<VMC> lb_z_vmc, lb_x_vmc, lb_y_vmc;
     std::shared_ptr<VMC> rb_z_vmc, rb_x_vmc, rb_y_vmc;
-
     std::shared_ptr<SimpleVMC> roll_vmc,pitch_vmc;
 
     double direction_filter_gate{0.8};
@@ -145,8 +144,6 @@ private:
     double roll_balance_force_compen{0.0};
     double pitch_balance_force_compen{0.0};
     int rviz2_update_cnt{0};
-
-    Eigen::Vector3d lf_leg_stop_pos,rf_leg_stop_pos,lb_leg_stop_pos,rb_leg_stop_pos;
 
     sensor_msgs::msg::JointState joint_display_msg;
     Vector3D comm_pos;

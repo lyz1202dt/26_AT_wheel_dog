@@ -40,19 +40,17 @@ endif()
 
 add_executable(move_control
 src/main.cpp
-src/robot.cpp
+#src/robot.cpp
 
-src/fsm/fsm.cpp
+src/core/robot.cpp
 
 src/leg/leg_calc.cpp
 src/leg/step.cpp
 src/leg/vmc.cpp
 
-# src/states/idel.cpp
-# src/states/stand.cpp
-# src/states/walk.cpp
-# src/states/slide.cpp
-# src/states/cross_wall.cpp
+src/states/idel.cpp
+src/states/setup.cpp
+src/states/stop.cpp
 )
 
 add_executable(test_move_node
