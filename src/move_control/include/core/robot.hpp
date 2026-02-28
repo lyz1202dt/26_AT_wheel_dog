@@ -57,6 +57,7 @@ public:
     static constexpr double WHEEL_RADIUS = 0.065;
 
     void show_callback();
+
     Vector3D get_grivate_center_pose(
         const Vector3D& lf_joint_pos, const Vector3D& rf_joint_pos, const Vector3D& lb_joint_pos, const Vector3D& rb_joint_pos);
     robot_interfaces::msg::Leg signal_leg_calc(

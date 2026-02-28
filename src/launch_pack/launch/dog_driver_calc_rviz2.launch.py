@@ -27,7 +27,7 @@ def generate_launch_description():
         package="leg_driver",
         executable="leg_driver",
         parameters=[
-            {"publish_imu": True}  # 禁用leg_driver的IMU数据发布
+            {"publish_imu": True}
         ]
     )
 

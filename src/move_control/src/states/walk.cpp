@@ -263,7 +263,7 @@ std::string WalkState::update(Robot* robot) {
     return next_state;
 }
 
-std::tuple<Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d> calc_foot_vel(Robot* robot, Eigen::Vector3d exp_vel) {
+std::tuple<Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d> WalkState::calc_foot_vel(Robot* robot, Eigen::Vector3d exp_vel) {
     Vector3D v_body(exp_vel[0], exp_vel[1], 0.0);
     Vector3D omega(0.0, 0.0, exp_vel[2]);
 

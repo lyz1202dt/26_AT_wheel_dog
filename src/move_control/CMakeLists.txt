@@ -51,6 +51,8 @@ src/leg/vmc.cpp
 src/states/idel.cpp
 src/states/setup.cpp
 src/states/stop.cpp
+src/states/walk.cpp
+src/states/mpc.cpp
 )
 
 add_executable(test_move_node

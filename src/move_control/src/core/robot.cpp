@@ -5,10 +5,12 @@
 #include <chrono>
 #include <rclcpp/create_timer.hpp>
 
-
 #include "states/idel.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
+#include "states/mpc.hpp"
+#include "states/walk.hpp"
+
 
 using namespace std::chrono_literals;
 
@@ -231,10 +233,12 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
         lf_leg_calc->joint_pos(lf_leg_stop_pos, &result), rf_leg_calc->joint_pos(rf_leg_stop_pos, &result),
         lb_leg_calc->joint_pos(lb_leg_stop_pos, &result), rb_leg_calc->joint_pos(rb_leg_stop_pos, &result));
 
-    // TODO:注册状态机
+    //注册状态机
     fsm.register_state(std::make_unique<IdelState>(this));
     fsm.register_state(std::make_unique<SetupState>(this));
     fsm.register_state(std::make_unique<StopState>(this));
+    fsm.register_state(std::make_unique<WalkState>(this));
+    fsm.register_state(std::make_unique<MPCState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
