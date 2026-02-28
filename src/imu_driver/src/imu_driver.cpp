@@ -96,7 +96,7 @@ IMUDriver::~IMUDriver() {
 
 uint8_t IMUDriver::calc_crc8(const uint8_t* data, size_t len) {
     uint8_t crc8 = 0;
-	for (int i = 0; i < len; i++)
+	for (size_t i = 0; i < len; i++)
 	{
 		uint8_t value = data[i];
 		uint8_t new_index = crc8 ^ value;
@@ -107,7 +107,7 @@ uint8_t IMUDriver::calc_crc8(const uint8_t* data, size_t len) {
 
 uint16_t IMUDriver::calc_crc16(const uint8_t* data, size_t len) {
     uint16_t crc16 = 0;
-	for (int i = 0; i < len; i++)
+	for (size_t i = 0; i < len; i++)
 	{
 		uint8_t value = data[i];
 		crc16 = CRC16_Table[((crc16 >> 8) ^ value) & 0xff] ^ (crc16 << 8);

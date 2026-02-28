@@ -20,8 +20,8 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_pub_;
     
     // CRC calculation functions
-    uint8_t calc_crc8(const uint8_t* data, size_t len);
-    uint16_t calc_crc16(const uint8_t* data, size_t len);
+    static uint8_t calc_crc8(const uint8_t* data, size_t len);
+    static uint16_t calc_crc16(const uint8_t* data, size_t len);
     
     // Helper function to find valid packet
     bool find_packet_header(size_t& start_pos, size_t available);

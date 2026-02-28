@@ -53,6 +53,7 @@ src/states/setup.cpp
 src/states/stop.cpp
 src/states/walk.cpp
 src/states/mpc.cpp
+src/states/climb_steps.cpp
 )
 
 add_executable(test_move_node

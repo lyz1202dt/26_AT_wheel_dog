@@ -10,6 +10,7 @@
 #include "states/stop.hpp"
 #include "states/mpc.hpp"
 #include "states/walk.hpp"
+#include "states/climb_steps.hpp"
 
 
 using namespace std::chrono_literals;
@@ -195,6 +196,15 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
                 lb_joint_torque[i] = (double)msg.legs[2].joints[i].torque;
                 rb_joint_torque[i] = (double)msg.legs[3].joints[i].torque;
             }
+            lf_wheel_omega=(double)msg.legs[0].wheel.omega;
+            rf_wheel_omega=(double)msg.legs[1].wheel.omega;
+            lb_wheel_omega=(double)msg.legs[2].wheel.omega;
+            rb_wheel_omega=(double)msg.legs[3].wheel.omega;
+
+            lf_wheel_torque=(double)msg.legs[0].wheel.torque;
+            rf_wheel_torque=(double)msg.legs[1].wheel.torque;
+            lb_wheel_torque=(double)msg.legs[2].wheel.torque;
+            rb_wheel_torque=(double)msg.legs[3].wheel.torque;
             legs_data_updated=true;
         });
 
@@ -229,7 +239,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     rb_leg_calc->pos_offset = rb_base_offset;
 
     int result;
-    comm_pos = get_grivate_center_pose(
+    std::tie(comm_pos, robot_mass) = get_robot_mass_info(
         lf_leg_calc->joint_pos(lf_leg_stop_pos, &result), rf_leg_calc->joint_pos(rf_leg_stop_pos, &result),
         lb_leg_calc->joint_pos(lb_leg_stop_pos, &result), rb_leg_calc->joint_pos(rb_leg_stop_pos, &result));
 
@@ -239,6 +249,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<StopState>(this));
     fsm.register_state(std::make_unique<WalkState>(this));
     fsm.register_state(std::make_unique<MPCState>(this));
+    fsm.register_state(std::make_unique<ClimbStepstate>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
@@ -333,7 +344,7 @@ void Robot::quaternionLowPassFilter(double& w, double& x, double& y, double& z, 
     normalizeQuaternion(w, x, y, z);
 }
 
-Vector3D Robot::get_grivate_center_pose(
+std::tuple<Vector3D, double> Robot::get_robot_mass_info(
     const Vector3D& lf_joint_pos, const Vector3D& rf_joint_pos, const Vector3D& lb_joint_pos, const Vector3D& rb_joint_pos) {
     // 使用 KDL 计算全身质心（在 body_link 坐标系下）
     // 注意：这里用各 link 的 RigidBodyInertia 来做质量加权平均。
@@ -400,11 +411,11 @@ Vector3D Robot::get_grivate_center_pose(
     }
 
     if (mass_sum <= 1e-9) {
-        return Vector3D(0.0, 0.0, 0.0);
+        return std::make_tuple(Vector3D(0.0, 0.0, 0.0), 0.0);
     }
 
     const KDL::Vector com = com_sum / mass_sum;
-    return Vector3D(com.x(), com.y(), com.z());
+    return std::make_tuple(Vector3D(com.x(), com.y(), com.z()), mass_sum);
 }
 
 

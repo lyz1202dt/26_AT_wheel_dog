@@ -58,7 +58,7 @@ public:
 
     void show_callback();
 
-    Vector3D get_grivate_center_pose(
+    std::tuple<Vector3D, double> get_robot_mass_info(
         const Vector3D& lf_joint_pos, const Vector3D& rf_joint_pos, const Vector3D& lb_joint_pos, const Vector3D& rb_joint_pos);
     robot_interfaces::msg::Leg signal_leg_calc(
         const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
@@ -118,6 +118,8 @@ public:
     Eigen::Vector3d lb_joint_pos, lb_joint_vel, lb_joint_torque, lb_forward_torque;
     Eigen::Vector3d rb_joint_pos, rb_joint_vel, rb_joint_torque, rb_forward_torque;
     Eigen::Vector3d lf_leg_stop_pos, rf_leg_stop_pos, lb_leg_stop_pos, rb_leg_stop_pos;
+    double lf_wheel_omega{0.0},rf_wheel_omega{0.0},lb_wheel_omega{0.0},rb_wheel_omega{0.0};
+    double lf_wheel_torque{0.0},rf_wheel_torque{0.0},lb_wheel_torque{0.0},rb_wheel_torque{0.0};
 
     // 用户命令输入
     robot_interfaces::msg::MoveCmd move_cmd;
@@ -133,6 +135,7 @@ public:
     // 共享参数
     bool legs_data_updated{false};
     Vector3D comm_pos;
+    double robot_mass{1.0};
     Eigen::Vector3d lf_base_offset, rf_base_offset, lb_base_offset, rb_base_offset;
     double body_height{0.25};
     double robot_lf_grivate{0.0};
