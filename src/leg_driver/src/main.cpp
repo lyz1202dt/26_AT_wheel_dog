@@ -1,4 +1,4 @@
-#include "serialnode.hpp"
+#include "leg_driver/serialnode.hpp"
 
 int main(int argc,char**argv)
 {

@@ -29,8 +29,10 @@ private:
     int target_log_update_cnt{50};
     bool enable_control{false};
     void legsSubscribCb(const robot_interfaces::msg::Robot &msg);
-    void publishLegState(const MotorStatePack_t *legs_state);
-    void publishremote(const MotorStatePack_t* legs_remote);
+    void publishLegState(const DogStatePack0_t *legs_state);
+    void publishLegState(const DogStatePack1_t *legs_state);
+    void publishremote(const DogStatePack0_t* legs_remote);
+    void publishremote(const DogStatePack1_t* legs_remote);
 
     std::unique_ptr<CDCTrans> cdc_trans;
     std::unique_ptr<std::thread> usb_event_handle_thread;
@@ -53,6 +55,7 @@ private:
 
     rclcpp::Time base_time;
     bool runned{false};
+    bool publish_imu{true};
 };
 
 #endif

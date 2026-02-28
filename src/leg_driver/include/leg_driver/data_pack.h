@@ -64,13 +64,23 @@ typedef struct{
     float wheel_v;
 }Remotepack_t;
 
+//包类型为0——全功能包
 typedef struct{
     int pack_type;
     LegState_t leg[4];
     JY61_Typedef JY61;
     Remotepack_t remote;
     uint16_t motor_state;
-}MotorStatePack_t;
+}DogStatePack0_t;
+
+
+//包类型为1——无IMU数据/当前节点也不负责发布IMU数据
+typedef struct{
+    int pack_type;
+    LegState_t leg[4];
+    Remotepack_t remote;
+    uint16_t motor_state;
+}DogStatePack1_t;
 
 
 

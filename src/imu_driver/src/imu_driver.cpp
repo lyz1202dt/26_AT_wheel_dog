@@ -69,6 +69,15 @@ IMUDriver::IMUDriver(const std::shared_ptr<rclcpp::Node> node, const std::string
     }
 
     RCLCPP_INFO(node_->get_logger(), "成功打开设备:%s,波特率为%ld", port.c_str(), baudrate);
+    
+    // 创建ROS2发布器，使用与leg_driver相同的topic名称
+    imu_pose_pub_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "/imu_pose_sensor/pose", rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local());
+    imu_angular_vel_pub_ = node_->create_publisher<geometry_msgs::msg::Vector3>(
+        "/imu_imu_sensor/imu", rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local());
+    
+    RCLCPP_INFO(node_->get_logger(), "IMU数据发布器已创建");
+    
     serial_transmit_thread_ = std::make_unique<std::thread>([this]() { data_recv(); });
 
     // initialize sequence tracking
@@ -248,6 +257,13 @@ int IMUDriver::pack_parsing() {
         angular_velocity.setY(gyro_y);
         angular_velocity.setZ(gyro_z);
         
+        // 发布角速度数据
+        geometry_msgs::msg::Vector3 angular_vel_msg;
+        angular_vel_msg.x = gyro_x;
+        angular_vel_msg.y = gyro_y;
+        angular_vel_msg.z = gyro_z;
+        imu_angular_vel_pub_->publish(angular_vel_msg);
+        
         RCLCPP_INFO(node_->get_logger(), "角速度: X=%.3f, Y=%.3f, Z=%.3f rad/s", gyro_x, gyro_y, gyro_z);
         
     } else if (packet_id == MSG_QUAT_ORIEN) {
@@ -263,6 +279,16 @@ int IMUDriver::pack_parsing() {
         rotation.setX(q1);
         rotation.setY(q2);
         rotation.setZ(q3);
+        
+        // 发布姿态数据
+        geometry_msgs::msg::PoseStamped pose_msg;
+        pose_msg.header.stamp = node_->get_clock()->now();
+        pose_msg.header.frame_id = "imu_link";
+        pose_msg.pose.orientation.w = q0;
+        pose_msg.pose.orientation.x = q1;
+        pose_msg.pose.orientation.y = q2;
+        pose_msg.pose.orientation.z = q3;
+        imu_pose_pub_->publish(pose_msg);
         
         RCLCPP_INFO(node_->get_logger(), "四元数: W=%.3f, X=%.3f, Y=%.3f, Z=%.3f", q0, q1, q2, q3);
         

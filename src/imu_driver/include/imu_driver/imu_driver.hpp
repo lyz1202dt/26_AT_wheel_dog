@@ -5,6 +5,8 @@
 #include <serial/serial.h>
 #include <tf2/LinearMath/Quaternion.hpp>
 #include <tf2/LinearMath/Vector3.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
 
 class IMUDriver{
 public:
@@ -13,6 +15,10 @@ public:
     void data_recv();
     int pack_parsing();
 private:
+    // ROS2 Publishers
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr imu_pose_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_pub_;
+    
     // CRC calculation functions
     uint8_t calc_crc8(const uint8_t* data, size_t len);
     uint16_t calc_crc16(const uint8_t* data, size_t len);

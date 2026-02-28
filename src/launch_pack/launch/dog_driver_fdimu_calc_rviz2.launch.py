@@ -23,15 +23,22 @@ def generate_launch_description():
         executable="move_control"
     )
 
+    # leg_driver节点 - 禁用IMU数据发布，因为我们使用独立的imu_driver
     leg_driver = Node(
         package="leg_driver",
         executable="leg_driver",
         parameters=[
-            {"publish_imu": True}  # 禁用leg_driver的IMU数据发布
+            {"publish_imu": False}  # 禁用leg_driver的IMU数据发布
         ]
     )
 
-    rviz2_config_path=os.path.join(
+    # imu_driver节点 - 使用独立的IMU设备通过串口提供IMU数据
+    imu_driver = Node(
+        package="imu_driver",
+        executable="imu_driver"
+    )
+
+    rviz2_config_path = os.path.join(
         get_package_share_directory("launch_pack"),
         "rviz", "display_config.rviz"
     )
@@ -41,4 +48,5 @@ def generate_launch_description():
         executable="rviz2",
         arguments=["-d", rviz2_config_path]  # 可选，指定rviz配置文件
     )
-    return LaunchDescription([leg_driver,robot_state_pub, leg_calc, rviz2])
+    
+    return LaunchDescription([leg_driver, imu_driver, robot_state_pub, leg_calc, rviz2])
