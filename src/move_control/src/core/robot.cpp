@@ -8,7 +8,7 @@
 #include "states/idel.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
-#include "states/mpc2.hpp"
+//#include "states/mpc2.hpp"
 #include "states/walk.hpp"
 #include "states/climb_steps.hpp"
 
@@ -221,12 +221,22 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
         return;
     }
 
+    // 将四个轮子关节从continuous类型改为fixed类型，以便KDL能够求解
+    std::vector<std::string> wheel_joints = {"lf_joint4", "rf_joint4", "lb_joint4", "rb_joint4"};
+    for (const auto& joint_name : wheel_joints) {
+        std::string search_pattern = "<joint\n        name=\"" + joint_name + "\"\n        type=\"continuous\">";
+        std::string replace_pattern = "<joint\n        name=\"" + joint_name + "\"\n        type=\"fixed\">";
+        size_t pos = urdf_xml.find(search_pattern);
+        if (pos != std::string::npos) {
+            urdf_xml.replace(pos, search_pattern.length(), replace_pattern);
+        }
+    }
+
     kdl_parser::treeFromString(urdf_xml, tree); // 解析四条腿的KDL树结构
-    // 注意：只提取到 link3，不包括 link4（轮子），因为我们只需要 3 个关节的运动学
-    tree.getChain("body_link", "lf_link3", lf_leg_chain);
-    tree.getChain("body_link", "rf_link3", rf_leg_chain);
-    tree.getChain("body_link", "lb_link3", lb_leg_chain);
-    tree.getChain("body_link", "rb_link3", rb_leg_chain);
+    tree.getChain("body_link", "lf_link4", lf_leg_chain);
+    tree.getChain("body_link", "rf_link4", rf_leg_chain);
+    tree.getChain("body_link", "lb_link4", lb_leg_chain);
+    tree.getChain("body_link", "rb_link4", rb_leg_chain);
 
     // 初始化狗腿解算器，定义足端中性点位置
     lf_leg_calc             = std::make_shared<LegCalc>(lf_leg_chain);
@@ -248,7 +258,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<SetupState>(this));
     fsm.register_state(std::make_unique<StopState>(this));
     fsm.register_state(std::make_unique<WalkState>(this));
-    fsm.register_state(std::make_unique<MPC2State>(this));
+    //fsm.register_state(std::make_unique<MPC2State>(this));
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });

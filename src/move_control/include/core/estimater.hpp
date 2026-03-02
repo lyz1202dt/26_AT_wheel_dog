@@ -1,6 +1,6 @@
-#include <Eigen/Dense>
+#pragma once
 
-#include "core/robot.hpp"
+#include <Eigen/Dense>
 
 class Robot;
 

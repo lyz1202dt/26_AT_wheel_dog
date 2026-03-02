@@ -46,6 +46,7 @@ src/main.cpp
 #src/robot.cpp
 
 src/core/robot.cpp
+src/core/estimater.cpp
 
 src/leg/leg_calc.cpp
 src/leg/step.cpp
@@ -55,7 +56,7 @@ src/states/idel.cpp
 src/states/setup.cpp
 src/states/stop.cpp
 src/states/walk.cpp
-src/states/mpc2.cpp
+#src/states/mpc2.cpp
 src/states/climb_steps.cpp
 )
 

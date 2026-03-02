@@ -43,6 +43,8 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 
+class Estimater;
+
 class Robot {
 public:
     Robot(const std::shared_ptr<rclcpp::Node> node);
