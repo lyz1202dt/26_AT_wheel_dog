@@ -55,7 +55,7 @@
             <body name="lf_link4" pos="0.225 0 0.028">
               <inertial pos="-8.33838e-07 -2.32183e-06 -0.0137203" quat="0.578319 0.406861 -0.578357 0.406834" mass="0.65" diaginertia="0.000777285 0.000427673 0.000427673"/>
               <joint name="lf_joint4" pos="0 0 0" axis="0 0 1"/>
-              <geom type="mesh" rgba="0.941176 0.67451 0.117647 1" mesh="lf_link4"/>
+              <geom type="cylinder" size="0.0625 0.025" rgba="0.941176 0.67451 0.117647 1"/>
             </body>
           </body>
         </body>
@@ -75,7 +75,7 @@
             <body name="lb_link4" pos="0.225 0 0.028">
               <inertial pos="1.20294e-06 -1.88942e-06 -0.0136284" quat="0.340007 0.620009 -0.340028 0.619971" mass="0.65" diaginertia="0.000837967 0.000460072 0.000460072"/>
               <joint name="lb_joint4" pos="0 0 0" axis="0 0 1"/>
-              <geom type="mesh" rgba="0.941176 0.67451 0.117647 1" mesh="lb_link4"/>
+              <geom type="cylinder" size="0.0625 0.025" rgba="0.941176 0.67451 0.117647 1"/>
             </body>
           </body>
         </body>
@@ -95,7 +95,7 @@
             <body name="rf_link4" pos="0.225 0 0.028">
               <inertial pos="2.17473e-06 5.36337e-07 -0.0136284" quat="-0.0854743 0.701943 0.0854796 0.7019" mass="0.65" diaginertia="0.000837967 0.000460072 0.000460072"/>
               <joint name="rf_joint4" pos="0 0 0" axis="0 0 1"/>
-              <geom type="mesh" rgba="0.941176 0.67451 0.117647 1" mesh="rf_link4"/>
+              <geom type="cylinder" size="0.0625 0.025" rgba="0.941176 0.67451 0.117647 1"/>
             </body>
           </body>
         </body>
@@ -115,7 +115,7 @@
             <body name="rb_link4" pos="0.225 0 0.028">
               <inertial pos="1.99351e-08 -2.23938e-06 -0.0136284" quat="0.499985 0.500015 -0.500015 0.499985" mass="0.65" diaginertia="0.000837967 0.000460072 0.000460072"/>
               <joint name="rb_joint4" pos="0 0 0" axis="0 0 1"/>
-              <geom type="mesh" rgba="0.941176 0.67451 0.117647 1" mesh="rb_link4"/>
+              <geom type="cylinder" size="0.0625 0.025" rgba="0.941176 0.67451 0.117647 1"/>
             </body>
           </body>
         </body>
