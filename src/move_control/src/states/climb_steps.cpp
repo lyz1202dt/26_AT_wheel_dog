@@ -83,12 +83,12 @@ std::string ClimbStepstate::update(Robot* robot) {
         req_state = last_state;
     }
 
-    if (current_state == 0 || current_state == 1) // 不抬腿，轮子纯走
+    if (current_state == 0 || current_state == 1) //纯滑行态或准备上台阶态
     {
 
         current_state = req_state;
 
-        if (current_state == 1) {                 // 判定为需要进行自动上台阶
+        if (current_state == 1) {                 //需要进行自动上台阶
             // 测量足端受到的意外力，判定足端碰到台阶，需要抬腿上台阶
             if ((lf_cart_force[0] < foot_obstruct_gate&&foot_climbing_step == 0) || foot_climbing_step == 1) {
                 if (!foot_trajectory_updated) {

@@ -25,6 +25,9 @@ find_package(kdl_parser REQUIRED)
 find_package(orocos_kdl REQUIRED)
 
 find_package(Eigen3 REQUIRED PATHS /usr/include/eigen3)
+find_package(qpOASES REQUIRED)
+find_package(osqp REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -52,7 +55,7 @@ src/states/idel.cpp
 src/states/setup.cpp
 src/states/stop.cpp
 src/states/walk.cpp
-src/states/mpc.cpp
+src/states/mpc2.cpp
 src/states/climb_steps.cpp
 )
 
@@ -64,13 +67,19 @@ add_executable(test_move_node
 target_include_directories(move_control
 PUBLIC
 ${EIGEN3_INCLUDE_DIRS}
+${qpOASES_INCLUDE_DIR}
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>
+$<TARGET_PROPERTY:OsqpEigen::OsqpEigen,INTERFACE_INCLUDE_DIRECTORIES>
 )
+
+# Link osqp library
+target_link_libraries(move_control osqp::osqp)
+target_link_libraries(move_control OsqpEigen::OsqpEigen)
 
 target_link_libraries(${PROJECT_NAME} ${leg_driver_LIBRARIES})
 
-target_link_libraries(move_control Eigen3::Eigen)
+target_link_libraries(move_control Eigen3::Eigen ${qpOASES_LIBRARY})
 
 ament_target_dependencies(
   move_control

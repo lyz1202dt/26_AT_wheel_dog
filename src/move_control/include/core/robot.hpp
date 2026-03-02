@@ -3,6 +3,7 @@
 #include "fsm/fsm.hpp"
 #include "leg/leg_calc.hpp"
 #include "leg/vmc.hpp"
+#include "core/estimater.hpp"
 
 #include <Eigen/Dense>
 #include <Eigen/src/Core/Matrix.h>
@@ -98,6 +99,8 @@ public:
     tf2::Quaternion robot_rotation;           // 机器人姿态
     geometry_msgs::msg::Twist robot_velocity; // 机器人速度信息
     double direction_filter_gate{0.8};        // 方向滤波器参数
+
+    Estimater estimater;
 
 
     // 解算部分

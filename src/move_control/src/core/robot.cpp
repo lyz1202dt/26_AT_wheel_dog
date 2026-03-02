@@ -8,7 +8,7 @@
 #include "states/idel.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
-#include "states/mpc.hpp"
+#include "states/mpc2.hpp"
 #include "states/walk.hpp"
 #include "states/climb_steps.hpp"
 
@@ -248,7 +248,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<SetupState>(this));
     fsm.register_state(std::make_unique<StopState>(this));
     fsm.register_state(std::make_unique<WalkState>(this));
-    fsm.register_state(std::make_unique<MPCState>(this));
+    fsm.register_state(std::make_unique<MPC2State>(this));
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
