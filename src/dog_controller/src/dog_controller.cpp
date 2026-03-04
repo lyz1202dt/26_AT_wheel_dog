@@ -21,6 +21,7 @@ controller_interface::CallbackReturn DogController::on_init() {
     joint_kd[0]  = 0.0;
     joint_kd[1]  = 0.0;
     joint_kd[2]  = 0.0;
+    wheel_kd     = 0.0;
 
     auto node = get_node();
     node->declare_parameter("joint1_kp", 50.0);
@@ -100,12 +101,12 @@ controller_interface::return_type DogController::update(const rclcpp::Time& time
 
     for (size_t i = 0; i < joints_num; i++)                            // 从接口读取关节状态
     {
-        size_t leg_idx = i / 4;  // 腿部索引（0-3）
-        size_t joint_idx = i % 4;  // 关节在腿内的索引（0-3）
-        
-        if (joint_idx == 3)      // 第4个关节是轮子
+        size_t leg_idx   = i / 4;                                      // 腿部索引（0-3）
+        size_t joint_idx = i % 4;                                      // 关节在腿内的索引（0-3）
+
+        if (joint_idx == 3)                                            // 第4个关节是轮子
         {
-            wheel_kd = 0.2;
+            wheel_kd                                = 0.2;
             joints_state.legs[leg_idx].wheel.omega  = static_cast<float>(state_interfaces_[i * 3 + 1].get_value());
             joints_state.legs[leg_idx].wheel.torque = static_cast<float>(state_interfaces_[i * 3 + 2].get_value());
         } else {
@@ -131,22 +132,20 @@ controller_interface::return_type DogController::update(const rclcpp::Time& time
 
     for (size_t i = 0; i < joints_num; i++)                            // 将期望写入硬件层
     {
-        size_t leg_idx = i / 4;  // 腿部索引（0-3）
-        size_t joint_idx = i % 4;  // 关节在腿内的索引（0-3）
-        
+        size_t leg_idx   = i / 4;                                      // 腿部索引（0-3）
+        size_t joint_idx = i % 4;                                      // 关节在腿内的索引（0-3）
+
         double effort = 0.0;
-        if (joint_idx == 3) {  // 当前关节是轮子
+        if (joint_idx == 3) {                                          // 当前关节是轮子
             effort = wheel_kd * (joints_target.legs[leg_idx].wheel.omega - joints_state.legs[leg_idx].wheel.omega)
                    + joints_target.legs[leg_idx].wheel.torque;
             effort = std::clamp(effort, -2.0, 2.0);
         } else {
-            effort = joint_kp[joint_idx] * (joints_target.legs[leg_idx].joints[joint_idx].rad - joints_state.legs[leg_idx].joints[joint_idx].rad)
-                   + joint_kd[joint_idx] * (joints_target.legs[leg_idx].joints[joint_idx].omega - joints_state.legs[leg_idx].joints[joint_idx].omega);
+            effort =
+                joint_kp[joint_idx] * (joints_target.legs[leg_idx].joints[joint_idx].rad - joints_state.legs[leg_idx].joints[joint_idx].rad)
+                + joint_kd[joint_idx]
+                      * (joints_target.legs[leg_idx].joints[joint_idx].omega - joints_state.legs[leg_idx].joints[joint_idx].omega);
             effort = effort + (double)joints_target.legs[leg_idx].joints[joint_idx].torque;
-            // 当没有期望力矩时，添加被动阻尼以稳定站立（防止重力下滑）
-            if (joints_target.legs[leg_idx].joints[joint_idx].torque == 0.0f) {
-                effort = effort - 0.5 * joints_state.legs[leg_idx].joints[joint_idx].omega;
-            }
             effort = std::clamp(effort, -20.0, 20.0);
         }
         command_interfaces_[i].set_value(effort);

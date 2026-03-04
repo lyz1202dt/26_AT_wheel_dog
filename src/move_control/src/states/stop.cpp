@@ -15,9 +15,12 @@ bool StopState::enter(Robot* robot, const std::string& last_status) {
 
 std::string StopState::update(Robot* robot) {
     Eigen::Vector3d lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
-    Eigen::Vector3d lf_foot_exp_force, rf_foot_exp_force, lb_foot_exp_force, rb_foot_exp_force;
-    Eigen::Vector3d lf_foot_exp_vel, rf_foot_exp_vel, lb_foot_exp_vel, rb_foot_exp_vel;
-    Eigen::Vector3d lf_foot_exp_acc, rf_foot_exp_acc, lb_foot_exp_acc, rb_foot_exp_acc;
+    Eigen::Vector3d lf_foot_exp_force = Eigen::Vector3d::Zero(), rf_foot_exp_force = Eigen::Vector3d::Zero(), 
+                   lb_foot_exp_force = Eigen::Vector3d::Zero(), rb_foot_exp_force = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_foot_exp_vel = Eigen::Vector3d::Zero(), rf_foot_exp_vel = Eigen::Vector3d::Zero(), 
+                   lb_foot_exp_vel = Eigen::Vector3d::Zero(), rb_foot_exp_vel = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_foot_exp_acc = Eigen::Vector3d::Zero(), rf_foot_exp_acc = Eigen::Vector3d::Zero(), 
+                   lb_foot_exp_acc = Eigen::Vector3d::Zero(), rb_foot_exp_acc = Eigen::Vector3d::Zero();
 
     double cur_roll, cur_pitch, cur_yaw;
     tf2::Matrix3x3(robot->robot_rotation).getRPY(cur_roll, cur_pitch, cur_yaw);
@@ -76,6 +79,8 @@ std::string StopState::update(Robot* robot) {
         &robot->rb_forward_torque);
     robot->legs_target_pub->publish(joints_target);
 
+    if(robot->move_cmd.step_mode==2)    //如果请求移动，那么切到walk模式
+        return "walk";
     return "stop";
 }
 
@@ -89,7 +94,8 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>
     double pitch_offset_virtual_torque = robot->pitch_vmc->update(cur_pitch, robot->robot_velocity.angular.y, 0.0);
 
     // TODO:计算四个足端的期望的平衡虚拟力(pitch)
-    Eigen::Vector3d lf_force, rf_force, lb_force, rb_force;
+    Eigen::Vector3d lf_force = Eigen::Vector3d::Zero(), rf_force = Eigen::Vector3d::Zero(), 
+                    lb_force = Eigen::Vector3d::Zero(), rb_force = Eigen::Vector3d::Zero();
     lf_force[2] += pitch_offset_virtual_torque * robot->lf_leg_calc->pos_offset[0];
     rf_force[2] += pitch_offset_virtual_torque * robot->rf_leg_calc->pos_offset[0];
     lb_force[2] += pitch_offset_virtual_torque * robot->lb_leg_calc->pos_offset[0];

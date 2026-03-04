@@ -3,9 +3,11 @@
 
 #include "fsm/base_state.hpp"
 #include <memory>
+#include <rclcpp/logger.hpp>
 #include <unordered_map>
 #include <string>
 #include <iostream>
+#include <rclcpp/rclcpp.hpp>
 
 // 模板化FSM，Context是状态需要访问的上下文类型
 template<typename Context>
@@ -78,8 +80,7 @@ class FSM{
 
     protected:
     virtual void on_state_transition_failed(const std::string &current_state, const std::string &target_state) {
-        std::cout << "[FSM] State transition failed! Current state: " 
-                  << current_state << ", Target state: " << target_state << std::endl;
+        RCLCPP_INFO(rclcpp::get_logger("FSM"),"State transition failed! Current state: %s, Target state: %s",current_state.c_str(),target_state.c_str());
     }
 
     public:
