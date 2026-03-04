@@ -106,7 +106,6 @@ controller_interface::return_type DogController::update(const rclcpp::Time& time
 
         if (joint_idx == 3)                                            // 第4个关节是轮子
         {
-            wheel_kd                                = 0.2;
             joints_state.legs[leg_idx].wheel.omega  = static_cast<float>(state_interfaces_[i * 3 + 1].get_value());
             joints_state.legs[leg_idx].wheel.torque = static_cast<float>(state_interfaces_[i * 3 + 2].get_value());
         } else {

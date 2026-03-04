@@ -4,8 +4,8 @@
 
 StopState::StopState(Robot* robot)
     : BaseState<Robot>("stop") {
-        (void)robot;
-    }
+    (void)robot;
+}
 
 bool StopState::enter(Robot* robot, const std::string& last_status) {
     (void)robot;
@@ -15,19 +15,19 @@ bool StopState::enter(Robot* robot, const std::string& last_status) {
 
 std::string StopState::update(Robot* robot) {
     Eigen::Vector3d lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
-    Eigen::Vector3d lf_foot_exp_force = Eigen::Vector3d::Zero(), rf_foot_exp_force = Eigen::Vector3d::Zero(), 
-                   lb_foot_exp_force = Eigen::Vector3d::Zero(), rb_foot_exp_force = Eigen::Vector3d::Zero();
-    Eigen::Vector3d lf_foot_exp_vel = Eigen::Vector3d::Zero(), rf_foot_exp_vel = Eigen::Vector3d::Zero(), 
-                   lb_foot_exp_vel = Eigen::Vector3d::Zero(), rb_foot_exp_vel = Eigen::Vector3d::Zero();
-    Eigen::Vector3d lf_foot_exp_acc = Eigen::Vector3d::Zero(), rf_foot_exp_acc = Eigen::Vector3d::Zero(), 
-                   lb_foot_exp_acc = Eigen::Vector3d::Zero(), rb_foot_exp_acc = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_foot_exp_force = Eigen::Vector3d::Zero(), rf_foot_exp_force = Eigen::Vector3d::Zero(),
+                    lb_foot_exp_force = Eigen::Vector3d::Zero(), rb_foot_exp_force = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_foot_exp_vel = Eigen::Vector3d::Zero(), rf_foot_exp_vel = Eigen::Vector3d::Zero(),
+                    lb_foot_exp_vel = Eigen::Vector3d::Zero(), rb_foot_exp_vel = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_foot_exp_acc = Eigen::Vector3d::Zero(), rf_foot_exp_acc = Eigen::Vector3d::Zero(),
+                    lb_foot_exp_acc = Eigen::Vector3d::Zero(), rb_foot_exp_acc = Eigen::Vector3d::Zero();
 
     double cur_roll, cur_pitch, cur_yaw;
     tf2::Matrix3x3(robot->robot_rotation).getRPY(cur_roll, cur_pitch, cur_yaw);
     std::tie(lf_foot_exp_force, rf_foot_exp_force, lb_foot_exp_force, rb_foot_exp_force) = balance_force_calc(robot, cur_roll, cur_pitch);
 
     if ((cur_roll > 40 * 3.14 / 180 || cur_roll < -40 * 3.14 / 180 || cur_pitch > 50 * 3.14 / 180
-         || cur_pitch < -50 * 3.14 / 180)) // 机器人倾倒，切入IDEL状态
+         || cur_pitch < -50 * 3.14 / 180))     // 机器人倾倒，切入IDEL状态
         return "idel";
 
     lf_foot_exp_pos = robot->lf_leg_stop_pos;
@@ -79,8 +79,11 @@ std::string StopState::update(Robot* robot) {
         &robot->rb_forward_torque);
     robot->legs_target_pub->publish(joints_target);
 
-    if(robot->move_cmd.step_mode==2)    //如果请求移动，那么切到walk模式
+    auto step_mode = robot->move_cmd.step_mode;
+    if (step_mode == 2)                        // 如果请求移动，那么切到walk模式
         return "walk";
+    else if (step_mode == 3 || step_mode == 4) // 如果请求滑行或者上台阶，那么切到walk模式
+        return "climb_steps";
     return "stop";
 }
 
@@ -94,8 +97,8 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>
     double pitch_offset_virtual_torque = robot->pitch_vmc->update(cur_pitch, robot->robot_velocity.angular.y, 0.0);
 
     // TODO:计算四个足端的期望的平衡虚拟力(pitch)
-    Eigen::Vector3d lf_force = Eigen::Vector3d::Zero(), rf_force = Eigen::Vector3d::Zero(), 
-                    lb_force = Eigen::Vector3d::Zero(), rb_force = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_force = Eigen::Vector3d::Zero(), rf_force = Eigen::Vector3d::Zero(), lb_force = Eigen::Vector3d::Zero(),
+                    rb_force = Eigen::Vector3d::Zero();
     lf_force[2] += pitch_offset_virtual_torque * robot->lf_leg_calc->pos_offset[0];
     rf_force[2] += pitch_offset_virtual_torque * robot->rf_leg_calc->pos_offset[0];
     lb_force[2] += pitch_offset_virtual_torque * robot->lb_leg_calc->pos_offset[0];
