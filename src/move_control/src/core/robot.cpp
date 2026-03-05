@@ -24,19 +24,19 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     joint_display_msg.position.resize(16);
     joint_display_msg.name = joint_names;
 
-    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 0.2, 0.1, 4ms);
-    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 0.2, 0.1, 4ms);
-    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 0.2, 0.1, 4ms);
-    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 0.2, 0.1, 4ms);
+    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
+    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
+    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
+    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
 
-    lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
-    lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
-    rf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
-    rf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
-    lb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
-    lb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
-    rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
-    rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 0.2, 0.1, 4ms);
+    lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    rf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    rf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    lb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    lb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
 
     // 狗身平衡VMC
     roll_vmc  = std::make_shared<SimpleVMC>(-200.0, 0.0, 100);

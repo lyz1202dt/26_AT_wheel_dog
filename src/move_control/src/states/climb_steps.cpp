@@ -11,15 +11,57 @@ bool ClimbStepstate::enter(Robot* robot, const std::string& last_status) {
     RCLCPP_INFO(robot->node_->get_logger(), "进入滑行/上台阶模式");
     req_state     = 0;
     current_state = 0;
+
+    // Initialize time variables with the node's clock to ensure consistent time sources
+    auto now                    = robot->node_->get_clock()->now();
+    foot_climbing_time          = now;
+    last_foot_climbing_end_time = now;
+    main_phrase_start_time      = now;
+    slave_phrase_start_time     = now;
+    slave_phrase_stop_time      = now;
+
     return true;
 }
 
 std::string ClimbStepstate::update(Robot* robot) {
-    current_body_vel = 0.25 * (robot->lf_wheel_omega - robot->rf_wheel_omega + robot->lb_wheel_omega - robot->rb_wheel_omega)
-                     * robot->WHEEL_RADIUS;       // 估计机器人本体速度
+    // 估计机器人本体速度
+    // 如果某个足端处于摆动相(由foot_climbing_step指定), 则不应将该足端对应的轮子速度纳入速度估计
+    double vel_sum = 0.0;
+    int vel_count  = 0;
+    // 左前
+    if (foot_climbing_step != 1) {
+        vel_sum += robot->lf_wheel_omega;
+        vel_count++;
+    }
+    // 右前 (符号与原公式一致为负)
+    if (foot_climbing_step != 2) {
+        vel_sum -= robot->rf_wheel_omega;
+        vel_count++;
+    }
+    // 左后
+    if (foot_climbing_step != 3) {
+        vel_sum += robot->lb_wheel_omega;
+        vel_count++;
+    }
+    // 右后
+    if (foot_climbing_step != 4) {
+        vel_sum -= robot->rb_wheel_omega;
+        vel_count++;
+    }
+    if (vel_count > 0) {
+        current_body_vel = (vel_sum / static_cast<double>(vel_count)) * robot->WHEEL_RADIUS;
+    } else {
+        // 所有足端都在摆动相, 无法估计, 置零
+        current_body_vel = 0.0;
+    }
+
     double acc                    = exp_vel_kp * (robot->move_cmd.vx - current_body_vel);
     current_exp_vel               = current_exp_vel + acc * 0.002;
     double current_exp_foot_force = robot->robot_mass * acc * 0.25;
+
+    double lf_wheel_vel = current_exp_vel, rf_wheel_vel = -current_exp_vel, lb_wheel_vel = current_exp_vel, rb_wheel_vel = -current_exp_vel;
+    double lf_wheel_force = current_exp_foot_force, rf_wheel_force = -current_exp_foot_force, lb_wheel_force = current_exp_foot_force,
+           rb_wheel_force = -current_exp_foot_force;
 
 
     Eigen::Vector3d lf_foot_exp_pos = Eigen::Vector3d::Zero(), rf_foot_exp_pos = Eigen::Vector3d::Zero(),
@@ -51,7 +93,7 @@ std::string ClimbStepstate::update(Robot* robot) {
     std::tie(lf_foot_exp_force, rf_foot_exp_force, lb_foot_exp_force, rb_foot_exp_force) = balance_force_calc(robot, cur_roll, cur_pitch);
 
     if ((cur_roll > 40 * 3.14 / 180 || cur_roll < -40 * 3.14 / 180 || cur_pitch > 50 * 3.14 / 180
-         || cur_pitch < -50 * 3.14 / 180))        // 机器人倾倒，切入IDEL状态
+         || cur_pitch < -50 * 3.14 / 180))                 // 机器人倾倒，切入IDEL状态
         return "idel";
 
     lf_foot_exp_pos = robot->lf_leg_stop_pos;
@@ -76,127 +118,156 @@ std::string ClimbStepstate::update(Robot* robot) {
         Vector3D v_rb = v_body + omega.cross(robot->rb_leg_calc->pos_offset);
         rb_exp_vel    = Vector2D(v_rb[0], v_rb[1]);
 
-        if (!(current_state== 2||current_state== 3)) {      //当前不是在走步态的话，请求进入走步态调整方向
+        if (!(current_state == 2 || current_state == 3)) { // 当前不是在走步态的话，请求进入走步态调整方向
             last_state = req_state;
             req_state  = 2;
         }
-        RCLCPP_INFO(robot->node_->get_logger(), "请求走步态调整方向,state=%d",current_state);
+        RCLCPP_INFO(robot->node_->get_logger(), "请求走步态调整方向,state=%d", current_state);
     } else {
         req_state = last_state;
     }
 
-    if (current_state == 0 || current_state == 1) // 纯滑行态或准备上台阶态
+    if (current_state == 0 || current_state == 1)          // 纯滑行态或准备上台阶态
     {
         // 只有在没有请求走步态时，才根据step_mode设置状态
         if (req_state != 2) {
-            if (robot->move_cmd.step_mode == 4)
-                req_state = 1;
-            else if (robot->move_cmd.step_mode == 3)
+            if (robot->move_cmd.step_mode == 3)
                 req_state = 0;
+            else if (robot->move_cmd.step_mode == 4)
+                req_state = 1;
         }
 
         current_state = req_state;
 
-        if (current_state == 1) {                 // 需要进行自动上台阶
+        // RCLCPP_INFO(robot->node_->get_logger(),"当前x方向受力:%lf",lf_cart_force[0]);
+
+        if (current_state == 1) { // 需要进行自动上台阶
             // 测量足端受到的意外力，判定足端碰到台阶，需要抬腿上台阶
-            if ((lf_cart_force[0] < foot_obstruct_gate && foot_climbing_step == 0) || foot_climbing_step == 1) {
+            // 只有在一次抬腿完成后至少间隔1s，才允许检查并触发下一次抬腿
+            auto now                 = robot->node_->get_clock()->now();
+            bool allow_next_climbing = (now - last_foot_climbing_end_time).seconds() >= 1.0;
+            if ((lf_cart_force[0] > foot_obstruct_gate && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 1) {
                 if (!foot_trajectory_updated) {
+                    RCLCPP_INFO(robot->node_->get_logger(), "触发左前抬腿");
                     foot_trajectory_updated = true;
                     foot_climbing_step      = 1;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     lf_leg_step.update_flight_trajectory(
-                        robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), Vector3D(0.0, 0.0, 0.0), Vector3D(0.0, 0.0, 0.1),
-                        Vector2D(0.0, 0.0), 0.8, 1.3);
+                        lf_cart_pos, Vector3D(0.0, 0.0, 0.0), lf_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) =
                     lf_leg_step.get_target((robot->node_->get_clock()->now() - foot_climbing_time).seconds(), success);
+                lf_wheel_vel   = 1.0;
+                lf_wheel_force = 0.0;
                 if (!success) {
-                    foot_climbing_step      = 0;
-                    foot_trajectory_updated = false;
+                    foot_climbing_step          = 0;
+                    foot_trajectory_updated     = false;
+                    last_foot_climbing_end_time = now;      // 记录本次抬腿完成时间
                 }
-            } else if ((rf_cart_force[0] < foot_obstruct_gate && foot_climbing_step == 0) || foot_climbing_step == 2) {
+            } else if (
+                (rf_cart_force[0] > foot_obstruct_gate && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 2) {
                 if (!foot_trajectory_updated) {
+                    RCLCPP_INFO(robot->node_->get_logger(), "触发右前抬腿");
                     foot_trajectory_updated = true;
                     foot_climbing_step      = 2;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     rf_leg_step.update_flight_trajectory(
-                        robot->rf_leg_calc->foot_pos(robot->rf_joint_pos), Vector3D(0.0, 0.0, 0.0), Vector3D(0.0, 0.0, 0.1),
-                        Vector2D(0.0, 0.0), 0.8, 1.3);
+                        rf_cart_pos, Vector3D(0.0, 0.0, 0.0), rf_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) =
                     rf_leg_step.get_target((robot->node_->get_clock()->now() - foot_climbing_time).seconds(), success);
+                rf_wheel_vel   = -1.0;
+                rf_wheel_force = 0.0;
                 if (!success) {
-                    foot_climbing_step      = 0;
-                    foot_trajectory_updated = false;
+                    foot_climbing_step          = 0;
+                    foot_trajectory_updated     = false;
+                    last_foot_climbing_end_time = now;      // 记录本次抬腿完成时间
                 }
 
-            } else if ((lb_cart_force[0] < foot_obstruct_gate && foot_climbing_step == 0) || foot_climbing_step == 3) {
+            } else if (
+                (lb_cart_force[0] > foot_obstruct_gate && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 3) {
                 if (!foot_trajectory_updated) {
+                    RCLCPP_INFO(robot->node_->get_logger(), "触发左后抬腿");
                     foot_trajectory_updated = true;
                     foot_climbing_step      = 3;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     lb_leg_step.update_flight_trajectory(
-                        robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), Vector3D(0.0, 0.0, 0.0), Vector3D(0.0, 0.0, 0.1),
-                        Vector2D(0.0, 0.0), 0.8, 1.3);
+                        lb_cart_pos, Vector3D(0.0, 0.0, 0.0), lb_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) =
                     lb_leg_step.get_target((robot->node_->get_clock()->now() - foot_climbing_time).seconds(), success);
+                lb_wheel_vel   = 1.0;
+                lb_wheel_force = 0.0;
                 if (!success) {
-                    foot_climbing_step      = 0;
-                    foot_trajectory_updated = false;
+                    foot_climbing_step          = 0;
+                    foot_trajectory_updated     = false;
+                    last_foot_climbing_end_time = now;      // 记录本次抬腿完成时间
                 }
 
-            } else if ((rb_cart_force[0] < foot_obstruct_gate && foot_climbing_step == 0) || foot_climbing_step == 4) {
+            } else if (
+                (rb_cart_force[0] > foot_obstruct_gate && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 4) {
                 if (!foot_trajectory_updated) {
+                    RCLCPP_INFO(robot->node_->get_logger(), "触发右后抬腿");
                     foot_trajectory_updated = true;
                     foot_climbing_step      = 4;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     rb_leg_step.update_flight_trajectory(
-                        robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), Vector3D(0.0, 0.0, 0.0), Vector3D(0.0, 0.0, 0.1),
-                        Vector2D(0.0, 0.0), 0.8, 1.3);
+                        rb_cart_pos, Vector3D(0.0, 0.0, 0.0), rb_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) =
                     rb_leg_step.get_target((robot->node_->get_clock()->now() - foot_climbing_time).seconds(), success);
+                rb_wheel_vel   = -1.0;
+                rb_wheel_force = 0.0;
                 if (!success) {
-                    foot_climbing_step      = 0;
-                    foot_trajectory_updated = false;
+                    foot_climbing_step          = 0;
+                    foot_trajectory_updated     = false;
+                    last_foot_climbing_end_time = now;      // 记录本次抬腿完成时间
                 }
             }
         }
 
-        std::tie(lf_foot_exp_pos[2], lf_foot_exp_vel[2], lf_foot_exp_acc[2]) =
-            robot->lf_z_vmc->targetUpdate(lf_foot_exp_pos[2], lf_cart_pos[2], lf_foot_exp_vel[2], lf_cart_vel[2], -lf_cart_force[2]);
-        lf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lf_grivate);
 
-        std::tie(rf_foot_exp_pos[2], rf_foot_exp_vel[2], rf_foot_exp_acc[2]) =
-            robot->rf_z_vmc->targetUpdate(rf_foot_exp_pos[2], rf_cart_pos[2], rf_foot_exp_vel[2], rf_cart_vel[2], -rf_cart_force[2]);
-        rf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rf_grivate);
+        if (foot_climbing_step != 1) {      //处于摆动相的足端采用位置控制
+            std::tie(lf_foot_exp_pos[2], lf_foot_exp_vel[2], lf_foot_exp_acc[2]) =
+                robot->lf_z_vmc->targetUpdate(lf_foot_exp_pos[2], lf_cart_pos[2], lf_foot_exp_vel[2], lf_cart_vel[2], -lf_cart_force[2]);
+            lf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lf_grivate);
+        }
 
-        std::tie(lb_foot_exp_pos[2], lb_foot_exp_vel[2], lb_foot_exp_acc[2]) =
-            robot->lb_z_vmc->targetUpdate(lb_foot_exp_pos[2], lb_cart_pos[2], lb_foot_exp_vel[2], lb_cart_vel[2], -lb_cart_force[2]);
-        lb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lb_grivate);
+        if (foot_climbing_step != 2) {
+            std::tie(rf_foot_exp_pos[2], rf_foot_exp_vel[2], rf_foot_exp_acc[2]) =
+                robot->rf_z_vmc->targetUpdate(rf_foot_exp_pos[2], rf_cart_pos[2], rf_foot_exp_vel[2], rf_cart_vel[2], -rf_cart_force[2]);
+            rf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rf_grivate);
+        }
 
-        std::tie(rb_foot_exp_pos[2], rb_foot_exp_vel[2], rb_foot_exp_acc[2]) =
-            robot->rb_z_vmc->targetUpdate(rb_foot_exp_pos[2], rb_cart_pos[2], rb_foot_exp_vel[2], rb_cart_vel[2], -rb_cart_force[2]);
-        rb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rb_grivate);
+        if (foot_climbing_step != 3) {
+            std::tie(lb_foot_exp_pos[2], lb_foot_exp_vel[2], lb_foot_exp_acc[2]) =
+                robot->lb_z_vmc->targetUpdate(lb_foot_exp_pos[2], lb_cart_pos[2], lb_foot_exp_vel[2], lb_cart_vel[2], -lb_cart_force[2]);
+            lb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lb_grivate);
+        }
+
+        if (foot_climbing_step != 4) {
+            std::tie(rb_foot_exp_pos[2], rb_foot_exp_vel[2], rb_foot_exp_acc[2]) =
+                robot->rb_z_vmc->targetUpdate(rb_foot_exp_pos[2], rb_cart_pos[2], rb_foot_exp_vel[2], rb_cart_vel[2], -rb_cart_force[2]);
+            rb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rb_grivate);
+        }
 
 
         joints_target.legs[0] = robot->signal_leg_calc(
             lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, robot->lf_leg_calc, &robot->lf_forward_torque,
-            current_exp_vel, current_exp_foot_force);
+            lf_wheel_vel, lf_wheel_force);
         joints_target.legs[1] = robot->signal_leg_calc(
             rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force, robot->rf_leg_calc, &robot->rf_forward_torque,
-            -current_exp_vel, -current_exp_foot_force);
+            rf_wheel_vel, rf_wheel_force);
         joints_target.legs[2] = robot->signal_leg_calc(
             lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force, robot->lb_leg_calc, &robot->lb_forward_torque,
-            current_exp_vel, current_exp_foot_force);
+            lb_wheel_vel, lb_wheel_force);
         joints_target.legs[3] = robot->signal_leg_calc(
             rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, robot->rb_leg_calc, &robot->rb_forward_torque,
-            -current_exp_vel, -current_exp_foot_force);
+            rb_wheel_vel, rb_wheel_force);
 
     } else if (current_state == 2 || current_state == 3) {  // 抬腿调整方向
         if (current_state == 2) {
@@ -224,8 +295,8 @@ std::string ClimbStepstate::update(Robot* robot) {
             step1_flight_updated  = true;
             step2_flight_updated  = false;
             step2_support_updated = true;
-            
-            current_state  = 3;
+
+            current_state = 3;
         }
         auto now = robot->node_->get_clock()->now();
         // TODO:利用LegStep类的轨迹计算是否成功的判据来决定是否开启

@@ -30,7 +30,7 @@ controller_interface::CallbackReturn DogController::on_init() {
     node->declare_parameter("joint2_kd", 3.0);
     node->declare_parameter("joint3_kp", 50.0);
     node->declare_parameter("joint3_kd", 3.0);
-    node->declare_parameter("wheel_kd", 0.1);
+    node->declare_parameter("wheel_kd", 1.0);
     node->declare_parameter("record_lf_torque", false);
     node->declare_parameter("joint_torque_filter_gate", 0.8);
     node->declare_parameter("joint_omega_filter_gate", 0.8);

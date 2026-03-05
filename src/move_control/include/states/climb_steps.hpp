@@ -13,7 +13,7 @@ public:
     
 private:
 std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> balance_force_calc(Robot* robot, double cur_roll, double cur_pitch);
-    double exp_vel_kp{0.5};
+    double exp_vel_kp{3.0};
     double current_exp_vel{0.0};
     double current_body_vel{0.0};
     int req_state{0};
@@ -22,6 +22,7 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> b
     int foot_climbing_step{0};
     bool foot_trajectory_updated{false};
     rclcpp::Time foot_climbing_time;
+    rclcpp::Time last_foot_climbing_end_time;  // 最后一次完成抬腿的时间，用于冷却计时
     
 
     LegStep lf_leg_step, rf_leg_step, lb_leg_step, rb_leg_step;
@@ -38,6 +39,6 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> b
     double vy_dead_range{0.1};
     double vz_dead_range={0.1};
 
-    double foot_obstruct_gate{-2.0};
+    double foot_obstruct_gate{8.0};
 };
 
