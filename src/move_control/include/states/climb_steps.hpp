@@ -37,8 +37,10 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> b
     bool step2_flight_updated{false};
 
     double vy_dead_range{0.1};
-    double vz_dead_range={0.1};
+    double vz_dead_range{0.1};
 
     double foot_obstruct_gate{8.0};
+
+    double climb_step_finished_idel_time{0.5};
 };
 

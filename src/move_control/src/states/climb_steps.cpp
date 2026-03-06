@@ -3,6 +3,15 @@
 ClimbStepstate::ClimbStepstate(Robot* robot)
     : BaseState<Robot>("climb_steps") {
     (void)robot;
+
+    robot->node_->declare_parameter("climb_step_finished_idel_time",0.5);
+
+    robot->add_param_cb([this](const rclcpp::Parameter& param) {
+        if (param.get_name() == "climb_step_finished_idel_time") {
+            climb_step_finished_idel_time = param.as_double();
+        }
+        return true;
+    });
 }
 
 bool ClimbStepstate::enter(Robot* robot, const std::string& last_status) {
@@ -19,6 +28,8 @@ bool ClimbStepstate::enter(Robot* robot, const std::string& last_status) {
     main_phrase_start_time      = now;
     slave_phrase_start_time     = now;
     slave_phrase_stop_time      = now;
+
+    robot->node_->get_parameter("climb_step_finished_idel_time",climb_step_finished_idel_time);
 
     return true;
 }
@@ -145,7 +156,7 @@ std::string ClimbStepstate::update(Robot* robot) {
             // 测量足端受到的意外力，判定足端碰到台阶，需要抬腿上台阶
             // 只有在一次抬腿完成后至少间隔1s，才允许检查并触发下一次抬腿
             auto now                 = robot->node_->get_clock()->now();
-            bool allow_next_climbing = (now - last_foot_climbing_end_time).seconds() >= 1.0;
+            bool allow_next_climbing = (now - last_foot_climbing_end_time).seconds() >= climb_step_finished_idel_time;
             if ((lf_cart_force[0] > foot_obstruct_gate && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 1) {
                 if (!foot_trajectory_updated) {
                     RCLCPP_INFO(robot->node_->get_logger(), "触发左前抬腿");
@@ -153,7 +164,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     foot_climbing_step      = 1;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     lf_leg_step.update_flight_trajectory(
-                        lf_cart_pos, Vector3D(0.0, 0.0, 0.0), lf_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
+                        lf_cart_pos, Vector3D(0.0, 0.0, 0.0), lf_cart_pos + Vector3D(0.03, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) =
@@ -173,7 +184,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     foot_climbing_step      = 2;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     rf_leg_step.update_flight_trajectory(
-                        rf_cart_pos, Vector3D(0.0, 0.0, 0.0), rf_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
+                        rf_cart_pos, Vector3D(0.0, 0.0, 0.0), rf_cart_pos + Vector3D(0.03, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) =
@@ -194,7 +205,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     foot_climbing_step      = 3;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     lb_leg_step.update_flight_trajectory(
-                        lb_cart_pos, Vector3D(0.0, 0.0, 0.0), lb_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
+                        lb_cart_pos, Vector3D(0.0, 0.0, 0.0), lb_cart_pos + Vector3D(0.03, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) =
@@ -215,7 +226,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     foot_climbing_step      = 4;
                     foot_climbing_time      = robot->node_->get_clock()->now();
                     rb_leg_step.update_flight_trajectory(
-                        rb_cart_pos, Vector3D(0.0, 0.0, 0.0), rb_cart_pos + Vector3D(0.07, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
+                        rb_cart_pos, Vector3D(0.0, 0.0, 0.0), rb_cart_pos + Vector3D(0.03, 0.0, 0.08), Vector2D(0.0, 0.0), 1.0, 0.17);
                 }
                 bool success = false;
                 std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) =
