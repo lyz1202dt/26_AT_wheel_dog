@@ -11,6 +11,7 @@
 //#include "states/mpc2.hpp"
 #include "states/walk.hpp"
 #include "states/climb_steps.hpp"
+#include "states/cross_wall.hpp"
 
 
 using namespace std::chrono_literals;
@@ -260,6 +261,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<WalkState>(this));
     //fsm.register_state(std::make_unique<MPC2State>(this));
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
+    fsm.register_state(std::make_unique<Cross_WallState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
