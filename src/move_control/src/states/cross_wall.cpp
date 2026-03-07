@@ -309,10 +309,10 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_wheel_vel= 0.0;
 
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=18;     
+                cross_wall_stage=13;     
             }
         }
-        if(cross_wall_stage==18)
+        if(cross_wall_stage==13)
         {
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -330,10 +330,10 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.1,0.0,0.1),2.0);
                 
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=19;
+                cross_wall_stage=14;
             }
         }
-        if(cross_wall_stage==19)
+        if(cross_wall_stage==14)
         {
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -352,10 +352,10 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.1,-0.3,0.32),2.0);
                 lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.1,0.3,0.32),2.0);
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=20;
+                cross_wall_stage=15;
             }
         }
-        if(cross_wall_stage==20)
+        if(cross_wall_stage==15)
         {
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -376,10 +376,10 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.15,-0.15,0.32),2.0);
                 lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.15,0.15,0.32),2.0);
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=21;
+                cross_wall_stage=16;
             }
         }
-        if(cross_wall_stage==21)
+        if(cross_wall_stage==16)
         {
           bool success=false;
           double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -399,11 +399,11 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.34,-0.12,0.35),2.0);
                 lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.34,0.12,0.35),2.0);
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=22;
+                cross_wall_stage=17;
 
             }
         }
-        if(cross_wall_stage==22)
+        if(cross_wall_stage==17)
         {
           bool success=false;
           double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -425,11 +425,11 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.35,-0.06,0.30),2.0);
                 lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.35,0.06,0.30),2.0);
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=23;
+                cross_wall_stage=18;
 
             }
         }
-        if(cross_wall_stage==23)
+        if(cross_wall_stage==18)
         {
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -450,10 +450,10 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.22,0.0,-0.05),2.0);
                 lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.22,0.0,-0.05),2.0);
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=24;
+                cross_wall_stage=19;
             }
         }
-        if(cross_wall_stage==24)
+        if(cross_wall_stage==19)
         {
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -472,10 +472,10 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
                 lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=25;
+                cross_wall_stage=20;
             }
         }
-        if(cross_wall_stage==25)
+        if(cross_wall_stage==20)
         {
              bool success=false;
              double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
@@ -492,7 +492,7 @@ std::string Cross_WallState::update(Robot* robot){
                 rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
                 lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
                 cross_wall_stage_time=robot->node_->get_clock()->now();
-                cross_wall_stage=25;
+                cross_wall_stage=20;
                 return "stop";
             }
         }
