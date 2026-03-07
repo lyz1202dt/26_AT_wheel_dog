@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <robot_interfaces/msg/move_cmd.hpp>
+#include <robot_interfaces/msg/jump_cmd.hpp>
 #include <memory>
 #include <chrono>
 
@@ -35,8 +36,63 @@ public:
 
         this->declare_parameter<int>("step_type", 0);
 
-        // create publisher
+        // Jump parameters
+        auto ready_height_desc = rcl_interfaces::msg::ParameterDescriptor();
+        ready_height_desc.description = "Ready jump height (准备跳跃时的狗身高度)";
+        ready_height_desc.floating_point_range.resize(1);
+        ready_height_desc.floating_point_range[0].from_value = 0.0;
+        ready_height_desc.floating_point_range[0].to_value = 0.5;
+        this->declare_parameter<double>("ready_jump_height", 0.15, ready_height_desc);
+
+        auto finished_height_desc = rcl_interfaces::msg::ParameterDescriptor();
+        finished_height_desc.description = "Finished jump height (起跳动作完成时的狗身高度)";
+        finished_height_desc.floating_point_range.resize(1);
+        finished_height_desc.floating_point_range[0].from_value = 0.0;
+        finished_height_desc.floating_point_range[0].to_value = 0.5;
+        this->declare_parameter<double>("finished_jump_height", 0.25, finished_height_desc);
+
+        auto fly_height_desc = rcl_interfaces::msg::ParameterDescriptor();
+        fly_height_desc.description = "Fly height (飞行过程中足端到狗身的高度)";
+        fly_height_desc.floating_point_range.resize(1);
+        fly_height_desc.floating_point_range[0].from_value = 0.0;
+        fly_height_desc.floating_point_range[0].to_value = 0.5;
+        this->declare_parameter<double>("fly_height", 0.30, fly_height_desc);
+
+        auto touch_height_desc = rcl_interfaces::msg::ParameterDescriptor();
+        touch_height_desc.description = "Touch height (落地前用于缓冲的高度)";
+        touch_height_desc.floating_point_range.resize(1);
+        touch_height_desc.floating_point_range[0].from_value = 0.0;
+        touch_height_desc.floating_point_range[0].to_value = 0.5;
+        this->declare_parameter<double>("touch_height", 0.20, touch_height_desc);
+
+        auto t1_desc = rcl_interfaces::msg::ParameterDescriptor();
+        t1_desc.description = "Time t1 (从ready到finished的时间)";
+        t1_desc.floating_point_range.resize(1);
+        t1_desc.floating_point_range[0].from_value = 0.0;
+        t1_desc.floating_point_range[0].to_value = 5.0;
+        this->declare_parameter<double>("t1", 0.5, t1_desc);
+
+        auto t2_desc = rcl_interfaces::msg::ParameterDescriptor();
+        t2_desc.description = "Time t2 (从finished到fly的时间)";
+        t2_desc.floating_point_range.resize(1);
+        t2_desc.floating_point_range[0].from_value = 0.0;
+        t2_desc.floating_point_range[0].to_value = 5.0;
+        this->declare_parameter<double>("t2", 0.3, t2_desc);
+
+        auto t3_desc = rcl_interfaces::msg::ParameterDescriptor();
+        t3_desc.description = "Time t3 (从fly到touch的时间)";
+        t3_desc.floating_point_range.resize(1);
+        t3_desc.floating_point_range[0].from_value = 0.0;
+        t3_desc.floating_point_range[0].to_value = 5.0;
+        this->declare_parameter<double>("t3", 0.4, t3_desc);
+
+        auto trigger_desc = rcl_interfaces::msg::ParameterDescriptor();
+        trigger_desc.description = "Trigger jump command (触发跳跃命令)";
+        this->declare_parameter<bool>("trigger_jump", false, trigger_desc);
+
+        // create publishers
         pub_ = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd", 10);
+        jump_pub_ = this->create_publisher<robot_interfaces::msg::JumpCmd>("jump_cmd", 10);
 
         // set up parameter change callback: publish a new MoveCmd whenever parameters change
         param_cb_handle_ = this->add_on_set_parameters_callback(
@@ -79,6 +135,27 @@ public:
                             result.reason = "step_type must be an integer";
                             return result;
                         }
+                    } else if (p.get_name() == "ready_jump_height") {
+                        ready_jump_height_ = p.as_double();
+                    } else if (p.get_name() == "finished_jump_height") {
+                        finished_jump_height_ = p.as_double();
+                    } else if (p.get_name() == "fly_height") {
+                        fly_height_ = p.as_double();
+                    } else if (p.get_name() == "touch_height") {
+                        touch_height_ = p.as_double();
+                    } else if (p.get_name() == "t1") {
+                        t1_ = p.as_double();
+                    } else if (p.get_name() == "t2") {
+                        t2_ = p.as_double();
+                    } else if (p.get_name() == "t3") {
+                        t3_ = p.as_double();
+                    } else if (p.get_name() == "trigger_jump") {
+                        bool trigger = p.as_bool();
+                        if (trigger && !last_trigger_) {
+                            // Rising edge detected, publish jump command
+                            publish_jump_cmd();
+                        }
+                        last_trigger_ = trigger;
                     }
                 }
                 return result;
@@ -111,12 +188,43 @@ private:
                     step_type_, vx_, vy_, vz_);
     }
 
+    void publish_jump_cmd()
+    {
+        robot_interfaces::msg::JumpCmd msg;
+        msg.stamp = this->now();
+        msg.v0 = 0.0;  // Initial velocity
+        msg.ready_jump_height = ready_jump_height_;
+        msg.finished_jump_height = finished_jump_height_;
+        msg.fly_height = fly_height_;
+        msg.touch_height = touch_height_;
+        msg.t1 = t1_;
+        msg.t2 = t2_;
+        msg.t3 = t3_;
+        
+        jump_pub_->publish(msg);
+        RCLCPP_INFO(this->get_logger(), 
+                    "Published JumpCmd: ready=%.3f finished=%.3f fly=%.3f touch=%.3f t1=%.3f t2=%.3f t3=%.3f",
+                    ready_jump_height_, finished_jump_height_, fly_height_, touch_height_, 
+                    t1_, t2_, t3_);
+    }
+
     rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr pub_;
+    rclcpp::Publisher<robot_interfaces::msg::JumpCmd>::SharedPtr jump_pub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
     rclcpp::TimerBase::SharedPtr update_timer;
 
     float vx_{0.0f}, vy_{0.0f}, vz_{0.0f};
     uint32_t step_type_{0};
+    
+    // Jump parameters
+    double ready_jump_height_{0.15};
+    double finished_jump_height_{0.25};
+    double fly_height_{0.30};
+    double touch_height_{0.20};
+    double t1_{0.5};
+    double t2_{0.3};
+    double t3_{0.4};
+    bool last_trigger_{false};
 };
 
 int main(int argc,char** argv)

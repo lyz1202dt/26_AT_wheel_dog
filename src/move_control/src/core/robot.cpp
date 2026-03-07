@@ -3,14 +3,18 @@
 #include "leg/step.hpp"
 
 #include <chrono>
+#include <memory>
 #include <rclcpp/create_timer.hpp>
 
 #include "states/idel.hpp"
+#include "states/jump.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
 //#include "states/mpc2.hpp"
 #include "states/walk.hpp"
 #include "states/climb_steps.hpp"
+#include "states/jump.hpp"
+#include "states/amble.hpp"
 
 
 using namespace std::chrono_literals;
@@ -260,6 +264,9 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<WalkState>(this));
     //fsm.register_state(std::make_unique<MPC2State>(this));
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
+    fsm.register_state(std::make_unique<JumpState>(this));
+    fsm.register_state(std::make_unique<AmbleState>(this));
+    fsm.register_state(std::make_unique<JumpState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
