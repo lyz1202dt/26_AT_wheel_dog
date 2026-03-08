@@ -1,5 +1,5 @@
 <mujoco model="dog scene">
-  <option gravity="0 0 -9.81"/>
+  <option gravity="0 0 -0.81"/>
   <include file="dog.xml"/>
 
   <statistic center="0 0 0.8" extent="0.8"/>

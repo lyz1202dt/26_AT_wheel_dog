@@ -15,12 +15,13 @@
 #include "states/climb_steps.hpp"
 #include "states/jump.hpp"
 #include "states/amble.hpp"
+#include "states/force.hpp"
 
 
 using namespace std::chrono_literals;
 
 Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
-    : fsm(this, "setup") {
+    : fsm(this, "force") {
     node_ = node;
 
     // 初始化参数回调vector
@@ -28,19 +29,19 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     joint_display_msg.position.resize(16);
     joint_display_msg.name = joint_names;
 
-    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
-    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
-    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
-    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
+    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
 
-    lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    lb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    lb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    rf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    rf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    lb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    lb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
 
     // 狗身平衡VMC
     roll_vmc  = std::make_shared<SimpleVMC>(-200.0, 0.0, 100);
@@ -138,8 +139,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->get_parameter("rb_dx", rb_dx_temp);
     lf_base_offset << 0.25 + lf_dx_temp, 0.21, -body_height;
     rf_base_offset << 0.25 + rf_dx_temp, -0.21, -body_height;
-    lb_base_offset << -0.22 + lb_dx_temp, 0.21, -body_height;
-    rb_base_offset << -0.22 + rb_dx_temp, -0.21, -body_height;
+    lb_base_offset << -0.25 + lb_dx_temp, 0.21, -body_height;
+    rb_base_offset << -0.25 + rb_dx_temp, -0.21, -body_height;
     
 
     robot_rotation.setRPY(0.0, 0.0, 0.0);
@@ -266,7 +267,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
-    fsm.register_state(std::make_unique<JumpState>(this));
+    fsm.register_state(std::make_unique<ForceState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));

@@ -59,6 +59,11 @@ std::string AmbleState::update(Robot* robot) {
     auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
     auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
+    lf_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_lf_grivate);
+    rf_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_rf_grivate);
+    lb_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_lb_grivate);
+    rb_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_rb_grivate);
+
     // 位控站立状态
     if (step_state == 0) {
         if (std::abs(robot->move_cmd.vx) > 0.1 || std::abs(robot->move_cmd.vy) > 0.1) {

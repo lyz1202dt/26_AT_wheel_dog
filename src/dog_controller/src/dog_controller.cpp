@@ -24,12 +24,12 @@ controller_interface::CallbackReturn DogController::on_init() {
     wheel_kd     = 0.0;
 
     auto node = get_node();
-    node->declare_parameter("joint1_kp", 50.0);
-    node->declare_parameter("joint1_kd", 3.0);
-    node->declare_parameter("joint2_kp", 50.0);
-    node->declare_parameter("joint2_kd", 3.0);
-    node->declare_parameter("joint3_kp", 50.0);
-    node->declare_parameter("joint3_kd", 3.0);
+    node->declare_parameter("joint1_kp", 0.0);
+    node->declare_parameter("joint1_kd", 0.0);
+    node->declare_parameter("joint2_kp", 0.0);
+    node->declare_parameter("joint2_kd", 0.0);
+    node->declare_parameter("joint3_kp", 0.0);
+    node->declare_parameter("joint3_kd", 0.0);
     node->declare_parameter("wheel_kd", 0.2);
     node->declare_parameter("record_lf_torque", false);
     node->declare_parameter("joint_torque_filter_gate", 0.8);
