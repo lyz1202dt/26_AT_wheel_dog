@@ -18,6 +18,8 @@ public:
 private:
     Vector3D get_next_available_pos(Vector3D leg_offset,Vector3D current_pos);
 
+    Vector2D mass_center_pos;
+    double mass;
     Vector3D lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
     Vector3D lf_foot_exp_force, rf_foot_exp_force, lb_foot_exp_force, rb_foot_exp_force;
     Vector3D lf_foot_exp_vel, rf_foot_exp_vel, lb_foot_exp_vel, rb_foot_exp_vel;
