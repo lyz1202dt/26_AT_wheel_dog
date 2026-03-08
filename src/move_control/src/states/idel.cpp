@@ -9,7 +9,7 @@ IdelState::IdelState(Robot* robot)
 bool IdelState::enter(Robot* robot, const std::string& last_status) {
     (void)robot;
     (void)last_status;
-    debug_cnt=0;
+    debug_cnt = 0;
     return true;
 }
 
@@ -31,7 +31,25 @@ std::string IdelState::update(Robot* robot) {
         joints_target.legs[1].joints[i].rad = static_cast<float>(rf_joint_target[i]);
         joints_target.legs[2].joints[i].rad = static_cast<float>(lb_joint_target[i]);
         joints_target.legs[3].joints[i].rad = static_cast<float>(rb_joint_target[i]);
+
+        joints_target.legs[0].joints[i].omega = 0.0f;
+        joints_target.legs[1].joints[i].omega = 0.0f;
+        joints_target.legs[2].joints[i].omega = 0.0f;
+        joints_target.legs[3].joints[i].omega = 0.0f;
+
+        joints_target.legs[0].joints[i].torque = 0.0f;
+        joints_target.legs[1].joints[i].torque = 0.0f;
+        joints_target.legs[2].joints[i].torque = 0.0f;
+        joints_target.legs[3].joints[i].torque = 0.0f;
     }
+    joints_target.legs[0].wheel.omega  = 0.0f;
+    joints_target.legs[1].wheel.omega  = 0.0f;
+    joints_target.legs[2].wheel.omega  = 0.0f;
+    joints_target.legs[3].wheel.omega  = 0.0f;
+    joints_target.legs[0].wheel.torque = 0.0f;
+    joints_target.legs[1].wheel.torque = 0.0f;
+    joints_target.legs[2].wheel.torque = 0.0f;
+    joints_target.legs[3].wheel.torque = 0.0f;
     robot->legs_target_pub->publish(joints_target);
     if (robot->move_cmd.step_mode == 1) // 如果希望跳转到STOP状态（VMC站立），那么跳转
         return "stop";
