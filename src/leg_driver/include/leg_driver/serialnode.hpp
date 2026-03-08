@@ -10,6 +10,7 @@
 #include "sensor_msgs/msg/imu.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include <robot_interfaces/msg/move_cmd.hpp>
+#include <robot_interfaces/msg/robot_target.hpp>
 #include "kalman_filter.hpp"
 
 
@@ -28,7 +29,7 @@ private:
     int state_log_update_cnt{50};
     int target_log_update_cnt{50};
     bool enable_control{false};
-    void legsSubscribCb(const robot_interfaces::msg::Robot &msg);
+    void legsSubscribCb(const robot_interfaces::msg::RobotTarget &msg);
     void publishLegState(const DogStatePack0_t *legs_state);
     void publishLegState(const DogStatePack1_t *legs_state);
     void publishremote(const DogStatePack0_t* legs_remote);
@@ -38,7 +39,7 @@ private:
     std::unique_ptr<std::thread> usb_event_handle_thread;
     MotorTargetPack_t legs_target;
     rclcpp::Publisher<robot_interfaces::msg::Robot>::SharedPtr robot_pub;
-    rclcpp::Subscription<robot_interfaces::msg::Robot>::SharedPtr robot_sub;
+    rclcpp::Subscription<robot_interfaces::msg::RobotTarget>::SharedPtr robot_sub;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr imu_pub;
     rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_pub;
     rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr remote_pub;

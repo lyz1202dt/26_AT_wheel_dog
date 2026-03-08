@@ -235,7 +235,7 @@ std::string JumpState::update(Robot* robot) {
     lb_wheel_vel = current_exp_vel;
     rb_wheel_vel = -current_exp_vel;
 
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
     joints_target.legs[0] = robot->signal_leg_calc(
         lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, robot->lf_leg_calc, &robot->lf_forward_torque, lf_wheel_vel,
         lf_wheel_force);

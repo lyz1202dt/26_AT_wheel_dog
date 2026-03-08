@@ -113,7 +113,7 @@ std::string ClimbStepstate::update(Robot* robot) {
     rb_foot_exp_pos = robot->rb_leg_stop_pos;
 
 
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
 
 
     Vector2D lf_exp_vel, rf_exp_vel, lb_exp_vel, rb_exp_vel;

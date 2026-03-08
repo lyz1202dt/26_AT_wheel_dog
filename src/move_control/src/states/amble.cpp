@@ -409,7 +409,7 @@ std::string AmbleState::update(Robot* robot) {
         }
     }
 
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
     joints_target.legs[0] = robot->signal_leg_calc(
         lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, robot->lf_leg_calc, &robot->lf_forward_torque);
     joints_target.legs[1] = robot->signal_leg_calc(

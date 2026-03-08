@@ -5,6 +5,7 @@
 #include <memory>
 #include <rclcpp/logging.hpp>
 #include <robot_interfaces/msg/robot.hpp>
+#include <robot_interfaces/msg/robot_target.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <thread>
 
@@ -129,7 +130,7 @@ SerialNode::SerialNode()
             "/imu_imu_sensor/imu", rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local());
     }
 
-    robot_sub = this->create_subscription<robot_interfaces::msg::Robot>(
+    robot_sub = this->create_subscription<robot_interfaces::msg::RobotTarget>(
         "legs_target", 10, std::bind(&SerialNode::legsSubscribCb, this, std::placeholders::_1));
     remote_pub = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd", 10);
 
@@ -273,14 +274,14 @@ void SerialNode::publishLegState(const DogStatePack1_t* legs_state) {
     robot_pub->publish(msg);
 }
 
-void SerialNode::legsSubscribCb(const robot_interfaces::msg::Robot& msg) {
+void SerialNode::legsSubscribCb(const robot_interfaces::msg::RobotTarget& msg) {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 3; j++) {
             legs_target.leg[i].joint[j].rad    = msg.legs[i].joints[j].rad;
             legs_target.leg[i].joint[j].omega  = msg.legs[i].joints[j].omega;
             legs_target.leg[i].joint[j].torque = msg.legs[i].joints[j].torque;
-            legs_target.leg[i].joint[j].kp     = (float)joint_kp[j];
-            legs_target.leg[i].joint[j].kd     = (float)joint_kd[j];
+            legs_target.leg[i].joint[j].kp     = msg.legs[i].joints[j].kp;
+            legs_target.leg[i].joint[j].kd     = msg.legs[i].joints[j].kd;
         }
         legs_target.leg[i].wheel.omega  = msg.legs[i].wheel.omega;
         legs_target.leg[i].wheel.torque = msg.legs[i].wheel.torque;

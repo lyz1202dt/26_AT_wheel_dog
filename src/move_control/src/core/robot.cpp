@@ -21,7 +21,7 @@
 using namespace std::chrono_literals;
 
 Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
-    : fsm(this, "force") {
+    : fsm(this, "idel") {
     node_ = node;
 
     // 初始化参数回调vector
@@ -151,7 +151,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     robot_tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
 
     // 发布机器人关节期望
-    legs_target_pub = node_->create_publisher<robot_interfaces::msg::Robot>("legs_target", 10);
+    legs_target_pub = node_->create_publisher<robot_interfaces::msg::RobotTarget>("legs_target", 10);
 
     // 订阅机器人位姿信息
     // pose_sensor 发布的是 PoseStamped（见 mujoco_ros2_control/src/pose_sensor.cpp），这里必须用 PoseStamped 才能收到消息
@@ -275,9 +275,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
 
 Robot::~Robot() {}
 
-robot_interfaces::msg::Leg Robot::signal_leg_calc(
+robot_interfaces::msg::LegTarget Robot::signal_leg_calc(
     const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
-    std::shared_ptr<LegCalc> leg_calc, Vector3D* torque, double wheel_vel, double wheel_force) {
+    std::shared_ptr<LegCalc> leg_calc, Vector3D* torque, double wheel_vel, double wheel_force,
+    double kp1, double kd1, double kp2, double kd2, double kp3, double kd3) {
     Vector3D joint_pos, joint_omega, joint_torque;
 
     int result;
@@ -286,12 +287,25 @@ robot_interfaces::msg::Leg Robot::signal_leg_calc(
     joint_torque = leg_calc->joint_torque_foot_force(joint_pos, exp_cart_force);
     joint_torque += leg_calc->joint_torque_dynamic(joint_pos, joint_omega, exp_cart_acc);
 
-    robot_interfaces::msg::Leg leg;
-    for (int i = 0; i < 3; i++) {
-        leg.joints[i].rad    = static_cast<float>(joint_pos[i]);
-        leg.joints[i].omega  = static_cast<float>(joint_omega[i]);
-        leg.joints[i].torque = static_cast<float>(joint_torque[i]);
-    }
+    robot_interfaces::msg::LegTarget leg;
+    leg.joints[0].rad    = static_cast<float>(joint_pos[0]);
+    leg.joints[0].omega  = static_cast<float>(joint_omega[0]);
+    leg.joints[0].torque = static_cast<float>(joint_torque[0]);
+    leg.joints[0].kp     = static_cast<float>(kp1);
+    leg.joints[0].kd     = static_cast<float>(kd1);
+    
+    leg.joints[1].rad    = static_cast<float>(joint_pos[1]);
+    leg.joints[1].omega  = static_cast<float>(joint_omega[1]);
+    leg.joints[1].torque = static_cast<float>(joint_torque[1]);
+    leg.joints[1].kp     = static_cast<float>(kp2);
+    leg.joints[1].kd     = static_cast<float>(kd2);
+    
+    leg.joints[2].rad    = static_cast<float>(joint_pos[2]);
+    leg.joints[2].omega  = static_cast<float>(joint_omega[2]);
+    leg.joints[2].torque = static_cast<float>(joint_torque[2]);
+    leg.joints[2].kp     = static_cast<float>(kp3);
+    leg.joints[2].kd     = static_cast<float>(kd3);
+    
     leg.wheel.omega  = static_cast<float>(wheel_vel / WHEEL_RADIUS);
     leg.wheel.torque = static_cast<float>(wheel_force * WHEEL_RADIUS);
     *torque          = joint_torque;

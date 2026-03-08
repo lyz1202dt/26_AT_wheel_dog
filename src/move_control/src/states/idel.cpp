@@ -21,7 +21,7 @@ std::string IdelState::update(Robot* robot) {
     auto rb_foot_exp_pos = robot->rb_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
 
     int result;
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
     auto lf_joint_target = robot->lf_leg_calc->joint_pos(Vector3D(0.0, 0.0, 0.0), &result);
     auto rf_joint_target = robot->rf_leg_calc->joint_pos(Vector3D(0.0, 0.0, 0.0), &result);
     auto lb_joint_target = robot->lb_leg_calc->joint_pos(Vector3D(0.0, 0.0, 0.0), &result);
@@ -41,6 +41,16 @@ std::string IdelState::update(Robot* robot) {
         joints_target.legs[1].joints[i].torque = 0.0f;
         joints_target.legs[2].joints[i].torque = 0.0f;
         joints_target.legs[3].joints[i].torque = 0.0f;
+
+        joints_target.legs[0].joints[i].kp = 50.0f;
+        joints_target.legs[1].joints[i].kp = 50.0f;
+        joints_target.legs[2].joints[i].kp = 50.0f;
+        joints_target.legs[3].joints[i].kp = 50.0f;
+
+        joints_target.legs[0].joints[i].kd = 3.0f;
+        joints_target.legs[1].joints[i].kd = 3.0f;
+        joints_target.legs[2].joints[i].kd = 3.0f;
+        joints_target.legs[3].joints[i].kd = 3.0f;
     }
     joints_target.legs[0].wheel.omega  = 0.0f;
     joints_target.legs[1].wheel.omega  = 0.0f;

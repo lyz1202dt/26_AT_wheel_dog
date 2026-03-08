@@ -247,7 +247,7 @@ std::string WalkState::update(Robot* robot) {
             robot->lb_y_vmc->targetUpdate(lb_foot_exp_pos[1], lb_cart_pos[1], lb_foot_exp_vel[1], lb_cart_vel[1], -lb_cart_force[1]);
     }
 
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
     joints_target.legs[0] = robot->signal_leg_calc(
         lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, robot->lf_leg_calc, &robot->lf_forward_torque);
     joints_target.legs[1] = robot->signal_leg_calc(

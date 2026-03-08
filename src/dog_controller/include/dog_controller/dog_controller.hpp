@@ -1,4 +1,5 @@
 #include "robot_interfaces/msg/robot.hpp"
+#include "robot_interfaces/msg/robot_target.hpp"
 #include <controller_interface/controller_interface.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/subscription.hpp>
@@ -22,16 +23,15 @@ public:
 
 private:
     rclcpp::Publisher<robot_interfaces::msg::Robot>::SharedPtr state_publisher;
-    rclcpp::Subscription<robot_interfaces::msg::Robot>::SharedPtr target_subscriber;
+    rclcpp::Subscription<robot_interfaces::msg::RobotTarget>::SharedPtr target_subscriber;
     std::vector<std::string> joints_name_;
     rclcpp_lifecycle::LifecycleNode::OnSetParametersCallbackHandle::SharedPtr param_cb_;
 
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
     robot_interfaces::msg::Robot joints_state;
 
     double joint_torque_filter_gate{0.8};
     double joint_omega_filter_gate{0.8};
-    double joint_kp[3],joint_kd[3];
     double wheel_kd{0.0};
     std::ofstream csv_file_;
     bool csv_initialized_;

@@ -44,13 +44,41 @@ std::string SetupState::update(Robot* robot) {
     auto lb_target = lb_leg_step.get_target((now - setup_time).seconds(), success);
     auto rb_target = rb_leg_step.get_target((now - setup_time).seconds(), success);
 
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
     for (int i = 0; i < 3; i++) {
         joints_target.legs[0].joints[i].rad = static_cast<float>(std::get<0>(lf_target)[i]);
         joints_target.legs[1].joints[i].rad = static_cast<float>(std::get<0>(rf_target)[i]);
         joints_target.legs[2].joints[i].rad = static_cast<float>(std::get<0>(lb_target)[i]);
         joints_target.legs[3].joints[i].rad = static_cast<float>(std::get<0>(rb_target)[i]);
+        
+        joints_target.legs[0].joints[i].omega = 0.0f;
+        joints_target.legs[1].joints[i].omega = 0.0f;
+        joints_target.legs[2].joints[i].omega = 0.0f;
+        joints_target.legs[3].joints[i].omega = 0.0f;
+        
+        joints_target.legs[0].joints[i].torque = 0.0f;
+        joints_target.legs[1].joints[i].torque = 0.0f;
+        joints_target.legs[2].joints[i].torque = 0.0f;
+        joints_target.legs[3].joints[i].torque = 0.0f;
+        
+        joints_target.legs[0].joints[i].kp = 50.0f;
+        joints_target.legs[1].joints[i].kp = 50.0f;
+        joints_target.legs[2].joints[i].kp = 50.0f;
+        joints_target.legs[3].joints[i].kp = 50.0f;
+
+        joints_target.legs[0].joints[i].kd = 3.0f;
+        joints_target.legs[1].joints[i].kd = 3.0f;
+        joints_target.legs[2].joints[i].kd = 3.0f;
+        joints_target.legs[3].joints[i].kd = 3.0f;
     }
+    joints_target.legs[0].wheel.omega = 0.0f;
+    joints_target.legs[1].wheel.omega = 0.0f;
+    joints_target.legs[2].wheel.omega = 0.0f;
+    joints_target.legs[3].wheel.omega = 0.0f;
+    joints_target.legs[0].wheel.torque = 0.0f;
+    joints_target.legs[1].wheel.torque = 0.0f;
+    joints_target.legs[2].wheel.torque = 0.0f;
+    joints_target.legs[3].wheel.torque = 0.0f;
     robot->legs_target_pub->publish(joints_target);
 
     if ((now - setup_time).seconds() > 4.0) {
