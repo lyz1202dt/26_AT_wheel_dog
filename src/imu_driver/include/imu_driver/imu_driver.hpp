@@ -6,7 +6,7 @@
 #include <tf2/LinearMath/Quaternion.hpp>
 #include <tf2/LinearMath/Vector3.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/vector3.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 
 class IMUDriver{
 public:
@@ -16,8 +16,8 @@ public:
     int pack_parsing();
 private:
     // ROS2 Publishers
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr imu_pose_pub_;
-    rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr imu_posture_pub;
+    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_state_pub;
     
     // CRC calculation functions
     static uint8_t calc_crc8(const uint8_t* data, size_t len);

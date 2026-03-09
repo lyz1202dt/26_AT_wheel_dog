@@ -11,9 +11,9 @@ DogController::DogController()
     : csv_initialized_(false) {}
 
 controller_interface::CallbackReturn DogController::on_init() {
-    state_publisher   = get_node()->create_publisher<robot_interfaces::msg::Robot>("legs_status", 10);
+    state_publisher   = get_node()->create_publisher<robot_interfaces::msg::Robot>("legs_status", rclcpp::SensorDataQoS());
     target_subscriber = get_node()->create_subscription<robot_interfaces::msg::RobotTarget>(
-        "legs_target", 10, [this](const robot_interfaces::msg::RobotTarget& msg) { joints_target = msg; });
+        "legs_target", rclcpp::SensorDataQoS(), [this](const robot_interfaces::msg::RobotTarget& msg) { /*RCLCPP_INFO(get_node()->get_logger(),"订阅到关节目标");*/joints_target = msg; });
     joints_name_ = {"lf_joint1", "lf_joint2", "lf_joint3", "lf_joint4", "rf_joint1", "rf_joint2", "rf_joint3", "rf_joint4",
                     "lb_joint1", "lb_joint2", "lb_joint3", "lb_joint4", "rb_joint1", "rb_joint2", "rb_joint3", "rb_joint4"};
     wheel_kd     = 0.0;

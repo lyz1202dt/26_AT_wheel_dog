@@ -124,14 +124,14 @@ SerialNode::SerialNode()
     robot_pub = this->create_publisher<robot_interfaces::msg::Robot>("legs_status", 10);
 
     if (publish_imu) {
-        imu_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-            "/imu_pose_sensor/pose", rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local());
-        imu_angular_vel_pub = this->create_publisher<geometry_msgs::msg::Vector3>(
-            "/imu_imu_sensor/imu", rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local());
+        imu_posture_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+            "/imu_pose_sensor/pose", rclcpp::SensorDataQoS());
+        imu_state_pub = this->create_publisher<sensor_msgs::msg::Imu>(
+            "/imu_imu_sensor/imu", rclcpp::SensorDataQoS());
     }
 
     robot_sub = this->create_subscription<robot_interfaces::msg::RobotTarget>(
-        "legs_target", 10, std::bind(&SerialNode::legsSubscribCb, this, std::placeholders::_1));
+        "legs_target", rclcpp::SensorDataQoS(), std::bind(&SerialNode::legsSubscribCb, this, std::placeholders::_1));
     remote_pub = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd", 10);
 
 
@@ -226,12 +226,14 @@ void SerialNode::publishLegState(const DogStatePack0_t* legs_state) {
         imu_msg.pose.orientation.y = q.y();
         imu_msg.pose.orientation.z = q.z();
         imu_msg.pose.orientation.w = q.w();
-        geometry_msgs::msg::Vector3 imu_angular_vel_msg;
-        imu_angular_vel_msg.x = legs_state->JY61.AngularVelocity.X;
-        imu_angular_vel_msg.y = legs_state->JY61.AngularVelocity.Y;
-        imu_angular_vel_msg.z = legs_state->JY61.AngularVelocity.Z;
-        imu_pub->publish(imu_msg);
-        imu_angular_vel_pub->publish(imu_angular_vel_msg);
+        sensor_msgs::msg::Imu imu_state_msg;
+        imu_state_msg.header.frame_id="world";
+        imu_state_msg.header.stamp=this->get_clock()->now();
+        imu_state_msg.angular_velocity.x=legs_state->JY61.AngularVelocity.X;
+        imu_state_msg.angular_velocity.y=legs_state->JY61.AngularVelocity.Y;
+        imu_state_msg.angular_velocity.z=legs_state->JY61.AngularVelocity.Z;
+        imu_state_pub->publish(imu_state_msg);
+        imu_posture_pub->publish(imu_msg);
     }
 }
 

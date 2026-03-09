@@ -17,6 +17,8 @@ public:
     std::string update(Robot* robot) override;
 
 private:
+    double mass;
+    Vector2D mass_center_pos;
     std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>
         balance_force_calc(Robot* robot, double cur_roll, double cur_pitch);
     Vector3D signal_leg_torque_calc(

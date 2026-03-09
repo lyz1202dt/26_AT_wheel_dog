@@ -151,13 +151,13 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     robot_tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
 
     // 发布机器人关节期望
-    legs_target_pub = node_->create_publisher<robot_interfaces::msg::RobotTarget>("legs_target", 10);
+    legs_target_pub = node_->create_publisher<robot_interfaces::msg::RobotTarget>("legs_target", rclcpp::SensorDataQoS());
 
     // 订阅机器人位姿信息
     // pose_sensor 发布的是 PoseStamped（见 mujoco_ros2_control/src/pose_sensor.cpp），这里必须用 PoseStamped 才能收到消息
     // 同时 QoS 需要与发布端兼容（发布端当前是 RELIABLE + TRANSIENT_LOCAL）
     imu_sub = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "/imu_pose_sensor/pose", rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local(),
+        "/imu_pose_sensor/pose", rclcpp::SensorDataQoS(),
         [this](const geometry_msgs::msg::PoseStamped& msg) {
             const auto& q_msg = msg.pose.orientation;
 
@@ -174,17 +174,17 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
             robot_rotation.setZ(qz);
         });
 
-    imu_angular_vel_sub = node_->create_subscription<geometry_msgs::msg::Vector3>(
-        "/imu_imu_sensor/imu", rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local(),
-        [this](const geometry_msgs::msg::Vector3& msg) {
-            robot_velocity.angular.x = robot_velocity.angular.x + direction_filter_gate * (msg.x - robot_velocity.angular.x);
-            robot_velocity.angular.y = robot_velocity.angular.y + direction_filter_gate * (msg.y - robot_velocity.angular.y);
-            robot_velocity.angular.z = robot_velocity.angular.z + direction_filter_gate * (msg.z - robot_velocity.angular.z);
+    imu_state_sub = node_->create_subscription<sensor_msgs::msg::Imu>(
+        "/imu_imu_sensor/imu",rclcpp::SensorDataQoS(),
+        [this](const sensor_msgs::msg::Imu& msg) {
+            robot_velocity.angular.x = robot_velocity.angular.x + direction_filter_gate * (msg.angular_velocity.x - robot_velocity.angular.x);
+            robot_velocity.angular.y = robot_velocity.angular.y + direction_filter_gate * (msg.angular_velocity.y - robot_velocity.angular.y);
+            robot_velocity.angular.z = robot_velocity.angular.z + direction_filter_gate * (msg.angular_velocity.z - robot_velocity.angular.z);
         });
 
     // 订阅机器人关节状态信息
     legs_state_sub =
-        node_->create_subscription<robot_interfaces::msg::Robot>("legs_status", 10, [this](const robot_interfaces::msg::Robot& msg) {
+        node_->create_subscription<robot_interfaces::msg::Robot>("legs_status", rclcpp::SensorDataQoS(), [this](const robot_interfaces::msg::Robot& msg) {
             for (int i = 0; i < 3; i++) {
                 lf_joint_pos[i] = (double)msg.legs[0].joints[i].rad;
                 rf_joint_pos[i] = (double)msg.legs[1].joints[i].rad;

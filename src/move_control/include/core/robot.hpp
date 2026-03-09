@@ -42,6 +42,7 @@
 #include <robot_interfaces/msg/robot_target.hpp>
 #include <sensor_msgs/msg/detail/imu__struct.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 
 class Estimater;
@@ -86,7 +87,7 @@ public:
     rclcpp::Subscription<robot_interfaces::msg::Robot>::SharedPtr legs_state_sub;
     rclcpp::Subscription<robot_interfaces::msg::MoveCmd>::SharedPtr move_cmd_sub;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr imu_sub;
-    rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_sub;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_state_sub;
     rclcpp::SyncParametersClient::SharedPtr robot_description_param_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> robot_tf_broadcaster;
 
