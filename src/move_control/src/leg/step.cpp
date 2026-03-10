@@ -158,9 +158,9 @@ void LegStep::update_flight_trajectory(
 }
 
 std::tuple<Vector3D, Vector3D, Vector3D> LegStep::get_target(double time, bool& success) {
-    Vector3D pos;
-    Vector3D vel;
-    Vector3D acc;
+    Vector3D pos = Vector3D::Zero();
+    Vector3D vel = Vector3D::Zero();
+    Vector3D acc = Vector3D::Zero();
     if (flight_trajectory_is_available) {
         if(time>=flight_trajectory.time)
         {
