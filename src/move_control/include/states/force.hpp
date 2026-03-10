@@ -29,4 +29,7 @@ private:
     SimpleVMC lf_leg_vmc_z, rf_leg_vmc_z, lb_leg_vmc_z, rb_leg_vmc_z;
     SimpleVMC lf_leg_vmc_x, rf_leg_vmc_x, lb_leg_vmc_x, rb_leg_vmc_x;
     SimpleVMC lf_leg_vmc_y, rf_leg_vmc_y, lb_leg_vmc_y, rb_leg_vmc_y;
+
+    Vector3D lf_last_vel,rf_last_vel,lb_last_vel,rb_last_vel;
+    double filter_gate{0.5};
 };

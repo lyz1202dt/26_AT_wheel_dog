@@ -30,18 +30,18 @@ ForceState::ForceState(Robot* robot)
         / (mass * 9.8);
 
     // 声明z方向VMC的PD参数
-    robot->node_->declare_parameter("force_vmc_z_kp", 160.0);
-    robot->node_->declare_parameter("force_vmc_z_kd", 2.5);
+    robot->node_->declare_parameter("force_vmc_z_kp", 200.0);
+    robot->node_->declare_parameter("force_vmc_z_kd", 5.0);
 
     // 声明x、y方向VMC的PD参数
-    robot->node_->declare_parameter("force_vmc_xy_kp", 80.0);
+    robot->node_->declare_parameter("force_vmc_xy_kp", 100.0);
     robot->node_->declare_parameter("force_vmc_xy_kd", 2.0);
 
     // 声明roll和pitch轴的VMC参数
-    robot->node_->declare_parameter("force_vmc_roll_kp", 13.0);
-    robot->node_->declare_parameter("force_vmc_roll_kd", 0.6);
-    robot->node_->declare_parameter("force_vmc_pitch_kp", 5.0);
-    robot->node_->declare_parameter("force_vmc_pitch_kd", 0.2);
+    robot->node_->declare_parameter("force_vmc_roll_kp", 0.0);
+    robot->node_->declare_parameter("force_vmc_roll_kd", 0.0);
+    robot->node_->declare_parameter("force_vmc_pitch_kp", 0.0);
+    robot->node_->declare_parameter("force_vmc_pitch_kd", 0.0);
 
     // 添加参数变化回调函数
     robot->add_param_cb([this](const rclcpp::Parameter& param) {
@@ -149,6 +149,11 @@ std::string ForceState::update(Robot* robot) {
     auto rf_cart_vel = robot->rf_leg_calc->foot_vel(robot->rf_joint_pos, robot->rf_joint_vel);
     auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
     auto lb_cart_vel = robot->lb_leg_calc->foot_vel(robot->lb_joint_pos, robot->lb_joint_vel);
+
+    lf_cart_vel=filter_gate*lf_cart_vel+(1.0-filter_gate)*lf_last_vel;
+    rf_cart_vel=filter_gate*rf_cart_vel+(1.0-filter_gate)*rf_last_vel;
+    lb_cart_vel=filter_gate*lb_cart_vel+(1.0-filter_gate)*lb_last_vel;
+    rb_cart_vel=filter_gate*rb_cart_vel+(1.0-filter_gate)*rb_last_vel;
 
 
     // 单腿VMC计算

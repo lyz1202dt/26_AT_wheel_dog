@@ -47,7 +47,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     roll_vmc  = std::make_shared<SimpleVMC>(-200.0, 0.0, 100);
     pitch_vmc = std::make_shared<SimpleVMC>(500.0, 100.0, 100);
 
-    node_->declare_parameter("direction_filter_gate", 0.2);
+    node_->declare_parameter("direction_filter_gate", 0.6);
     node_->declare_parameter("vmc_kp", 100.0);
     node_->declare_parameter("vmc_kd", 120.0);
     node_->declare_parameter("vmc_mass", 0.5);

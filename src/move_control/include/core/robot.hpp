@@ -103,7 +103,7 @@ public:
     // 机器人位姿信息
     tf2::Quaternion robot_rotation;           // 机器人姿态
     geometry_msgs::msg::Twist robot_velocity; // 机器人速度信息
-    double direction_filter_gate{0.99999};        // 方向滤波器参数
+    double direction_filter_gate{0.6};        // 方向滤波器参数
 
     Estimater estimater;
 
