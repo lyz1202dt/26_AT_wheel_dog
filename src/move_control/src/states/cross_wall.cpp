@@ -350,7 +350,10 @@ std::string Cross_WallState::update(Robot* robot){
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
 
-            lf_foot_exp_pos=wall_lf_foot_pos;
+            std::tie(lf_foot_exp_pos,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
+            lb_foot_exp_pos=wall_lb_foot_pos;
+            rb_foot_exp_pos=wall_rb_foot_pos;
 
             if(!success)
             {
