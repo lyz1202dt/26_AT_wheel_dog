@@ -37,4 +37,11 @@ private:
     
     LegStep lf_leg_step, rf_leg_step, lb_leg_step, rb_leg_step;
 
+    double cross_x_lf{0.0},cross_y_lf{0.0},cross_z_lf{0.0};
+    double cross_x_rf{0.0},cross_y_rf{0.0},cross_z_rf{0.0};
+    double cross_x_lb{0.0},cross_y_lb{0.0},cross_z_lb{0.0};
+    double cross_x_rb{0.0},cross_y_rb{0.0},cross_z_rb{0.0};
+    double time_s{1.0};
+    bool change_flag{false};
+
 };

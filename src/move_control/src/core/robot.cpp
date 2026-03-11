@@ -25,6 +25,24 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     joint_display_msg.position.resize(16);
     joint_display_msg.name = joint_names;
 
+    // lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+    // rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+    // lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+    // rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+
+    // lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    // lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    // rf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    // rf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    // lb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    // lb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    // rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+    // rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
+
+    // // 狗身平衡VMC
+    // roll_vmc  = std::make_shared<SimpleVMC>(-200.0, 0.0, 100);
+    // pitch_vmc = std::make_shared<SimpleVMC>(500.0, 100.0, 100);
+
     lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
     rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
     lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
@@ -39,11 +57,35 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
     rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
 
+    // node_->declare_parameter("direction_filter_gate", 0.2);
+    // node_->declare_parameter("vmc_kp", 100.0);
+    // node_->declare_parameter("vmc_kd", 120.0);
+    // node_->declare_parameter("vmc_mass", 0.5);
+
+    // node_->declare_parameter("horizontal_vmc_kp", 500.0);
+    // node_->declare_parameter("horizontal_vmc_kd", 150.0);
+    // node_->declare_parameter("horizontal_vmc_mass", 3.0);
+
+    // node_->declare_parameter("roll_vmc_kp", -300.0);
+    // node_->declare_parameter("roll_vmc_kd", -100.0);
+    // node_->declare_parameter("pitch_vmc_kp", 500.0);
+    // node_->declare_parameter("pitch_vmc_kd", 0.0);
+
+    // node_->declare_parameter("lf_grivate", 22.0);
+    // node_->declare_parameter("rf_grivate", 22.0);
+    // node_->declare_parameter("lb_grivate", 26.0);
+    // node_->declare_parameter("rb_grivate", 26.0);
+    // node_->declare_parameter("lf_dx", 0.0);
+    // node_->declare_parameter("rf_dx", 0.0);
+    // node_->declare_parameter("lb_dx", 0.0);
+    // node_->declare_parameter("rb_dx", 0.0);
+    // node_->declare_parameter("body_height", 0.25);
+
     // 狗身平衡VMC
     roll_vmc  = std::make_shared<SimpleVMC>(-200.0, 0.0, 100);
     pitch_vmc = std::make_shared<SimpleVMC>(500.0, 100.0, 100);
 
-    node_->declare_parameter("direction_filter_gate", 0.2);
+    node_->declare_parameter("direction_filter_gate", 0.6);
     node_->declare_parameter("vmc_kp", 100.0);
     node_->declare_parameter("vmc_kd", 120.0);
     node_->declare_parameter("vmc_mass", 0.5);
@@ -53,7 +95,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("horizontal_vmc_mass", 3.0);
 
     node_->declare_parameter("roll_vmc_kp", -300.0);
-    node_->declare_parameter("roll_vmc_kd", -100.0);
+    node_->declare_parameter("roll_vmc_kd", 0.0);
     node_->declare_parameter("pitch_vmc_kp", 500.0);
     node_->declare_parameter("pitch_vmc_kd", 0.0);
 
