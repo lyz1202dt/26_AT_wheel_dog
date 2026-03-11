@@ -57,7 +57,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("horizontal_vmc_mass", 3.0);
 
     node_->declare_parameter("roll_vmc_kp", -300.0);
-    node_->declare_parameter("roll_vmc_kd", -100.0);
+    node_->declare_parameter("roll_vmc_kd", 0.0);
     node_->declare_parameter("pitch_vmc_kp", 500.0);
     node_->declare_parameter("pitch_vmc_kd", 0.0);
 

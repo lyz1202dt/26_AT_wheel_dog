@@ -37,54 +37,14 @@ public:
         this->declare_parameter<int>("step_type", 0);
 
         // Jump parameters
-        auto ready_height_desc = rcl_interfaces::msg::ParameterDescriptor();
-        ready_height_desc.description = "Ready jump height (准备跳跃时的狗身高度)";
-        ready_height_desc.floating_point_range.resize(1);
-        ready_height_desc.floating_point_range[0].from_value = 0.0;
-        ready_height_desc.floating_point_range[0].to_value = 0.5;
-        this->declare_parameter<double>("ready_jump_height", 0.15, ready_height_desc);
-
-        auto finished_height_desc = rcl_interfaces::msg::ParameterDescriptor();
-        finished_height_desc.description = "Finished jump height (起跳动作完成时的狗身高度)";
-        finished_height_desc.floating_point_range.resize(1);
-        finished_height_desc.floating_point_range[0].from_value = 0.0;
-        finished_height_desc.floating_point_range[0].to_value = 0.5;
-        this->declare_parameter<double>("finished_jump_height", 0.25, finished_height_desc);
-
-        auto fly_height_desc = rcl_interfaces::msg::ParameterDescriptor();
-        fly_height_desc.description = "Fly height (飞行过程中足端到狗身的高度)";
-        fly_height_desc.floating_point_range.resize(1);
-        fly_height_desc.floating_point_range[0].from_value = 0.0;
-        fly_height_desc.floating_point_range[0].to_value = 0.5;
-        this->declare_parameter<double>("fly_height", 0.30, fly_height_desc);
-
-        auto touch_height_desc = rcl_interfaces::msg::ParameterDescriptor();
-        touch_height_desc.description = "Touch height (落地前用于缓冲的高度)";
-        touch_height_desc.floating_point_range.resize(1);
-        touch_height_desc.floating_point_range[0].from_value = 0.0;
-        touch_height_desc.floating_point_range[0].to_value = 0.5;
-        this->declare_parameter<double>("touch_height", 0.20, touch_height_desc);
-
-        auto t1_desc = rcl_interfaces::msg::ParameterDescriptor();
-        t1_desc.description = "Time t1 (从ready到finished的时间)";
-        t1_desc.floating_point_range.resize(1);
-        t1_desc.floating_point_range[0].from_value = 0.0;
-        t1_desc.floating_point_range[0].to_value = 5.0;
-        this->declare_parameter<double>("t1", 0.5, t1_desc);
-
-        auto t2_desc = rcl_interfaces::msg::ParameterDescriptor();
-        t2_desc.description = "Time t2 (从finished到fly的时间)";
-        t2_desc.floating_point_range.resize(1);
-        t2_desc.floating_point_range[0].from_value = 0.0;
-        t2_desc.floating_point_range[0].to_value = 5.0;
-        this->declare_parameter<double>("t2", 0.3, t2_desc);
-
-        auto t3_desc = rcl_interfaces::msg::ParameterDescriptor();
-        t3_desc.description = "Time t3 (从fly到touch的时间)";
-        t3_desc.floating_point_range.resize(1);
-        t3_desc.floating_point_range[0].from_value = 0.0;
-        t3_desc.floating_point_range[0].to_value = 5.0;
-        this->declare_parameter<double>("t3", 0.4, t3_desc);
+        this->declare_parameter<double>("v0", 0.5);
+        this->declare_parameter<double>("ready_jump_height", 0.15);
+        this->declare_parameter<double>("finished_jump_height", 0.3);
+        this->declare_parameter<double>("fly_height", 0.18);
+        this->declare_parameter<double>("touch_height", 0.27);
+        this->declare_parameter<double>("t1", 2.0);
+        this->declare_parameter<double>("t2", 0.3);
+        this->declare_parameter<double>("t3", 0.4);
 
         auto trigger_desc = rcl_interfaces::msg::ParameterDescriptor();
         trigger_desc.description = "Trigger jump command (触发跳跃命令)";
@@ -135,20 +95,6 @@ public:
                             result.reason = "step_type must be an integer";
                             return result;
                         }
-                    } else if (p.get_name() == "ready_jump_height") {
-                        ready_jump_height_ = p.as_double();
-                    } else if (p.get_name() == "finished_jump_height") {
-                        finished_jump_height_ = p.as_double();
-                    } else if (p.get_name() == "fly_height") {
-                        fly_height_ = p.as_double();
-                    } else if (p.get_name() == "touch_height") {
-                        touch_height_ = p.as_double();
-                    } else if (p.get_name() == "t1") {
-                        t1_ = p.as_double();
-                    } else if (p.get_name() == "t2") {
-                        t2_ = p.as_double();
-                    } else if (p.get_name() == "t3") {
-                        t3_ = p.as_double();
                     } else if (p.get_name() == "trigger_jump") {
                         bool trigger = p.as_bool();
                         if (trigger && !last_trigger_) {
@@ -192,20 +138,16 @@ private:
     {
         robot_interfaces::msg::JumpCmd msg;
         msg.stamp = this->now();
-        msg.v0 = 0.0;  // Initial velocity
-        msg.ready_jump_height = ready_jump_height_;
-        msg.finished_jump_height = finished_jump_height_;
-        msg.fly_height = fly_height_;
-        msg.touch_height = touch_height_;
-        msg.t1 = t1_;
-        msg.t2 = t2_;
-        msg.t3 = t3_;
+        msg.v0 = this->get_parameter("v0").as_double();
+        msg.ready_jump_height = this->get_parameter("ready_jump_height").as_double();
+        msg.finished_jump_height = this->get_parameter("finished_jump_height").as_double();
+        msg.fly_height = this->get_parameter("fly_height").as_double();
+        msg.touch_height = this->get_parameter("touch_height").as_double();
+        msg.t1 = this->get_parameter("t1").as_double();
+        msg.t2 =this->get_parameter("t2").as_double();
+        msg.t3 = this->get_parameter("t3").as_double();
         
         jump_pub_->publish(msg);
-        RCLCPP_INFO(this->get_logger(), 
-                    "Published JumpCmd: ready=%.3f finished=%.3f fly=%.3f touch=%.3f t1=%.3f t2=%.3f t3=%.3f",
-                    ready_jump_height_, finished_jump_height_, fly_height_, touch_height_, 
-                    t1_, t2_, t3_);
     }
 
     rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr pub_;
@@ -217,13 +159,6 @@ private:
     uint32_t step_type_{0};
     
     // Jump parameters
-    double ready_jump_height_{0.15};
-    double finished_jump_height_{0.25};
-    double fly_height_{0.30};
-    double touch_height_{0.20};
-    double t1_{0.5};
-    double t2_{0.3};
-    double t3_{0.4};
     bool last_trigger_{false};
 };
 

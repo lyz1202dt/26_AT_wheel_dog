@@ -84,8 +84,8 @@ std::string StopState::update(Robot* robot) {
         return "walk";
     else if (step_mode == 3 || step_mode == 4) // 如果请求滑行或者上台阶，那么切到walk模式
         return "climb_steps";
-    // else if(step_mode==6)
-    //     return "jump";
+    else if(step_mode==6)
+        return "jump";
     else if(step_mode==7)
         return "amble";
     else if(step_mode==0)

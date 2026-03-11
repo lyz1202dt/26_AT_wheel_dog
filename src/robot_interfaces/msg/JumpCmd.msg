@@ -4,7 +4,6 @@ float64 ready_jump_height   #准备跳跃时的狗身高度
 float64 finished_jump_height   #起跳动作完成时的狗身高度
 float64 fly_height  #飞行过程中足端到狗身的高度
 float64 touch_height    #落地前用于缓冲的高度
-float64 t0          #从等待跳跃状态到ready_jump_height的时间
-float64 t1          #从finished_jump_height到fly_height的时间
+float64 t1          #从等待跳跃状态到ready_jump_height的时间
 float64 t2          #fly_height保持时间
 float64 t3          #从fly_height到touch_height的时间
