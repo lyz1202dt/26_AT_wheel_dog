@@ -28,7 +28,9 @@ private:
     double exp_vel_kp{1.0};
     int stage;
     double ver_acc{0.0}, ver_vel{0.0}, ver_pos{0.0};
+    double hor_acc{0.0}, hor_vel{0.0}, hor_pos{0.0};
 
-    double la, lb, lc;
+    double ver_la, ver_lb, ver_lc;
+    double hor_la, hor_lb, hor_lc;
     double action_time;
 };

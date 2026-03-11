@@ -1,5 +1,6 @@
 builtin_interfaces/Time stamp   #跳跃命令执行时间
 float64   v0  #初速度
+float64 v0_dir
 float64 ready_jump_height   #准备跳跃时的狗身高度
 float64 finished_jump_height   #起跳动作完成时的狗身高度
 float64 fly_height  #飞行过程中足端到狗身的高度

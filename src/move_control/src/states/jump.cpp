@@ -22,9 +22,9 @@ JumpState::JumpState(Robot* robot)
 bool JumpState::enter(Robot* robot, const std::string& last_status) {
     (void)robot;
     (void)last_status;
-    la      = 0.0;
-    lb      = 0.0;
-    lc      = 0.0;
+    ver_la  = 0.0;
+    ver_lb  = 0.0;
+    ver_lc  = 0.0;
     ver_acc = 0.0;
     ver_vel = 0.0;
     ver_pos = 0.0;
@@ -57,7 +57,7 @@ std::string JumpState::update(Robot* robot) {
             current_exp_vel               = current_exp_vel + acc * 0.004;
             double current_exp_foot_force = robot->robot_mass * acc * 0.25;
 
-            RCLCPP_INFO(robot->node_->get_logger(), "exp_vel=%lf,cur_vel=%lf",current_exp_vel,current_body_vel);
+            //RCLCPP_INFO(robot->node_->get_logger(), "exp_vel=%lf,cur_vel=%lf", current_exp_vel, current_body_vel);
 
             lf_wheel_vel = current_exp_vel;
             rf_wheel_vel = -current_exp_vel;
@@ -82,23 +82,32 @@ std::string JumpState::update(Robot* robot) {
 
         action_start_time = robot->node_->get_clock()->now();
         ver_acc           = (robot->body_height - jump_cmd.ready_jump_height) / (jump_cmd.t1 * jump_cmd.t1 / 4.0);
-        la                = ver_acc * 0.5;
-        lb                = 0.0;
-        lc                = 0.0;
+        ver_la            = ver_acc * 0.5;
+        ver_lb            = 0.0;
+        ver_lc            = 0.0;
+
+        // // 竖直位移和速度的比值
+        // double k     = (jump_cmd.finished_jump_height - jump_cmd.ready_jump_height) / (jump_cmd.v0 * std::cos(jump_cmd.v0_dir));
+        // double ver_s = jump_cmd.v0 * std::sin(jump_cmd.v0_dir) * k; // 水平加速需要的位移
+        // hor_acc      = -ver_s / (jump_cmd.t1 * jump_cmd.t1 / 4.0);  // 水平加速度
+        // hor_la       = hor_acc * 0.5;
+        // hor_lb       = 0.0;
+        // hor_lc       = 0.0;
+
 
         stage = 2;
         RCLCPP_INFO(robot->node_->get_logger(), "下蹲阶段1");
     }
     if (stage == 2) {
-        double t          = (robot->node_->get_clock()->now() - action_start_time).seconds();
-        ver_vel           = 2.0 * la * t + lb;
-        ver_pos           = la * t * t + lb * t + lc;
+        double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
+        ver_vel  = 2.0 * ver_la * t + ver_lb;
+        ver_pos  = ver_la * t * t + ver_lb * t + ver_lc;
+
         lf_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_lf_grivate * (1.0 - ver_acc / 9.8));
         rf_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_rf_grivate * (1.0 - ver_acc / 9.8));
         lb_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_lb_grivate * (1.0 - ver_acc / 9.8));
         rb_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_rb_grivate * (1.0 - ver_acc / 9.8));
 
-        // TODO:将ver_vel和ver_pos赋值给足端期望
         lf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
         rf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
         lb_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
@@ -118,24 +127,26 @@ std::string JumpState::update(Robot* robot) {
             stage = 3;
     }
     if (stage == 3) {
-        ver_acc           = -ver_acc;
-        la                = ver_acc * 0.5;
-        lb                = ver_vel;
-        lc                = ver_pos;
+        ver_acc = -ver_acc;
+        ver_la  = ver_acc * 0.5;
+        ver_lb  = ver_vel;
+        ver_lc  = ver_pos;
+
         action_start_time = robot->node_->get_clock()->now();
         stage             = 4;
         RCLCPP_INFO(robot->node_->get_logger(), "下蹲阶段2");
     }
     if (stage == 4) { // 下蹲的减速过程
-        double t          = (robot->node_->get_clock()->now() - action_start_time).seconds();
-        ver_vel           = 2.0 * la * t + lb;
-        ver_pos           = la * t * t + lb * t + lc;
+        double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
+        ver_vel  = 2.0 * ver_la * t + ver_lb;
+        ver_pos  = ver_la * t * t + ver_lb * t + ver_lc;
+
+
         lf_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_lf_grivate * (1.0 - ver_acc / 9.8));
         rf_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_rf_grivate * (1.0 - ver_acc / 9.8));
         lb_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_lb_grivate * (1.0 - ver_acc / 9.8));
         rb_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_rb_grivate * (1.0 - ver_acc / 9.8));
 
-        // TODO:将ver_vel和ver_pos赋值给足端期望
         lf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
         rf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
         lb_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
@@ -154,50 +165,59 @@ std::string JumpState::update(Robot* robot) {
         if (t > jump_cmd.t1 / 2.0)
             stage = 5;
     }
-    if (stage == 5) // 准备进入起跳阶段
+    if (stage == 5)   // 准备进入起跳阶段
     {
-
         ver_acc = -jump_cmd.v0 * jump_cmd.v0 / (2.0 * (robot->body_height - jump_cmd.ready_jump_height));
-        la      = ver_acc * 0.5;
-        lb      = 0.0;
-        lc      = ver_pos;
+        ver_la  = ver_acc * 0.5;
+        ver_lb  = 0.0;
+        ver_lc  = ver_pos;
+
+        double t       = 2.0 * (jump_cmd.finished_jump_height - jump_cmd.ready_jump_height) / (jump_cmd.v0 * std::cos(jump_cmd.v0_dir));
+        double hor_acc = -jump_cmd.v0 * std::sin(jump_cmd.v0_dir) / t;
+
+        hor_la = hor_acc * 0.5;
+        hor_lb = 0.0;
+        hor_lc = 0.0;
 
         action_time       = -jump_cmd.v0 / ver_acc;
         action_start_time = robot->node_->get_clock()->now();
         stage             = 6;
     }
-    if (stage == 6) // 执行起跳动作
+    if (stage == 6)   // 执行起跳动作
     {
-        double t          = (robot->node_->get_clock()->now() - action_start_time).seconds();
-        ver_vel           = 2.0 * la * t + lb;
-        ver_pos           = la * t * t + lb * t + lc;
+        double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
+        ver_vel  = 2.0 * ver_la * t + ver_lb;
+        ver_pos  = ver_la * t * t + ver_lb * t + ver_lc;
+
+        hor_vel = 2.0 * hor_la * t + hor_lb;
+        hor_pos = hor_la * t * t + hor_lb * t + hor_lc;
+
+        RCLCPP_INFO(robot->node_->get_logger(),"hor_pos=%lf",hor_pos);
+
         lf_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_lf_grivate * (1.0 - ver_acc / 9.8));
         rf_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_rf_grivate * (1.0 - ver_acc / 9.8));
         lb_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_lb_grivate * (1.0 - ver_acc / 9.8));
         rb_foot_exp_force = Vector3D(0.0, 0.0, -robot->robot_rb_grivate * (1.0 - ver_acc / 9.8));
 
-        // TODO:将ver_vel和ver_pos赋值给足端期望
-        lf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
-        rf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
-        lb_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
-        rb_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
+        lf_foot_exp_pos = Vector3D(hor_pos, 0.0, ver_pos);
+        rf_foot_exp_pos = Vector3D(hor_pos, 0.0, ver_pos);
+        lb_foot_exp_pos = Vector3D(hor_pos, 0.0, ver_pos);
+        rb_foot_exp_pos = Vector3D(hor_pos, 0.0, ver_pos);
 
-        lf_foot_exp_vel = Vector3D(0.0, 0.0, ver_vel);
-        rf_foot_exp_vel = Vector3D(0.0, 0.0, ver_vel);
-        lb_foot_exp_vel = Vector3D(0.0, 0.0, ver_vel);
-        rb_foot_exp_vel = Vector3D(0.0, 0.0, ver_vel);
+        lf_foot_exp_vel = Vector3D(hor_vel, 0.0, ver_vel);
+        rf_foot_exp_vel = Vector3D(hor_vel, 0.0, ver_vel);
+        lb_foot_exp_vel = Vector3D(hor_vel, 0.0, ver_vel);
+        rb_foot_exp_vel = Vector3D(hor_vel, 0.0, ver_vel);
 
-        lf_foot_exp_acc = Vector3D(0.0, 0.0, ver_acc);
-        rf_foot_exp_acc = Vector3D(0.0, 0.0, ver_acc);
-        lb_foot_exp_acc = Vector3D(0.0, 0.0, ver_acc);
-        rb_foot_exp_acc = Vector3D(0.0, 0.0, ver_acc);
-
-
+        lf_foot_exp_acc = Vector3D(hor_acc, 0.0, ver_acc);
+        rf_foot_exp_acc = Vector3D(hor_acc, 0.0, ver_acc);
+        lb_foot_exp_acc = Vector3D(hor_acc, 0.0, ver_acc);
+        rb_foot_exp_acc = Vector3D(hor_acc, 0.0, ver_acc);
 
         if (t > action_time)
             stage = 7;
     }
-    if (stage == 7) // 起跳动作结束，进入飞行阶段
+    if (stage == 7)   // 起跳动作结束，进入飞行阶段
     {
         ver_acc           = 0.0;
         ver_vel           = 0.0;
@@ -206,7 +226,7 @@ std::string JumpState::update(Robot* robot) {
         stage             = 8;
         RCLCPP_INFO(robot->node_->get_logger(), "飞行阶段");
     }
-    if (stage == 8) // 等待飞行时间结束
+    if (stage == 8)   // 等待飞行时间结束
     {
         double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
 
@@ -233,17 +253,17 @@ std::string JumpState::update(Robot* robot) {
     {
         action_start_time = robot->node_->get_clock()->now();
         ver_acc           = (jump_cmd.touch_height - jump_cmd.fly_height) / (jump_cmd.t3 * jump_cmd.t3 / 4.0);
-        la                = 0.5 * ver_acc;
-        lb                = 0.0;
-        lc                = robot->body_height - jump_cmd.fly_height;
+        ver_la            = 0.5 * ver_acc;
+        ver_lb            = 0.0;
+        ver_lc            = robot->body_height - jump_cmd.fly_height;
         stage             = 10;
 
         RCLCPP_INFO(robot->node_->get_logger(), "准备落地阶段1");
     }
     if (stage == 10) {
         double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
-        ver_vel  = 2.0 * la * t + lb;
-        ver_pos  = la * t * t + lb * t + lc;
+        ver_vel  = 2.0 * ver_la * t + ver_lb;
+        ver_pos  = ver_la * t * t + ver_lb * t + ver_lc;
 
         // TODO:将ver_vel和ver_pos赋值给足端期望
         lf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);
@@ -268,9 +288,9 @@ std::string JumpState::update(Robot* robot) {
     }
     if (stage == 11) // 反转加速度方向，进入伸腿的减速阶段
     {
-        la                = -la;
-        lb                = ver_vel;
-        lc                = ver_pos;
+        ver_la            = -ver_la;
+        ver_lb            = ver_vel;
+        ver_lc            = ver_pos;
         action_start_time = robot->node_->get_clock()->now();
         stage             = 12;
         RCLCPP_INFO(robot->node_->get_logger(), "准备落地阶段2");
@@ -278,8 +298,8 @@ std::string JumpState::update(Robot* robot) {
     if (stage == 12) // 伸腿完成
     {
         double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
-        ver_vel  = 2.0 * la * t + lb;
-        ver_pos  = la * t * t + lb * t + lc;
+        ver_vel  = 2.0 * ver_la * t + ver_lb;
+        ver_pos  = ver_la * t * t + ver_lb * t + ver_lc;
 
         // TODO:将ver_vel和ver_pos赋值给足端期望
         lf_foot_exp_pos = Vector3D(0.0, 0.0, ver_pos);

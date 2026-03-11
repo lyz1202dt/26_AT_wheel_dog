@@ -29,12 +29,6 @@ SerialNode::SerialNode()
         wheel_torque_filters[i] = KalmanFilter(0.001f, 0.5f, 0.0f, 1.0f);
     }
 
-    this->declare_parameter("joint1_kp", 3.0);
-    this->declare_parameter("joint1_kd", 0.17);
-    this->declare_parameter("joint2_kp", 2.8);
-    this->declare_parameter("joint2_kd", 0.14);
-    this->declare_parameter("joint3_kp", 2.8);
-    this->declare_parameter("joint3_kd", 0.11);
     this->declare_parameter("publish_imu", true); // 声明该节点是否负责发布IMU数据
 
     // 声明关节卡尔曼滤波器参数
@@ -52,25 +46,7 @@ SerialNode::SerialNode()
         bool pid_updated = false;
 
         for (const auto& param : params) {
-            if (param.get_name() == "joint1_kp") {
-                joint_kp[0] = param.as_double();
-                pid_updated = true;
-            } else if (param.get_name() == "joint1_kd") {
-                joint_kd[0] = param.as_double();
-                pid_updated = true;
-            } else if (param.get_name() == "joint2_kp") {
-                joint_kp[1] = param.as_double();
-                pid_updated = true;
-            } else if (param.get_name() == "joint2_kd") {
-                joint_kd[1] = param.as_double();
-                pid_updated = true;
-            } else if (param.get_name() == "joint3_kp") {
-                joint_kp[2] = param.as_double();
-                pid_updated = true;
-            } else if (param.get_name() == "joint3_kd") {
-                joint_kd[2] = param.as_double();
-                pid_updated = true;
-            } else if (param.get_name() == "joint_kalman_filter_q") {
+            if (param.get_name() == "joint_kalman_filter_q") {
                 float q_value = static_cast<float>(param.as_double());
                 // 更新所有关节卡尔曼滤波器的 Q 值
                 for (int i = 0; i < 4; i++) {
@@ -112,22 +88,14 @@ SerialNode::SerialNode()
         return result;
     });
 
-    joint_kp[0] = this->get_parameter("joint1_kp").as_double();
-    joint_kd[0] = this->get_parameter("joint1_kd").as_double();
-    joint_kp[1] = this->get_parameter("joint2_kp").as_double();
-    joint_kd[1] = this->get_parameter("joint2_kd").as_double();
-    joint_kp[2] = this->get_parameter("joint3_kp").as_double();
-    joint_kd[2] = this->get_parameter("joint3_kd").as_double();
     publish_imu = this->get_parameter("publish_imu").as_bool();
 
     // 先创建 publisher/subscriber，确保回调中 publish 时 publisher 已就绪
     robot_pub = this->create_publisher<robot_interfaces::msg::Robot>("legs_status", 10);
 
     if (publish_imu) {
-        imu_posture_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-            "/imu_pose_sensor/pose", rclcpp::SensorDataQoS());
-        imu_state_pub = this->create_publisher<sensor_msgs::msg::Imu>(
-            "/imu_imu_sensor/imu", rclcpp::SensorDataQoS());
+        imu_posture_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>("/imu_pose_sensor/pose", rclcpp::SensorDataQoS());
+        imu_state_pub   = this->create_publisher<sensor_msgs::msg::Imu>("/imu_imu_sensor/imu", rclcpp::SensorDataQoS());
     }
 
     robot_sub = this->create_subscription<robot_interfaces::msg::RobotTarget>(
@@ -139,14 +107,12 @@ SerialNode::SerialNode()
     cdc_trans->regeiser_recv_cb([this](const uint8_t* data, int size) { // 注册接收回调
         int pack_type = *((int*)data);
         if (pack_type == 0) {
-            if (size == sizeof(DogStatePack0_t))
-            {
+            if (size == sizeof(DogStatePack0_t)) {
                 const DogStatePack0_t* pack = reinterpret_cast<const DogStatePack0_t*>(data);
-                publishLegState(pack); 
+                publishLegState(pack);
             }
         } else if (pack_type == 1) {
-            if (size == sizeof(DogStatePack1_t))
-            {
+            if (size == sizeof(DogStatePack1_t)) {
                 const DogStatePack1_t* pack = reinterpret_cast<const DogStatePack1_t*>(data);
                 publishLegState(pack);
             }
@@ -227,11 +193,11 @@ void SerialNode::publishLegState(const DogStatePack0_t* legs_state) {
         imu_msg.pose.orientation.z = q.z();
         imu_msg.pose.orientation.w = q.w();
         sensor_msgs::msg::Imu imu_state_msg;
-        imu_state_msg.header.frame_id="world";
-        imu_state_msg.header.stamp=this->get_clock()->now();
-        imu_state_msg.angular_velocity.x=legs_state->JY61.AngularVelocity.X;
-        imu_state_msg.angular_velocity.y=legs_state->JY61.AngularVelocity.Y;
-        imu_state_msg.angular_velocity.z=legs_state->JY61.AngularVelocity.Z;
+        imu_state_msg.header.frame_id    = "world";
+        imu_state_msg.header.stamp       = this->get_clock()->now();
+        imu_state_msg.angular_velocity.x = legs_state->JY61.AngularVelocity.X;
+        imu_state_msg.angular_velocity.y = legs_state->JY61.AngularVelocity.Y;
+        imu_state_msg.angular_velocity.z = legs_state->JY61.AngularVelocity.Z;
         imu_state_pub->publish(imu_state_msg);
         imu_posture_pub->publish(imu_msg);
     }
@@ -287,6 +253,7 @@ void SerialNode::legsSubscribCb(const robot_interfaces::msg::RobotTarget& msg) {
         }
         legs_target.leg[i].wheel.omega  = msg.legs[i].wheel.omega;
         legs_target.leg[i].wheel.torque = msg.legs[i].wheel.torque;
+        legs_target.leg[i].wheel.kd     = msg.legs[i].wheel.kd;
     }
 
     // if(enable_control)
@@ -317,7 +284,7 @@ void SerialNode::publishremote(const DogStatePack0_t* legs_remote) {
     } else
         remote_msg.step_mode = 1;
 
-    //RCLCPP_INFO(this->get_logger(), "remote.vx %f,imu_r %f", legs_remote->remote.vx, legs_remote->JY61.Angle.Pitch);
+    // RCLCPP_INFO(this->get_logger(), "remote.vx %f,imu_r %f", legs_remote->remote.vx, legs_remote->JY61.Angle.Pitch);
     remote_pub->publish(remote_msg);
 }
 

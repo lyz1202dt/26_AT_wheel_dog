@@ -1,2 +1,2 @@
 JointTarget[3] joints
-Wheel wheel
+WheelTarget wheel

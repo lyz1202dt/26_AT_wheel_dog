@@ -46,8 +46,6 @@ private:
     rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr remote_pub;
     
     OnSetParametersCallbackHandle::SharedPtr param_server_;
-
-    double joint_kp[3],joint_kd[3];
     
     // 卡尔曼滤波器：为每个电机的力矩提供滤波
     // torque_filters[leg_index][joint_index] - 4条腿，每条腿3个关节

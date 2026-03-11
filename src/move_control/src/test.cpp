@@ -38,6 +38,7 @@ public:
 
         // Jump parameters
         this->declare_parameter<double>("v0", 0.5);
+        this->declare_parameter<double>("v0_dir", 0.0);
         this->declare_parameter<double>("ready_jump_height", 0.15);
         this->declare_parameter<double>("finished_jump_height", 0.3);
         this->declare_parameter<double>("fly_height", 0.18);
@@ -139,6 +140,7 @@ private:
         robot_interfaces::msg::JumpCmd msg;
         msg.stamp = this->now();
         msg.v0 = this->get_parameter("v0").as_double();
+        msg.v0_dir=this->get_parameter("v0_dir").as_double();
         msg.ready_jump_height = this->get_parameter("ready_jump_height").as_double();
         msg.finished_jump_height = this->get_parameter("finished_jump_height").as_double();
         msg.fly_height = this->get_parameter("fly_height").as_double();
@@ -146,7 +148,6 @@ private:
         msg.t1 = this->get_parameter("t1").as_double();
         msg.t2 =this->get_parameter("t2").as_double();
         msg.t3 = this->get_parameter("t3").as_double();
-        
         jump_pub_->publish(msg);
     }
 
