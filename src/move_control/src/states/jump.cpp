@@ -174,16 +174,18 @@ std::string JumpState::update(Robot* robot) {
         ver_lc  = ver_pos;
 
         action_time    = jump_cmd.v0 * std::cos(jump_cmd.v0_dir) / std::abs(ver_acc);
-        double hor_acc = -jump_cmd.v0 * std::sin(jump_cmd.v0_dir) / action_time;
+        hor_acc = -jump_cmd.v0 * std::sin(jump_cmd.v0_dir) / action_time;
 
         hor_la = hor_acc * 0.5;
         hor_lb = 0.0;
         hor_lc = 0.0;
 
+        RCLCPP_INFO(robot->node_->get_logger(), "起跳阶段");
+
         action_start_time = robot->node_->get_clock()->now();
         stage             = 6;
     }
-    if (stage == 6)   // 执行起跳动作
+    if (stage == 6)   // 执行起跳动作（还有问题）
     {
         double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
         ver_vel  = 2.0 * ver_la * t + ver_lb;
@@ -193,19 +195,17 @@ std::string JumpState::update(Robot* robot) {
         hor_pos = hor_la * t * t + hor_lb * t + hor_lc;
 
 
-        auto skew =
-            [this](const Eigen::Vector3d& r) {
-                Eigen::Matrix3d S;
-                // clang-format off
+        auto skew = [this](const Eigen::Vector3d& r) {
+            Eigen::Matrix3d S;
+            // clang-format off
                 S << 0.0f   , -r.z(), r.y(),
                     r.z()   , 0.0f  , -r.x(),
                     -r.y()  , r.x() , 0;
-                // clang-format on
-                return S;
-            };
-        // 计算当前足端施力点在质心坐标系下的坐标
-        Eigen::Vector<double, 12>
-            b;
+            // clang-format on
+            return S;
+        };
+        // 计算当前足端要施加的力
+        Eigen::Vector<double, 6> b;
         Eigen::Matrix<double, 6, 12> A;
 
         A.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
@@ -213,18 +213,21 @@ std::string JumpState::update(Robot* robot) {
         A.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity();
         A.block<3, 3>(0, 9) = Eigen::Matrix3d::Identity();
 
-        auto foot_exp_pos=Vector3D(hor_pos,0.0,ver_pos);
-        A.block<3, 3>(3, 0) = skew(foot_exp_pos+robot->lf_leg_calc->pos_offset-robot->comm_pos);
-        A.block<3, 3>(3, 3) = skew(foot_exp_pos+robot->rf_leg_calc->pos_offset-robot->comm_pos);
-        A.block<3, 3>(3, 6) = skew(foot_exp_pos+robot->lb_leg_calc->pos_offset-robot->comm_pos);
-        A.block<3, 3>(3, 9) = skew(foot_exp_pos+robot->rb_leg_calc->pos_offset-robot->comm_pos);
+        auto foot_exp_pos   = Vector3D(hor_pos, 0.0, ver_pos);
+        A.block<3, 3>(3, 0) = skew(foot_exp_pos + robot->lf_leg_calc->pos_offset - robot->comm_pos);
+        A.block<3, 3>(3, 3) = skew(foot_exp_pos + robot->rf_leg_calc->pos_offset - robot->comm_pos);
+        A.block<3, 3>(3, 6) = skew(foot_exp_pos + robot->lb_leg_calc->pos_offset - robot->comm_pos);
+        A.block<3, 3>(3, 9) = skew(foot_exp_pos + robot->rb_leg_calc->pos_offset - robot->comm_pos);
+
+        b.block<3,1>(0,0)=robot->robot_mass*Vector3D(hor_acc,0.0,ver_acc+9.8);
+        b.block<3,1>(3,0)=Eigen::Vector3d::Zero();
 
         auto F = A.completeOrthogonalDecomposition().solve(b);
 
-        lf_foot_exp_force=F.block<3,1>(0,0);
-        rf_foot_exp_force=F.block<3,1>(3,0);
-        lb_foot_exp_force=F.block<3,1>(6,0);
-        rb_foot_exp_force=F.block<3,1>(9,0);
+        lf_foot_exp_force = F.block<3, 1>(0, 0);
+        rf_foot_exp_force = F.block<3, 1>(3, 0);
+        lb_foot_exp_force = F.block<3, 1>(6, 0);
+        rb_foot_exp_force = F.block<3, 1>(9, 0);
 
         lf_foot_exp_pos = Vector3D(hor_pos, 0.0, ver_pos);
         rf_foot_exp_pos = Vector3D(hor_pos, 0.0, ver_pos);
@@ -240,6 +243,8 @@ std::string JumpState::update(Robot* robot) {
         rf_foot_exp_acc = Vector3D(hor_acc, 0.0, ver_acc);
         lb_foot_exp_acc = Vector3D(hor_acc, 0.0, ver_acc);
         rb_foot_exp_acc = Vector3D(hor_acc, 0.0, ver_acc);
+
+        RCLCPP_INFO(robot->node_->get_logger(), "ver_pos=%lf",ver_pos);
 
         if (t > action_time)
             stage = 7;
