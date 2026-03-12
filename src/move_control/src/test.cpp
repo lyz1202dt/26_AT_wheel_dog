@@ -37,15 +37,15 @@ public:
         this->declare_parameter<int>("step_type", 0);
 
         // Jump parameters
-        this->declare_parameter<double>("v0", 0.5);
+        this->declare_parameter<double>("v0", 2.0);
         this->declare_parameter<double>("v0_dir", 0.0);
-        this->declare_parameter<double>("ready_jump_height", 0.15);
-        this->declare_parameter<double>("finished_jump_height", 0.3);
-        this->declare_parameter<double>("fly_height", 0.18);
-        this->declare_parameter<double>("touch_height", 0.27);
+        this->declare_parameter<double>("ready_jump_height", 0.13);
+        this->declare_parameter<double>("finished_jump_height", 0.31);
+        this->declare_parameter<double>("fly_height", 0.15);
+        this->declare_parameter<double>("touch_height", 0.20);
         this->declare_parameter<double>("t1", 2.0);
-        this->declare_parameter<double>("t2", 0.3);
-        this->declare_parameter<double>("t3", 0.4);
+        this->declare_parameter<double>("t2", 0.1);
+        this->declare_parameter<double>("t3", 0.12);
 
         auto trigger_desc = rcl_interfaces::msg::ParameterDescriptor();
         trigger_desc.description = "Trigger jump command (触发跳跃命令)";
