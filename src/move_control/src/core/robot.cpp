@@ -10,12 +10,12 @@
 #include "states/jump.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
-//#include "states/mpc2.hpp"
-#include "states/walk.hpp"
-#include "states/climb_steps.hpp"
-#include "states/jump.hpp"
+// #include "states/mpc2.hpp"
 #include "states/amble.hpp"
+#include "states/climb_steps.hpp"
 #include "states/force.hpp"
+#include "states/jump.hpp"
+#include "states/walk.hpp"
 
 
 using namespace std::chrono_literals;
@@ -141,7 +141,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     rf_base_offset << 0.25 + rf_dx_temp, -0.21, -body_height;
     lb_base_offset << -0.25 + lb_dx_temp, 0.21, -body_height;
     rb_base_offset << -0.25 + rb_dx_temp, -0.21, -body_height;
-    
+
 
     robot_rotation.setRPY(0.0, 0.0, 0.0);
 
@@ -157,8 +157,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     // pose_sensor 发布的是 PoseStamped（见 mujoco_ros2_control/src/pose_sensor.cpp），这里必须用 PoseStamped 才能收到消息
     // 同时 QoS 需要与发布端兼容（发布端当前是 RELIABLE + TRANSIENT_LOCAL）
     imu_sub = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "/imu_pose_sensor/pose", rclcpp::SensorDataQoS(),
-        [this](const geometry_msgs::msg::PoseStamped& msg) {
+        "/imu_pose_sensor/pose", rclcpp::SensorDataQoS(), [this](const geometry_msgs::msg::PoseStamped& msg) {
             const auto& q_msg = msg.pose.orientation;
 
             double qw = robot_rotation.getW();
@@ -175,16 +174,18 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
         });
 
     imu_state_sub = node_->create_subscription<sensor_msgs::msg::Imu>(
-        "/imu_imu_sensor/imu",rclcpp::SensorDataQoS(),
-        [this](const sensor_msgs::msg::Imu& msg) {
-            robot_velocity.angular.x = robot_velocity.angular.x + direction_filter_gate * (msg.angular_velocity.x - robot_velocity.angular.x);
-            robot_velocity.angular.y = robot_velocity.angular.y + direction_filter_gate * (msg.angular_velocity.y - robot_velocity.angular.y);
-            robot_velocity.angular.z = robot_velocity.angular.z + direction_filter_gate * (msg.angular_velocity.z - robot_velocity.angular.z);
+        "/imu_imu_sensor/imu", rclcpp::SensorDataQoS(), [this](const sensor_msgs::msg::Imu& msg) {
+            robot_velocity.angular.x =
+                robot_velocity.angular.x + direction_filter_gate * (msg.angular_velocity.x - robot_velocity.angular.x);
+            robot_velocity.angular.y =
+                robot_velocity.angular.y + direction_filter_gate * (msg.angular_velocity.y - robot_velocity.angular.y);
+            robot_velocity.angular.z =
+                robot_velocity.angular.z + direction_filter_gate * (msg.angular_velocity.z - robot_velocity.angular.z);
         });
 
     // 订阅机器人关节状态信息
-    legs_state_sub =
-        node_->create_subscription<robot_interfaces::msg::Robot>("legs_status", rclcpp::SensorDataQoS(), [this](const robot_interfaces::msg::Robot& msg) {
+    legs_state_sub = node_->create_subscription<robot_interfaces::msg::Robot>(
+        "legs_status", rclcpp::SensorDataQoS(), [this](const robot_interfaces::msg::Robot& msg) {
             for (int i = 0; i < 3; i++) {
                 lf_joint_pos[i] = (double)msg.legs[0].joints[i].rad;
                 rf_joint_pos[i] = (double)msg.legs[1].joints[i].rad;
@@ -201,16 +202,16 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
                 lb_joint_torque[i] = (double)msg.legs[2].joints[i].torque;
                 rb_joint_torque[i] = (double)msg.legs[3].joints[i].torque;
             }
-            lf_wheel_omega=(double)msg.legs[0].wheel.omega;
-            rf_wheel_omega=(double)msg.legs[1].wheel.omega;
-            lb_wheel_omega=(double)msg.legs[2].wheel.omega;
-            rb_wheel_omega=(double)msg.legs[3].wheel.omega;
+            lf_wheel_omega = (double)msg.legs[0].wheel.omega;
+            rf_wheel_omega = (double)msg.legs[1].wheel.omega;
+            lb_wheel_omega = (double)msg.legs[2].wheel.omega;
+            rb_wheel_omega = (double)msg.legs[3].wheel.omega;
 
-            lf_wheel_torque=(double)msg.legs[0].wheel.torque;
-            rf_wheel_torque=(double)msg.legs[1].wheel.torque;
-            lb_wheel_torque=(double)msg.legs[2].wheel.torque;
-            rb_wheel_torque=(double)msg.legs[3].wheel.torque;
-            legs_data_updated=true;
+            lf_wheel_torque   = (double)msg.legs[0].wheel.torque;
+            rf_wheel_torque   = (double)msg.legs[1].wheel.torque;
+            lb_wheel_torque   = (double)msg.legs[2].wheel.torque;
+            rb_wheel_torque   = (double)msg.legs[3].wheel.torque;
+            legs_data_updated = true;
         });
 
     // 订阅机器人的运动期望
@@ -229,9 +230,9 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     // 将四个轮子关节从continuous类型改为fixed类型，以便KDL能够求解
     std::vector<std::string> wheel_joints = {"lf_joint4", "rf_joint4", "lb_joint4", "rb_joint4"};
     for (const auto& joint_name : wheel_joints) {
-        std::string search_pattern = "<joint\n        name=\"" + joint_name + "\"\n        type=\"continuous\">";
+        std::string search_pattern  = "<joint\n        name=\"" + joint_name + "\"\n        type=\"continuous\">";
         std::string replace_pattern = "<joint\n        name=\"" + joint_name + "\"\n        type=\"fixed\">";
-        size_t pos = urdf_xml.find(search_pattern);
+        size_t pos                  = urdf_xml.find(search_pattern);
         if (pos != std::string::npos) {
             urdf_xml.replace(pos, search_pattern.length(), replace_pattern);
         }
@@ -258,59 +259,26 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
         lf_leg_calc->joint_pos(lf_leg_stop_pos, &result), rf_leg_calc->joint_pos(rf_leg_stop_pos, &result),
         lb_leg_calc->joint_pos(lb_leg_stop_pos, &result), rb_leg_calc->joint_pos(rb_leg_stop_pos, &result));
 
-    //注册状态机
+    // 注册状态机
     fsm.register_state(std::make_unique<IdelState>(this));
     fsm.register_state(std::make_unique<SetupState>(this));
     fsm.register_state(std::make_unique<StopState>(this));
     fsm.register_state(std::make_unique<WalkState>(this));
-    //fsm.register_state(std::make_unique<MPC2State>(this));
+    // fsm.register_state(std::make_unique<MPC2State>(this));
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
     fsm.register_state(std::make_unique<ForceState>(this));
 
-    control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
+    control_timer   = node->create_wall_timer(4ms, [this]() {
+        if (legs_data_updated) {
+            fsm.run();
+        }
+    });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
 }
 
 Robot::~Robot() {}
-
-robot_interfaces::msg::LegTarget Robot::signal_leg_calc(
-    const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
-    std::shared_ptr<LegCalc> leg_calc, Vector3D* torque, double wheel_vel, double wheel_force,
-    double kp1, double kd1, double kp2, double kd2, double kp3, double kd3) {
-    Vector3D joint_pos, joint_omega, joint_torque;
-
-    int result;
-    joint_pos    = leg_calc->joint_pos(exp_cart_pos, &result); // 一般这个位置不可能会迭代失败，所以不再对result进行处理
-    joint_omega  = leg_calc->joint_vel(joint_pos, exp_cart_vel);
-    joint_torque = leg_calc->joint_torque_foot_force(joint_pos, exp_cart_force);
-    joint_torque += leg_calc->joint_torque_dynamic(joint_pos, joint_omega, exp_cart_acc);
-
-    robot_interfaces::msg::LegTarget leg;
-    leg.joints[0].rad    = static_cast<float>(joint_pos[0]);
-    leg.joints[0].omega  = static_cast<float>(joint_omega[0]);
-    leg.joints[0].torque = static_cast<float>(joint_torque[0]);
-    leg.joints[0].kp     = static_cast<float>(kp1);
-    leg.joints[0].kd     = static_cast<float>(kd1);
-    
-    leg.joints[1].rad    = static_cast<float>(joint_pos[1]);
-    leg.joints[1].omega  = static_cast<float>(joint_omega[1]);
-    leg.joints[1].torque = static_cast<float>(joint_torque[1]);
-    leg.joints[1].kp     = static_cast<float>(kp2);
-    leg.joints[1].kd     = static_cast<float>(kd2);
-    
-    leg.joints[2].rad    = static_cast<float>(joint_pos[2]);
-    leg.joints[2].omega  = static_cast<float>(joint_omega[2]);
-    leg.joints[2].torque = static_cast<float>(joint_torque[2]);
-    leg.joints[2].kp     = static_cast<float>(kp3);
-    leg.joints[2].kd     = static_cast<float>(kd3);
-    
-    leg.wheel.omega  = static_cast<float>(wheel_vel / WHEEL_RADIUS);
-    leg.wheel.torque = static_cast<float>(wheel_force * WHEEL_RADIUS);
-    *torque          = joint_torque;
-    return leg;
-}
 
 void Robot::quaternionLowPassFilter(double& w, double& x, double& y, double& z, double w1, double x1, double y1, double z1, double alpha) {
 

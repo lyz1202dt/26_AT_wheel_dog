@@ -4,7 +4,7 @@ ClimbStepstate::ClimbStepstate(Robot* robot)
     : BaseState<Robot>("climb_steps") {
     (void)robot;
 
-    robot->node_->declare_parameter("climb_step_finished_idel_time",0.5);
+    robot->node_->declare_parameter("climb_step_finished_idel_time", 0.5);
 
     robot->add_param_cb([this](const rclcpp::Parameter& param) {
         if (param.get_name() == "climb_step_finished_idel_time") {
@@ -29,7 +29,7 @@ bool ClimbStepstate::enter(Robot* robot, const std::string& last_status) {
     slave_phrase_start_time     = now;
     slave_phrase_stop_time      = now;
 
-    robot->node_->get_parameter("climb_step_finished_idel_time",climb_step_finished_idel_time);
+    robot->node_->get_parameter("climb_step_finished_idel_time", climb_step_finished_idel_time);
 
     return true;
 }
@@ -242,7 +242,7 @@ std::string ClimbStepstate::update(Robot* robot) {
         }
 
 
-        if (foot_climbing_step != 1) {      //处于摆动相的足端采用位置控制
+        if (foot_climbing_step != 1) {                      // 处于摆动相的足端采用位置控制
             std::tie(lf_foot_exp_pos[2], lf_foot_exp_vel[2], lf_foot_exp_acc[2]) =
                 robot->lf_z_vmc->targetUpdate(lf_foot_exp_pos[2], lf_cart_pos[2], lf_foot_exp_vel[2], lf_cart_vel[2], -lf_cart_force[2]);
             lf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lf_grivate);
@@ -267,18 +267,14 @@ std::string ClimbStepstate::update(Robot* robot) {
         }
 
 
-        joints_target.legs[0] = robot->signal_leg_calc(
-            lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, robot->lf_leg_calc, &robot->lf_forward_torque,
-            lf_wheel_vel, lf_wheel_force);
-        joints_target.legs[1] = robot->signal_leg_calc(
-            rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force, robot->rf_leg_calc, &robot->rf_forward_torque,
-            rf_wheel_vel, rf_wheel_force);
-        joints_target.legs[2] = robot->signal_leg_calc(
-            lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force, robot->lb_leg_calc, &robot->lb_forward_torque,
-            lb_wheel_vel, lb_wheel_force);
-        joints_target.legs[3] = robot->signal_leg_calc(
-            rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, robot->rb_leg_calc, &robot->rb_forward_torque,
-            rb_wheel_vel, rb_wheel_force);
+        joints_target.legs[0] = robot->lf_leg_calc->signal_leg_calc(
+            lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, &robot->lf_forward_torque, lf_wheel_vel, lf_wheel_force);
+        joints_target.legs[1] = robot->rf_leg_calc->signal_leg_calc(
+            rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force, &robot->rf_forward_torque, rf_wheel_vel, rf_wheel_force);
+        joints_target.legs[2] = robot->lb_leg_calc->signal_leg_calc(
+            lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force, &robot->lb_forward_torque, lb_wheel_vel, lb_wheel_force);
+        joints_target.legs[3] = robot->rb_leg_calc->signal_leg_calc(
+            rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, &robot->rb_forward_torque, rb_wheel_vel, rb_wheel_force);
 
     } else if (current_state == 2 || current_state == 3) {  // 抬腿调整方向
         if (current_state == 2) {
@@ -490,18 +486,18 @@ std::string ClimbStepstate::update(Robot* robot) {
         double rf_wheel_force = step2_support_updated ? -current_exp_foot_force : 0.0;
         double lb_wheel_force = step2_support_updated ? current_exp_foot_force : 0.0;
 
-        joints_target.legs[0] = robot->signal_leg_calc(
-            lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, robot->lf_leg_calc, &robot->lf_forward_torque,
-            current_exp_vel, lf_wheel_force);
-        joints_target.legs[1] = robot->signal_leg_calc(
-            rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force, robot->rf_leg_calc, &robot->rf_forward_torque,
-            -current_exp_vel, rf_wheel_force);
-        joints_target.legs[2] = robot->signal_leg_calc(
-            lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force, robot->lb_leg_calc, &robot->lb_forward_torque,
-            current_exp_vel, lb_wheel_force);
-        joints_target.legs[3] = robot->signal_leg_calc(
-            rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, robot->rb_leg_calc, &robot->rb_forward_torque,
-            -current_exp_vel, rb_wheel_force);
+        joints_target.legs[0] = robot->lf_leg_calc->signal_leg_calc(
+            lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, &robot->lf_forward_torque, current_exp_vel,
+            lf_wheel_force);
+        joints_target.legs[1] = robot->rf_leg_calc->signal_leg_calc(
+            rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force, &robot->rf_forward_torque, -current_exp_vel,
+            rf_wheel_force);
+        joints_target.legs[2] = robot->lb_leg_calc->signal_leg_calc(
+            lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force, &robot->lb_forward_torque, current_exp_vel,
+            lb_wheel_force);
+        joints_target.legs[3] = robot->rb_leg_calc->signal_leg_calc(
+            rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, &robot->rb_forward_torque, -current_exp_vel,
+            rb_wheel_force);
     }
 
     // RCLCPP_INFO(robot->node_->get_logger(),"(%lf,%lf)",joints_target.legs[0].wheel.omega,joints_target.legs[0].wheel.torque);

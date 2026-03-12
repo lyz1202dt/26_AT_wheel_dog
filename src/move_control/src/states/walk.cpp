@@ -4,33 +4,33 @@
 
 WalkState::WalkState(Robot* robot)
     : BaseState<Robot>("walk") {
-        robot->node_->declare_parameter("step_time",0.5);
-        robot->node_->declare_parameter("step_height",0.08);
-        robot->node_->declare_parameter("step_support_rate",0.6);
-        robot->node_->declare_parameter("roll_balance_step_compen", 0.3);
-        robot->node_->declare_parameter("pitch_balance_step_compen", 0.3);
-        robot->node_->declare_parameter("exp_roll", 0.0);
-        robot->node_->declare_parameter("exp_pitch", 0.0);
+    robot->node_->declare_parameter("step_time", 0.5);
+    robot->node_->declare_parameter("step_height", 0.08);
+    robot->node_->declare_parameter("step_support_rate", 0.6);
+    robot->node_->declare_parameter("roll_balance_step_compen", 0.3);
+    robot->node_->declare_parameter("pitch_balance_step_compen", 0.3);
+    robot->node_->declare_parameter("exp_roll", 0.0);
+    robot->node_->declare_parameter("exp_pitch", 0.0);
 
-        robot->add_param_cb([this](const rclcpp::Parameter& param){
-            auto name=param.get_name();
-            if(name=="step_time")
-                step_time=param.as_double();
-            else if(name=="step_height")
-                step_height=param.as_double();
-            else if(name=="step_support_rate")
-                step_support_rate=param.as_double();
-            else if(name=="roll_balance_step_compen")
-                roll_balance_step_compen=param.as_double();
-            else if(name=="pitch_balance_step_compen")
-                pitch_balance_step_compen=param.as_double();
-            else if(name=="exp_roll")
-                exp_roll=param.as_double();
-            else if(name=="exp_pitch")
-                exp_pitch=param.as_double();
-            return true;
-        });
-    }
+    robot->add_param_cb([this](const rclcpp::Parameter& param) {
+        auto name = param.get_name();
+        if (name == "step_time")
+            step_time = param.as_double();
+        else if (name == "step_height")
+            step_height = param.as_double();
+        else if (name == "step_support_rate")
+            step_support_rate = param.as_double();
+        else if (name == "roll_balance_step_compen")
+            roll_balance_step_compen = param.as_double();
+        else if (name == "pitch_balance_step_compen")
+            pitch_balance_step_compen = param.as_double();
+        else if (name == "exp_roll")
+            exp_roll = param.as_double();
+        else if (name == "exp_pitch")
+            exp_pitch = param.as_double();
+        return true;
+    });
+}
 
 bool WalkState::enter(Robot* robot, const std::string& last_status) {
     (void)last_status;
@@ -64,12 +64,12 @@ bool WalkState::enter(Robot* robot, const std::string& last_status) {
 std::string WalkState::update(Robot* robot) {
     std::string next_state("walk");
     Vector3D lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
-    Vector3D lf_foot_exp_force = Vector3D::Zero(), rf_foot_exp_force = Vector3D::Zero(), 
-             lb_foot_exp_force = Vector3D::Zero(), rb_foot_exp_force = Vector3D::Zero();
-    Vector3D lf_foot_exp_vel = Vector3D::Zero(), rf_foot_exp_vel = Vector3D::Zero(), 
-             lb_foot_exp_vel = Vector3D::Zero(), rb_foot_exp_vel = Vector3D::Zero();
-    Vector3D lf_foot_exp_acc = Vector3D::Zero(), rf_foot_exp_acc = Vector3D::Zero(), 
-             lb_foot_exp_acc = Vector3D::Zero(), rb_foot_exp_acc = Vector3D::Zero();
+    Vector3D lf_foot_exp_force = Vector3D::Zero(), rf_foot_exp_force = Vector3D::Zero(), lb_foot_exp_force = Vector3D::Zero(),
+             rb_foot_exp_force = Vector3D::Zero();
+    Vector3D lf_foot_exp_vel = Vector3D::Zero(), rf_foot_exp_vel = Vector3D::Zero(), lb_foot_exp_vel = Vector3D::Zero(),
+             rb_foot_exp_vel = Vector3D::Zero();
+    Vector3D lf_foot_exp_acc = Vector3D::Zero(), rf_foot_exp_acc = Vector3D::Zero(), lb_foot_exp_acc = Vector3D::Zero(),
+             rb_foot_exp_acc = Vector3D::Zero();
 
     double cur_roll, cur_pitch, cur_yaw;
     tf2::Matrix3x3(robot->robot_rotation).getRPY(cur_roll, cur_pitch, cur_yaw);
@@ -78,7 +78,7 @@ std::string WalkState::update(Robot* robot) {
         new_target[0] += -(exp_pitch - cur_pitch) * pitch_balance_step_compen;
         new_target[1] += (exp_roll - cur_roll) * roll_balance_step_compen;
         // 限制落足点范围在边长为 0.24m 的正方形内 (原代码注释写 0.12/2 但变量名 max_offset=0.12，此处保持原逻辑)
-        const double max_offset = 0.12; 
+        const double max_offset = 0.12;
         new_target[0]           = std::clamp(new_target[0], initial_target[0] - max_offset, initial_target[0] + max_offset);
         new_target[1]           = std::clamp(new_target[1], initial_target[1] - max_offset, initial_target[1] + max_offset);
         return new_target;
@@ -86,10 +86,11 @@ std::string WalkState::update(Robot* robot) {
     std::tie(lf_foot_exp_force, rf_foot_exp_force, lb_foot_exp_force, rb_foot_exp_force) = balance_force_calc(robot, cur_roll, cur_pitch);
 
     if ((cur_roll > 40 * 3.14 / 180 || cur_roll < -40 * 3.14 / 180 || cur_pitch > 50 * 3.14 / 180
-         || cur_pitch < -50 * 3.14 / 180))                                                               // 机器人倾倒，切入IDEL状态
+         || cur_pitch < -50 * 3.14 / 180)) // 机器人倾倒，切入IDEL状态
         return "idel";
 
-    std::tie(lf_exp_vel,rf_exp_vel,lb_exp_vel,rb_exp_vel)=calc_foot_vel(robot, Vector3D(robot->move_cmd.vx, robot->move_cmd.vy, robot->move_cmd.vz));
+    std::tie(lf_exp_vel, rf_exp_vel, lb_exp_vel, rb_exp_vel) =
+        calc_foot_vel(robot, Vector3D(robot->move_cmd.vx, robot->move_cmd.vy, robot->move_cmd.vz));
 
     auto now = robot->node_->get_clock()->now();
     // TODO:利用LegStep类的轨迹计算是否成功的判据来决定是否开启
@@ -129,15 +130,15 @@ std::string WalkState::update(Robot* robot) {
             step1_support_updated = false;                                       // 设置足端轨迹更新状态
             step1_flight_updated  = true;
 
-            
-                // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
-                lf_leg_step.update_flight_trajectory(
-                    robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
-                    step_time * (1.0 - step_support_rate), step_height, footstep_correction);
-                // 主相对角腿也需要规划飞行轨迹（右后）
-                rb_leg_step.update_flight_trajectory(
-                    robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), -Vector3D(rb_exp_vel[0], rb_exp_vel[1], 0.0), rb_exp_vel,
-                    step_time * (1.0 - step_support_rate), step_height, footstep_correction);
+
+            // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
+            lf_leg_step.update_flight_trajectory(
+                robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
+                step_time * (1.0 - step_support_rate), step_height, footstep_correction);
+            // 主相对角腿也需要规划飞行轨迹（右后）
+            rb_leg_step.update_flight_trajectory(
+                robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), -Vector3D(rb_exp_vel[0], rb_exp_vel[1], 0.0), rb_exp_vel,
+                step_time * (1.0 - step_support_rate), step_height, footstep_correction);
             // lf_leg_step.update_flight_trajectory(
             //     robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
             //     step_time * (1.0 - step_support_rate), step_height);
@@ -184,7 +185,7 @@ std::string WalkState::update(Robot* robot) {
                 robot->rf_leg_stop_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
                 robot->lb_leg_stop_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
                 robot->rb_leg_stop_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
-                next_state = "stop";
+                next_state             = "stop";
             }
             RCLCPP_INFO(robot->node_->get_logger(), "从相位支撑相规划");
         }
@@ -194,13 +195,13 @@ std::string WalkState::update(Robot* robot) {
             step2_support_updated = false;                         // 设置足端轨迹更新状态
             step2_flight_updated  = true;
 
-                // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
-                rf_leg_step.update_flight_trajectory(
-                    robot->rf_leg_calc->foot_pos(robot->rf_joint_pos), -Vector3D(rf_exp_vel[0], rf_exp_vel[1], 0.0), rf_exp_vel,
-                    (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
-                lb_leg_step.update_flight_trajectory(
-                    robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), -Vector3D(lb_exp_vel[0], lb_exp_vel[1], 0.0), lb_exp_vel,
-                    (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
+            // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
+            rf_leg_step.update_flight_trajectory(
+                robot->rf_leg_calc->foot_pos(robot->rf_joint_pos), -Vector3D(rf_exp_vel[0], rf_exp_vel[1], 0.0), rf_exp_vel,
+                (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
+            lb_leg_step.update_flight_trajectory(
+                robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), -Vector3D(lb_exp_vel[0], lb_exp_vel[1], 0.0), lb_exp_vel,
+                (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
 
             // 从相两条腿同时进入飞行相（右前 & 左后）
             // rf_leg_step.update_flight_trajectory(
@@ -237,7 +238,7 @@ std::string WalkState::update(Robot* robot) {
     auto lb_cart_vel   = robot->lb_leg_calc->foot_vel(robot->lb_joint_pos, robot->lb_joint_vel);
     auto lb_cart_force = robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque);
 
-    if (step1_support_updated) {    // 主相位处于支撑相
+    if (step1_support_updated) {                                                      // 主相位处于支撑相
         std::tie(lf_foot_exp_pos[2], lf_foot_exp_vel[2], lf_foot_exp_acc[2]) =
             robot->lf_z_vmc->targetUpdate(lf_foot_exp_pos[2], lf_cart_pos[2], lf_foot_exp_vel[2], lf_cart_vel[2], -lf_cart_force[2]);
 
@@ -262,7 +263,7 @@ std::string WalkState::update(Robot* robot) {
         std::tie(rb_foot_exp_pos[1], rb_foot_exp_vel[1], rb_foot_exp_acc[1]) =
             robot->rb_y_vmc->targetUpdate(rb_foot_exp_pos[1], rb_cart_pos[1], rb_foot_exp_vel[1], rb_cart_vel[1], -rb_cart_force[1]);
     }
-    if (step2_support_updated) {    // 从相位处于支撑相
+    if (step2_support_updated) {     // 从相位处于支撑相
 
         std::tie(rf_foot_exp_pos[2], rf_foot_exp_vel[2], rf_foot_exp_acc[2]) =
             robot->rf_z_vmc->targetUpdate(rf_foot_exp_pos[2], rf_cart_pos[2], rf_foot_exp_vel[2], rf_cart_vel[2], -rf_cart_force[2]);
@@ -289,18 +290,18 @@ std::string WalkState::update(Robot* robot) {
     }
 
     robot_interfaces::msg::RobotTarget joints_target;
-    joints_target.legs[0] = robot->signal_leg_calc(
-        lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, robot->lf_leg_calc, &robot->lf_forward_torque);
-    joints_target.legs[1] = robot->signal_leg_calc(
-        rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force, robot->rf_leg_calc, &robot->rf_forward_torque);
-    joints_target.legs[2] = robot->signal_leg_calc(
-        lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force, robot->lb_leg_calc, &robot->lb_forward_torque);
-    joints_target.legs[3] = robot->signal_leg_calc(
-        rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, robot->rb_leg_calc, &robot->rb_forward_torque);
+    joints_target.legs[0] = robot->lf_leg_calc->signal_leg_calc(
+        lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force, &robot->lf_forward_torque);
+    joints_target.legs[1] = robot->rf_leg_calc->signal_leg_calc(
+        rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force, &robot->rf_forward_torque);
+    joints_target.legs[2] = robot->lb_leg_calc->signal_leg_calc(
+        lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force, &robot->lb_forward_torque);
+    joints_target.legs[3] = robot->rb_leg_calc->signal_leg_calc(
+        rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, &robot->rb_forward_torque);
     robot->legs_target_pub->publish(joints_target);
 
     // // 打印左后腿三个关节的期望力矩
-    // RCLCPP_INFO(robot->node_->get_logger(), 
+    // RCLCPP_INFO(robot->node_->get_logger(),
     //     "RB joint torques - Joint1: %.3f, Joint2: %.3f, Joint3: %.3f",
     //     joints_target.legs[3].joints[0].torque,
     //     joints_target.legs[3].joints[1].torque,
@@ -309,7 +310,8 @@ std::string WalkState::update(Robot* robot) {
     return next_state;
 }
 
-std::tuple<Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d> WalkState::calc_foot_vel(Robot* robot, Eigen::Vector3d exp_vel) {
+std::tuple<Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d>
+    WalkState::calc_foot_vel(Robot* robot, Eigen::Vector3d exp_vel) {
     Vector3D v_body(exp_vel[0], exp_vel[1], 0.0);
     Vector3D omega(0.0, 0.0, exp_vel[2]);
 
@@ -343,8 +345,8 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>
     double pitch_offset_virtual_torque = robot->pitch_vmc->update(cur_pitch, robot->robot_velocity.angular.y, 0.0);
 
     // TODO:计算四个足端的期望的平衡虚拟力(pitch)
-    Eigen::Vector3d lf_force = Eigen::Vector3d::Zero(), rf_force = Eigen::Vector3d::Zero(), 
-                    lb_force = Eigen::Vector3d::Zero(), rb_force = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_force = Eigen::Vector3d::Zero(), rf_force = Eigen::Vector3d::Zero(), lb_force = Eigen::Vector3d::Zero(),
+                    rb_force = Eigen::Vector3d::Zero();
     lf_force[2] += pitch_offset_virtual_torque * robot->lf_leg_calc->pos_offset[0];
     rf_force[2] += pitch_offset_virtual_torque * robot->rf_leg_calc->pos_offset[0];
     lb_force[2] += pitch_offset_virtual_torque * robot->lb_leg_calc->pos_offset[0];

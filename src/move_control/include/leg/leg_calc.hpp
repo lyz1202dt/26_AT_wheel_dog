@@ -12,7 +12,10 @@
 #include <rclcpp/parameter.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/subscription.hpp>
+#include <robot_interfaces/msg/detail/leg_target__struct.hpp>
+#include <robot_interfaces/msg/detail/robot__struct.hpp>
 #include <robot_interfaces/msg/robot.hpp>
+#include <robot_interfaces/msg/joint_target.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 #include <tuple>
@@ -32,7 +35,6 @@ class LegCalc{
 public:
     LegCalc(KDL::Chain &chain);
     ~LegCalc();
-    void set_leg_state(KDL::JntArray &rad, KDL::JntArray &omega, KDL::JntArray &torque);    //在一个控制周期内，应首先调用它
 
     //int joint_pos(KDL::JntArray &joint_rad, KDL::Vector &foot_pos,KDL::JntArray &result);
     Eigen::Vector3d joint_pos(const Eigen::Vector3d &foot_pos,int  *result);       //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
@@ -48,6 +50,13 @@ public:
     Eigen::Vector3d foot_vel(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_omega);
     
     Eigen::Vector3d foot_pos(const Eigen::Vector3d& joint_rad);
+
+    void set_joint_pd(int index,double kp,double kd);
+
+    void get_joint_pd(int index,double &kp,double &kd);
+
+    robot_interfaces::msg::LegTarget signal_leg_calc(
+    const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,Vector3D* torque,const double wheel_vel=0.0,const double wheel_force=0.0);
 
     Eigen::Vector3d pos_offset; // 足端位置到机器人中心的偏移
 private:
@@ -77,4 +86,8 @@ private:
 
     KDL::JntArrayVel _temp_joint3_vel_array;
     KDL::Twist _temp_jdot_qd;
+
+    double kp[3],kd[3];
+    double wheel_kd;
+    double wheel_radius{0.065};
 };

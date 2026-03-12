@@ -24,7 +24,6 @@ private:
     robot_interfaces::msg::JumpCmd jump_cmd;
     rclcpp::Time action_start_time;
     Robot* robot;
-    double current_exp_vel, current_body_vel;
     double exp_vel_kp{1.0};
     int stage;
     double ver_acc{0.0}, ver_vel{0.0}, ver_pos{0.0};

@@ -65,10 +65,6 @@ public:
 
     std::tuple<Vector3D, double> get_robot_mass_info(
         const Vector3D& lf_joint_pos, const Vector3D& rf_joint_pos, const Vector3D& lb_joint_pos, const Vector3D& rb_joint_pos);
-    robot_interfaces::msg::LegTarget signal_leg_calc(
-        const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
-        std::shared_ptr<LegCalc> leg_calc, Vector3D* torque, double wheel_vel = 0.0, double wheel_force = 0.0,
-        double kp1 = 50.0, double kd1 = 3.0, double kp2 = 50.0, double kd2 = 3.0, double kp3 = 50.0, double kd3 = 3.0);
     void quaternionLowPassFilter(double& w, double& x, double& y, double& z, double w1, double x1, double y1, double z1, double alpha);
 
     bool add_param_cb(std::function<bool(const rclcpp::Parameter& params)> callback);
