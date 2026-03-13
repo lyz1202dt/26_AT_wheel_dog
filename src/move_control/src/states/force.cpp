@@ -30,18 +30,18 @@ ForceState::ForceState(Robot* robot)
         / (mass * 9.8);
 
     // 声明z方向VMC的PD参数
-    robot->node_->declare_parameter("force_vmc_z_kp", 200.0);
-    robot->node_->declare_parameter("force_vmc_z_kd", 5.0);
+    robot->node_->declare_parameter("force_vmc_z_kp", 240.0);
+    robot->node_->declare_parameter("force_vmc_z_kd", 10.0);
 
     // 声明x、y方向VMC的PD参数
     robot->node_->declare_parameter("force_vmc_xy_kp", 100.0);
-    robot->node_->declare_parameter("force_vmc_xy_kd", 2.0);
+    robot->node_->declare_parameter("force_vmc_xy_kd", 5.0);
 
     // 声明roll和pitch轴的VMC参数
-    robot->node_->declare_parameter("force_vmc_roll_kp", 0.0);
-    robot->node_->declare_parameter("force_vmc_roll_kd", 0.0);
-    robot->node_->declare_parameter("force_vmc_pitch_kp", 0.0);
-    robot->node_->declare_parameter("force_vmc_pitch_kd", 0.0);
+    robot->node_->declare_parameter("force_vmc_roll_kp", -6.0);
+    robot->node_->declare_parameter("force_vmc_roll_kd", -0.5);
+    robot->node_->declare_parameter("force_vmc_pitch_kp", 5.0);
+    robot->node_->declare_parameter("force_vmc_pitch_kd", 0.6);
 
     // 添加参数变化回调函数
     robot->add_param_cb([this](const rclcpp::Parameter& param) {
@@ -188,6 +188,10 @@ std::string ForceState::update(Robot* robot) {
     double pitch_torque = pitch_vmc.update(cur_pitch, robot->robot_velocity.angular.y);
     double roll_torque  = roll_vmc.update(cur_roll, robot->robot_velocity.angular.x);
 
+    if ((cur_roll > 40 * 3.14 / 180 || cur_roll < -40 * 3.14 / 180 || cur_pitch > 50 * 3.14 / 180
+         || cur_pitch < -50 * 3.14 / 180)) // 机器人倾倒，切入IDEL状态
+        return "idel";
+
     // tf2::Quaternion q;
     // robot_rot_mat.getRotation(q);
     // Eigen::Matrix3d rot_mat_eigen = Eigen::Quaterniond(q.x(), q.y(), q.z(), q.w()).toRotationMatrix();
@@ -287,9 +291,16 @@ std::string ForceState::update(Robot* robot) {
         joints_target.legs[2].joints[i].kd = 0.0f;
         joints_target.legs[3].joints[i].kd = 0.0f;
     }
+    joints_target.legs[0].wheel.kd=0.5;
+    joints_target.legs[1].wheel.kd=0.5;
+    joints_target.legs[2].wheel.kd=0.5;
+    joints_target.legs[3].wheel.kd=0.5;
+    
     robot->legs_target_pub->publish(joints_target);
     if (robot->move_cmd.step_mode == 20)
         return "idel";
+    else if(robot->move_cmd.step_mode==21)
+        return "forcewalk";
     return "force";
 }
 

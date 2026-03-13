@@ -249,6 +249,20 @@ robot_interfaces::msg::LegTarget LegCalc::signal_leg_calc(
     return leg;
 }
 
+robot_interfaces::msg::LegTarget LegCalc::signal_leg_torque_calc(const Vector3D& cur_joint_pos, const Vector3D& exp_foot_force, const Vector3D& foot_vel,const Vector3D& foot_acc,double wheel_force) {
+    Vector3D joint_torque;
+    joint_torque = joint_torque_foot_force(cur_joint_pos, exp_foot_force);
+    joint_torque += joint_torque_dynamic(cur_joint_pos, joint_vel(cur_joint_pos, foot_vel), foot_acc);
+
+    robot_interfaces::msg::LegTarget leg;
+    leg.joints[0].torque = static_cast<float>(joint_torque[0]);
+    leg.joints[1].torque = static_cast<float>(joint_torque[1]);
+    leg.joints[2].torque = static_cast<float>(joint_torque[2]);
+    leg.wheel.torque = static_cast<float>(wheel_force * wheel_radius);
+
+    return leg;
+}
+
 /**
     @brief 设置关节kp和kd
     @param index 关节索引

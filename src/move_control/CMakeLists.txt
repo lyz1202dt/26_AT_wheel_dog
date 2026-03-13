@@ -61,6 +61,7 @@ src/states/climb_steps.cpp
 src/states/jump.cpp
 src/states/amble.cpp
 src/states/force.cpp
+src/states/forcewalk.cpp
 )
 
 add_executable(test_move_node

@@ -58,6 +58,8 @@ public:
     robot_interfaces::msg::LegTarget signal_leg_calc(
     const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,Vector3D* torque,const double wheel_vel=0.0,const double wheel_force=0.0);
 
+    robot_interfaces::msg::LegTarget signal_leg_torque_calc(const Vector3D& cur_joint_pos, const Vector3D& exp_foot_force, const Vector3D& foot_vel,const Vector3D& foot_acc,double wheel_force=0.0);
+
     Eigen::Vector3d pos_offset; // 足端位置到机器人中心的偏移
 private:
 

@@ -6,6 +6,7 @@
 #include <memory>
 #include <rclcpp/create_timer.hpp>
 
+#include "states/forcewalk.hpp"
 #include "states/idel.hpp"
 #include "states/jump.hpp"
 #include "states/setup.hpp"
@@ -269,8 +270,9 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
     fsm.register_state(std::make_unique<ForceState>(this));
+    fsm.register_state(std::make_unique<ForcewalkState>(this));
 
-    control_timer   = node->create_wall_timer(4ms, [this]() {
+    control_timer   = node->create_wall_timer(2ms, [this]() {
         if (legs_data_updated) {
             fsm.run();
         }
