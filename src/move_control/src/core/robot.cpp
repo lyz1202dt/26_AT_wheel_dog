@@ -16,7 +16,7 @@
 #include "states/force.hpp"
 #include "states/jump.hpp"
 #include "states/walk.hpp"
-
+#include "states/cross_wall.hpp"
 
 using namespace std::chrono_literals;
 
@@ -269,6 +269,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
     fsm.register_state(std::make_unique<ForceState>(this));
+    fsm.register_state(std::make_unique<Cross_WallState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
         if (legs_data_updated) {
