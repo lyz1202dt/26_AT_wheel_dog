@@ -9,7 +9,7 @@ trajectory::Bezier<Vec3> lf_curve;
 Cross_WallState::Cross_WallState(Robot* robot)
     : BaseState<Robot>("cross_wall") {
         robot->node_->declare_parameter<int>("cross_wall_stage",-1);
-        robot->node_->declare_parameter<int>("cross_k_F",1.0);
+        robot->node_->declare_parameter("cross_k_F",1.0);
         // robot->node_->declare_parameter("cross_lf_x",0.0);
         // robot->node_->declare_parameter("cross_lf_y",0.0);
         // robot->node_->declare_parameter("cross_lf_z",0.0);
@@ -175,26 +175,19 @@ std::string Cross_WallState::update(Robot* robot){
                 lb_wheel_force = 0.0;
                 rf_wheel_force = 0.0;
                 rb_wheel_force = 0.0;
-                
+
+                lf_leg_step.update_support_trajectory(lf_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+                rf_leg_step.update_support_trajectory(rf_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+                lb_leg_step.update_support_trajectory(lb_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+                rb_leg_step.update_support_trajectory(rb_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+
+            
                 change_flag=false;
                 //cross_wall_stage=0;
             }
         }
 
-        if (cross_wall_stage == 1 && change_flag == true){        
-            
-
-            lf_leg_step.update_support_trajectory(lf_cart_pos, Vector3D(0.0, -y_target, 0.0), 2.0);
-            rf_leg_step.update_support_trajectory(rf_cart_pos, Vector3D(0.0, -y_target, 0.0), 2.0);
-            lb_leg_step.update_support_trajectory(lb_cart_pos, Vector3D(0.0, -y_target, 0.0), 2.0);
-            rb_leg_step.update_support_trajectory(rb_cart_pos, Vector3D(0.0, -y_target, 0.0), 2.0);
-
-            
-            change_flag=false;
-            //cross_wall_stage=1;     
-        }
-
-        if (cross_wall_stage == 2 && change_flag == true){         // 执行设置的腿长，调整质心位置，使其落在支撑三角形内
+        if (cross_wall_stage == 1 && change_flag == true){         // 执行设置的腿长，调整质心位置，使其落在支撑三角形内
 
             if (cross_wall_stage != last_stage)
             {
@@ -256,24 +249,80 @@ std::string Cross_WallState::update(Robot* robot){
             {   
 
             Vec3 lf_start_pos = lf_cart_pos;// 起点
-            Vec3 lf_peak_pos = lf_start_pos + Vec3(-0.02, 0.1, 0.15);  // P1: 抬高离墙
-            Vec3 lf_end_pos  = lf_start_pos + Vec3(0.02, 0.1, 0.24);// P2: 终点
+            // Vec3 lf_peak_pos = lf_start_pos + Vec3(-0.02, 0.1, 0.15);  // P1: 抬高离墙
+            // Vec3 lf_end_pos  = lf_start_pos + Vec3(0.02, 0.1, 0.24);// P2: 终点
+            // Vec3 lf_peak_pos = lf_start_pos + Vec3(-0.05,0.05,0.12);  // P1: 抬高离墙
+            // Vec3 lf_end_pos  = lf_start_pos + Vec3(0.05,0.1,0.24);// P2: 终点
+            Vec3 lf_peak_pos = lf_start_pos + Vec3(-0.15,0.08,0.24);// P1: 抬高离墙
+            Vec3 lf_mid_pos = lf_start_pos + Vec3(0.1,0.06,0.44);
+            Vec3 lf_end_pos  = lf_start_pos + Vec3(0.32,0.02,0.435);// P2: 终点
 
-            std::vector<Vec3> control_points = {lf_start_pos, lf_peak_pos, lf_end_pos};
+
+            std::vector<Vec3> control_points = {lf_start_pos, lf_peak_pos, lf_mid_pos, lf_end_pos};
             lf_curve.setControlPoints(control_points);
                 
                 change_flag=false;
                 //cross_wall_stage=2;     //轨迹执行完后跳转到状态2
             }
         }
-        if (cross_wall_stage == 3 && change_flag == true){
+        if (cross_wall_stage == 2 && change_flag == true){
             if (cross_wall_stage != last_stage)
             {
                 cross_wall_stage_time = robot->node_->get_clock()->now();
                 last_stage = cross_wall_stage;
             }
 
-            double duration = 2.0; // 轨迹总时间2秒
+            double duration = 6.0; // 轨迹总时间2秒
+            double t_now = (robot->node_->get_clock()->now() - cross_wall_stage_time).seconds();
+            double s = std::min(t_now / duration, 1.0); // 归一化 t ∈ [0,1]
+
+            lf_foot_exp_pos = lf_curve.evaluate(s);
+            lf_foot_exp_vel = lf_curve.velocity(s);
+            lf_foot_exp_acc = lf_curve.acceleration(s);
+
+            // 三足支撑：rf, lb, rb
+            auto rf_pos = (rf_foot_exp_pos + robot->rf_leg_calc->pos_offset).head(2);
+            auto lb_pos = (lb_foot_exp_pos + robot->lb_leg_calc->pos_offset).head(2);
+            auto rb_pos = (rb_foot_exp_pos + robot->rb_leg_calc->pos_offset).head(2);
+
+            Eigen::Matrix3d A;
+            Eigen::Vector3d b;
+
+            A << 1, 1, 1,
+                rf_pos.x() - mass_center_pos.x(), lb_pos.x() - mass_center_pos.x(), rb_pos.x() - mass_center_pos.x(),
+                rf_pos.y() - mass_center_pos.y(), lb_pos.y() - mass_center_pos.y(), rb_pos.y() - mass_center_pos.y();
+            b << mass*9.8, 0, 0;
+
+            Eigen::Vector3d forces = A.colPivHouseholderQr().solve(b);
+
+            rf_foot_exp_force = Vector3D(0,0,-forces(0));
+            lb_foot_exp_force = Vector3D(0,0,-forces(1));
+            rb_foot_exp_force = Vector3D(0,0,-forces(2));
+            lf_foot_exp_force = Vector3D::Zero(); // 摆动腿
+            if(t_now > duration)
+            {
+                Vec3 lf_start_pos = lf_cart_pos;
+                Vec3 lf_peak_pos = lf_start_pos + Vec3(0.04,-0.1,0.0);// P1: 抬高离墙
+                Vec3 lf_mid_pos = lf_start_pos + Vec3(0.09,-0.1,0.0);
+                Vec3 lf_end_pos  = lf_start_pos + Vec3(-0.2,-0.07,0.0);// P2: 终点
+
+
+            std::vector<Vec3> control_points = {lf_start_pos, lf_peak_pos, lf_mid_pos, lf_end_pos};
+            lf_curve.setControlPoints(control_points);
+
+                change_flag=false;
+                //cross_wall_stage=3;
+            }
+        }
+        if (cross_wall_stage == 3 && change_flag == true) {
+
+            if (cross_wall_stage != last_stage)
+            {
+                cross_wall_stage_time = robot->node_->get_clock()->now();
+                last_stage = cross_wall_stage;
+            }
+           
+            double duration = 6.0; // 轨迹总时间4秒
             double t_now = (robot->node_->get_clock()->now() - cross_wall_stage_time).seconds();
             double s = std::min(t_now / duration, 1.0); // 归一化 t ∈ [0,1]
 
@@ -303,39 +352,14 @@ std::string Cross_WallState::update(Robot* robot){
             if(t_now > duration)
             {
 
-                change_flag=false;
-                //cross_wall_stage=3;
-            }
-        }
-        if (cross_wall_stage == 4 && change_flag == true) {
-
-            if (cross_wall_stage != last_stage)
-            {
-                cross_wall_stage_time = robot->node_->get_clock()->now();
-                last_stage = cross_wall_stage;
-            }
-           
-            bool success=false;
-            double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
-            std::tie(lf_foot_exp_pos,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
-            rf_foot_exp_pos=wall_rf_foot_pos;
-            lb_foot_exp_pos=wall_lb_foot_pos;
-            rb_foot_exp_pos=wall_rb_foot_pos;
-            if(!success)
-            {   
-                wall_lf_foot_pos=lf_foot_exp_pos;
-                wall_rf_foot_pos=rf_foot_exp_pos;
-                wall_lb_foot_pos=lb_foot_exp_pos;
-                wall_rb_foot_pos=rb_foot_exp_pos;
-
-                lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(0.36,0.0,0.10),4.0);
+                //lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(0.36,0.0,0.10),4.0);
                 // lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(cross_x_lf,cross_y_lf,cross_z_lf),time_s);
 
                 change_flag=false;
                 //cross_wall_stage=4;
             }
         }
-        if(cross_wall_stage==5 && change_flag == true){
+        if(cross_wall_stage==4 && change_flag == true){
 
             if (cross_wall_stage != last_stage)
             {
@@ -952,7 +976,7 @@ std::string Cross_WallState::update(Robot* robot){
         joints_target.legs[3] =
             robot->rb_leg_calc->signal_leg_calc(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, lf_foot_exp_force,  &robot->rb_forward_torque,rb_wheel_vel,rb_wheel_force);
         
-
+        robot->legs_target_pub->publish(joints_target);
         return "cross_wall";
     }
 
