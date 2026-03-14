@@ -30,13 +30,13 @@ LegCalc::LegCalc(KDL::Chain& chain)
     last_exp_joint_pos(1) = 0.0;
     last_exp_joint_pos(2) = 0.0;
 
-    // set_joint_pd(0,3.0,0.17);   //设置默认参数
-    // set_joint_pd(1,2.8,0.14);
-    // set_joint_pd(2,2.8,0.11);
+    set_joint_pd(0,3.0,0.17);   //设置默认参数
+    set_joint_pd(1,2.8,0.14);
+    set_joint_pd(2,2.8,0.11);
 
-    set_joint_pd(0,50.0,3.0);   //设置默认参数
-    set_joint_pd(1,50.0,3.0);
-    set_joint_pd(2,50.0,3.0);
+    // set_joint_pd(0,50.0,3.0);   //设置默认参数
+    // set_joint_pd(1,50.0,3.0);
+    // set_joint_pd(2,50.0,3.0);
 
     set_joint_pd(3,0.0,0.5);
 }

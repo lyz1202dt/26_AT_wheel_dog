@@ -16,7 +16,7 @@ typedef struct{
 typedef struct{
     float omega;
     float torque;
-    float kd;
+    //float kd;
 }WheelTarget_t;
 
 typedef struct{

@@ -51,6 +51,7 @@ src/core/estimater.cpp
 src/leg/leg_calc.cpp
 src/leg/step.cpp
 src/leg/vmc.cpp
+src/leg/online_step.cpp
 
 src/states/idel.cpp
 src/states/setup.cpp

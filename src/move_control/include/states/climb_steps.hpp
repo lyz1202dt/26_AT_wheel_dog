@@ -39,8 +39,10 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> b
     double vy_dead_range{0.1};
     double vz_dead_range{0.1};
 
-    double foot_obstruct_gate{8.0};
+    double foot_obstruct_gate{9.0};
 
     double climb_step_finished_idel_time{0.5};
+
+    Vector3D lf_cart_force,rf_cart_force,lb_cart_force,rb_cart_force;
 };
 

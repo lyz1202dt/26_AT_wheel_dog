@@ -86,18 +86,17 @@ std::string ClimbStepstate::update(Robot* robot) {
 
     auto lf_cart_pos   = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
     auto lf_cart_vel   = robot->lf_leg_calc->foot_vel(robot->lf_joint_pos, robot->lf_joint_vel);
-    auto lf_cart_force = robot->lf_leg_calc->foot_force(robot->lf_joint_pos, robot->lf_joint_torque, robot->lf_forward_torque);
+    lf_cart_force = 0.2*robot->lf_leg_calc->foot_force(robot->lf_joint_pos, robot->lf_joint_torque, robot->lf_forward_torque)+0.8*lf_cart_force;
     auto rb_cart_pos   = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
     auto rb_cart_vel   = robot->rb_leg_calc->foot_vel(robot->rb_joint_pos, robot->rb_joint_vel);
-    auto rb_cart_force = robot->rb_leg_calc->foot_force(robot->rb_joint_pos, robot->rb_joint_torque, robot->rb_forward_torque);
+    rb_cart_force = 0.2*robot->rb_leg_calc->foot_force(robot->rb_joint_pos, robot->rb_joint_torque, robot->rb_forward_torque)+0.8*rb_cart_force;
     auto rf_cart_pos   = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
     auto rf_cart_vel   = robot->rf_leg_calc->foot_vel(robot->rf_joint_pos, robot->rf_joint_vel);
-    auto rf_cart_force = robot->rf_leg_calc->foot_force(robot->rf_joint_pos, robot->rf_joint_torque, robot->rf_forward_torque);
+    rf_cart_force = 0.2*robot->rf_leg_calc->foot_force(robot->rf_joint_pos, robot->rf_joint_torque, robot->rf_forward_torque)+0.8*rf_cart_force;
     auto lb_cart_pos   = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
     auto lb_cart_vel   = robot->lb_leg_calc->foot_vel(robot->lb_joint_pos, robot->lb_joint_vel);
-    auto lb_cart_force = robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque);
-
-
+    lb_cart_force = 0.2*robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque)+0.8*lb_cart_force;
+    
 
     double cur_roll, cur_pitch, cur_yaw;
     tf2::Matrix3x3(robot->robot_rotation).getRPY(cur_roll, cur_pitch, cur_yaw);

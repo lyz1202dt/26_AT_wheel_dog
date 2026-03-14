@@ -22,7 +22,7 @@
 using namespace std::chrono_literals;
 
 Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
-    : fsm(this, "idel") {
+    : fsm(this, "setup") {
     node_ = node;
 
     // 初始化参数回调vector
@@ -62,10 +62,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("pitch_vmc_kp", 500.0);
     node_->declare_parameter("pitch_vmc_kd", 0.0);
 
-    node_->declare_parameter("lf_grivate", 22.0);
-    node_->declare_parameter("rf_grivate", 22.0);
-    node_->declare_parameter("lb_grivate", 26.0);
-    node_->declare_parameter("rb_grivate", 26.0);
+    node_->declare_parameter("lf_grivate", 34.0);
+    node_->declare_parameter("rf_grivate", 34.0);
+    node_->declare_parameter("lb_grivate", 38.0);
+    node_->declare_parameter("rb_grivate", 38.0);
     node_->declare_parameter("lf_dx", 0.0);
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);
@@ -272,7 +272,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<ForceState>(this));
     fsm.register_state(std::make_unique<ForcewalkState>(this));
 
-    control_timer   = node->create_wall_timer(2ms, [this]() {
+    control_timer   = node->create_wall_timer(4ms, [this]() {
         if (legs_data_updated) {
             fsm.run();
         }

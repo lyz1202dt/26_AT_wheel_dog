@@ -100,7 +100,7 @@ SerialNode::SerialNode()
 
     robot_sub = this->create_subscription<robot_interfaces::msg::RobotTarget>(
         "legs_target", rclcpp::SensorDataQoS(), std::bind(&SerialNode::legsSubscribCb, this, std::placeholders::_1));
-    remote_pub = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd", 10);
+    remote_pub = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd_", 10);
 
 
     cdc_trans = std::make_unique<CDCTrans>();                           // 创建CDC传输对象
@@ -253,7 +253,7 @@ void SerialNode::legsSubscribCb(const robot_interfaces::msg::RobotTarget& msg) {
         }
         legs_target.leg[i].wheel.omega  = msg.legs[i].wheel.omega;
         legs_target.leg[i].wheel.torque = msg.legs[i].wheel.torque;
-        legs_target.leg[i].wheel.kd     = msg.legs[i].wheel.kd;
+        //legs_target.leg[i].wheel.kd     = msg.legs[i].wheel.kd;
     }
 
     // if(enable_control)

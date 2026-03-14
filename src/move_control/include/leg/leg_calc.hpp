@@ -61,6 +61,8 @@ public:
     robot_interfaces::msg::LegTarget signal_leg_torque_calc(const Vector3D& cur_joint_pos, const Vector3D& exp_foot_force, const Vector3D& foot_vel,const Vector3D& foot_acc,double wheel_force=0.0);
 
     Eigen::Vector3d pos_offset; // 足端位置到机器人中心的偏移
+    double kp[3],kd[3];
+    double wheel_kd;
 private:
 
     Eigen::Vector3d joint_acc(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_vel,Eigen::Vector3d foot_acc);
@@ -89,7 +91,5 @@ private:
     KDL::JntArrayVel _temp_joint3_vel_array;
     KDL::Twist _temp_jdot_qd;
 
-    double kp[3],kd[3];
-    double wheel_kd;
     double wheel_radius{0.065};
 };
