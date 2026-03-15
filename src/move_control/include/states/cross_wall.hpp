@@ -61,6 +61,11 @@ private:
     double mass;
     Vector2D mass_center_pos;
 
+    Vector3D rf_init_pos;
+    Vector3D lb_init_pos;
+    Vector3D rb_init_pos;
+
+    bool foot_init = false;
 
 
 
