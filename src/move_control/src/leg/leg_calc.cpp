@@ -8,6 +8,12 @@
 
 using namespace std::chrono_literals;
 
+inline double smooth_clamp(double val, double min_val, double max_val, double alpha=0.1) {
+    if(val < min_val) return (1.0 - alpha) * val + alpha * min_val;
+    else if(val > max_val) return (1.0 - alpha) * val + alpha * max_val;
+    else return val;
+}
+
 LegCalc::LegCalc(KDL::Chain& chain)
     : chain(chain)
     , fk_solver(chain)
@@ -16,6 +22,28 @@ LegCalc::LegCalc(KDL::Chain& chain)
     , vel_solver(chain)
     , ik_pos_solver(chain, Eigen::Vector<double, 6>(1.0, 1.0, 1.0, 0.0, 0.0, 0.0), 1e-6, 150, 1e-10)
     , dynamin_solver(chain, KDL::Vector(0, 0, -9.81)) {
+
+//**********限制ik****************** */
+    int nj = chain.getNrOfJoints();
+
+    // IK 限制参数
+    joint_min.resize(nj);
+    joint_max.resize(nj);
+    for(int i=0;i<nj;i++) { joint_min(i) = -1e9; joint_max(i) = 1e9; }
+    joint_min(2) = -6.0;  // 第三关节限制
+    joint_max(2) = -0.5;
+
+    // 初始化有限制 solver
+    ik_pos_solver_limit = std::make_unique<KDL::ChainIkSolverPos_NR_JL>(
+        chain,
+        joint_min,
+        joint_max,
+        fk_solver,
+        vel_solver,
+        150,
+        1e-6
+    );
+//**********限制ik****************** */
     _temp_joint3_array.resize(3); // 提前resize需要用到的KDL::JntArray防止运行时频繁申请/释放内存
     _temp2_joint3_array.resize(3);
     last_exp_joint_pos.resize(3);
@@ -44,7 +72,6 @@ LegCalc::LegCalc(KDL::Chain& chain)
 LegCalc::~LegCalc() {}
 
 
-
 Eigen::Matrix<double, 3, 3> LegCalc::get_3x3_jacobian_(const KDL::Jacobian& full_jacobian) // 只关心前三行的映射关系
 {
     Eigen::Matrix<double, 3, 3> jacobian_3x3;
@@ -57,7 +84,9 @@ Eigen::Matrix<double, 3, 3> LegCalc::get_3x3_jacobian_(const KDL::Jacobian& full
 }
 
 
-Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d& foot_pos, int* result) {
+// 支持切换限制 IK
+Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d& foot_pos, int* result, bool use_limit)
+{
     KDL::Frame frame;
     Eigen::Vector3d temp = foot_pos + pos_offset;
     frame.p.x(temp[0]);
@@ -65,9 +94,28 @@ Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d& foot_pos, int* result)
     frame.p.z(temp[2]);
     frame.M = KDL::Rotation::Identity();
 
-    *result = ik_pos_solver.CartToJnt(last_exp_joint_pos, frame, _temp_joint3_array);
-    if (*result == 0)                                                                      // 缓存本次计算结果,方便下一次迭代
+    KDL::JntArray init_pos = last_exp_joint_pos;
+
+    if(use_limit)
+    {
+        // 平滑过渡 warm start
+        for(int i=0;i<3;i++)
+            init_pos(i) = smooth_clamp(init_pos(i), joint_min(i), joint_max(i), 0.1);
+
+        *result = ik_pos_solver_limit->CartToJnt(init_pos, frame, _temp_joint3_array);
+
+        // solver 输出后再 clamp
+        for(int i=0;i<3;i++)
+            _temp_joint3_array(i) = std::clamp(_temp_joint3_array(i), joint_min(i), joint_max(i));
+    }
+    else
+    {
+        *result = ik_pos_solver.CartToJnt(init_pos, frame, _temp_joint3_array);
+    }
+
+    if(*result == 0)                                        // 缓存本次计算结果,方便下一次迭代
         last_exp_joint_pos = _temp_joint3_array;
+
     return {_temp_joint3_array(0), _temp_joint3_array(1), _temp_joint3_array(2)};
 }
 
@@ -215,9 +263,9 @@ Eigen::Vector3d LegCalc::foot_pos(const Eigen::Vector3d& joint_rad) {
 
 robot_interfaces::msg::LegTarget LegCalc::signal_leg_calc(
     const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
-    Vector3D* torque,const double wheel_vel,const double wheel_force) {
+    Vector3D* torque,const double wheel_vel,const double wheel_force,bool use_limit) {
     int result;
-    auto joint_rad    = joint_pos(exp_cart_pos, &result); // 一般这个位置不可能会迭代失败，所以不再对result进行处理
+    auto joint_rad    = joint_pos(exp_cart_pos, &result,use_limit); // 一般这个位置不可能会迭代失败，所以不再对result进行处理
     auto joint_omega  = joint_vel(joint_rad, exp_cart_vel);
     auto joint_torque = joint_torque_foot_force(joint_rad, exp_cart_force);
     joint_torque += joint_torque_dynamic(joint_rad, joint_omega, exp_cart_acc);

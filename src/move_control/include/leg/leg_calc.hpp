@@ -30,6 +30,7 @@
 #include <kdl/chainiksolvervel_pinv.hpp>   // ← 你缺的就是它
 #include <kdl/chainiksolverpos_lma.hpp>
 #include <kdl/chainjnttojacdotsolver.hpp>
+#include <kdl/chainiksolverpos_nr_jl.hpp>
 
 class LegCalc{
 public:
@@ -37,7 +38,8 @@ public:
     ~LegCalc();
 
     //int joint_pos(KDL::JntArray &joint_rad, KDL::Vector &foot_pos,KDL::JntArray &result);
-    Eigen::Vector3d joint_pos(const Eigen::Vector3d &foot_pos,int  *result);       //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
+    // 新增带限制开关的版本
+    Eigen::Vector3d joint_pos(const Eigen::Vector3d& foot_pos, int* result, bool use_limit = false);       //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
 
     Eigen::Vector3d joint_vel(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &foot_vel);
 
@@ -56,7 +58,7 @@ public:
     void get_joint_pd(int index,double &kp,double &kd);
 
     robot_interfaces::msg::LegTarget signal_leg_calc(
-    const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,Vector3D* torque,const double wheel_vel=0.0,const double wheel_force=0.0);
+    const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,Vector3D* torque,const double wheel_vel=0.0,const double wheel_force=0.0,bool use_limit = false);
 
     Eigen::Vector3d pos_offset; // 足端位置到机器人中心的偏移
 private:
@@ -90,4 +92,19 @@ private:
     double kp[3],kd[3];
     double wheel_kd;
     double wheel_radius{0.065};
+
+
+    // IK solver 限制参数
+    KDL::JntArray joint_min;  // 每个关节最小角
+    KDL::JntArray joint_max;  // 每个关节最大角
+
+    // 有限制 IK solver
+    std::unique_ptr<KDL::ChainIkSolverPos_NR_JL> ik_pos_solver_limit;
+
+    inline double smooth_clamp(double val, double min_val, double max_val, double alpha=0.001)
+    {
+        if(val < min_val) return (1.0 - alpha) * val + alpha * min_val;
+        else if(val > max_val) return (1.0 - alpha) * val + alpha * max_val;
+        else return val;
+    }
 };
