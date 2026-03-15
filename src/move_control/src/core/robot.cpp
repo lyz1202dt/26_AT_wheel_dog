@@ -10,6 +10,7 @@
 #include "states/jump.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
+#include "states/heightlimit.hpp"
 //#include "states/mpc2.hpp"
 #include "states/walk.hpp"
 #include "states/climb_steps.hpp"
@@ -267,6 +268,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
     fsm.register_state(std::make_unique<JumpState>(this));
+    fsm.register_state(std::make_unique<HeightlimitState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));

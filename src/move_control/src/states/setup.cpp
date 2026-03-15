@@ -44,7 +44,7 @@ std::string SetupState::update(Robot* robot) {
     auto lb_target = lb_leg_step.get_target((now - setup_time).seconds(), success);
     auto rb_target = rb_leg_step.get_target((now - setup_time).seconds(), success);
 
-    robot_interfaces::msg::Robot joints_target;
+     robot_interfaces::msg::Robot joints_target;
     for (int i = 0; i < 3; i++) {
         joints_target.legs[0].joints[i].rad = static_cast<float>(std::get<0>(lf_target)[i]);
         joints_target.legs[1].joints[i].rad = static_cast<float>(std::get<0>(rf_target)[i]);
