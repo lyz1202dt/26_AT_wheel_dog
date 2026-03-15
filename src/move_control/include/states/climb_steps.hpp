@@ -1,5 +1,6 @@
 #include "core/robot.hpp"
 #include "fsm/base_state.hpp"
+#include "leg/step.hpp"
 
 
 class Robot;
@@ -39,10 +40,12 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> b
     double vy_dead_range{0.1};
     double vz_dead_range{0.1};
 
-    double foot_obstruct_gate{9.0};
+    double foot_obstruct_gate{6.0};
 
-    double climb_step_finished_idel_time{0.5};
+    double climb_step_finished_idel_time{0.4};
 
-    Vector3D lf_cart_force,rf_cart_force,lb_cart_force,rb_cart_force;
+    int lf_step_num{0},rf_step_num{0},lb_step_num{0},rb_step_num{0};
+
+    Vector3D lf_force_filter,rf_force_filter,lb_force_filter,rb_force_filter;
 };
 

@@ -6,6 +6,7 @@
 #include <memory>
 #include <rclcpp/create_timer.hpp>
 
+#include "states/climb_steps2.hpp"
 #include "states/forcewalk.hpp"
 #include "states/idel.hpp"
 #include "states/jump.hpp"
@@ -62,10 +63,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("pitch_vmc_kp", 500.0);
     node_->declare_parameter("pitch_vmc_kd", 0.0);
 
-    node_->declare_parameter("lf_grivate", 34.0);
-    node_->declare_parameter("rf_grivate", 34.0);
-    node_->declare_parameter("lb_grivate", 38.0);
-    node_->declare_parameter("rb_grivate", 38.0);
+    node_->declare_parameter("lf_grivate", 22.0);   //34
+    node_->declare_parameter("rf_grivate", 22.0);
+    node_->declare_parameter("lb_grivate", 26.0);   //38
+    node_->declare_parameter("rb_grivate", 26.0);
     node_->declare_parameter("lf_dx", 0.0);
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);
@@ -271,8 +272,14 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<AmbleState>(this));
     fsm.register_state(std::make_unique<ForceState>(this));
     fsm.register_state(std::make_unique<ForcewalkState>(this));
+    fsm.register_state(std::make_unique<ClimbSteps2State>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
+        lf_leg_calc->pos_offset=lf_base_offset;
+        rf_leg_calc->pos_offset=rf_base_offset;
+        lb_leg_calc->pos_offset=lb_base_offset;
+        rb_leg_calc->pos_offset=rb_base_offset;
+        
         if (legs_data_updated) {
             fsm.run();
         }
