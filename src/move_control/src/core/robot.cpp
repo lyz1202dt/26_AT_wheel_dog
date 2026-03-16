@@ -15,7 +15,7 @@
 #include "states/climb_steps.hpp"
 #include "states/jump.hpp"
 #include "states/amble.hpp"
-
+#include "states/cross_wall.hpp"
 
 using namespace std::chrono_literals;
 
@@ -28,42 +28,42 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     joint_display_msg.position.resize(16);
     joint_display_msg.name = joint_names;
 
-    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
-    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
-    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
-    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 3.0, 2.0, 0.1, 4ms);
+    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.0, 0.1, 4ms);
+    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.0, 0.1, 4ms);
+    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.0, 0.1, 4ms);
+    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.0, 0.1, 4ms);
 
-    lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    lb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    lb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
-    rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 3.0, 3.0, 0.1, 4ms);
+    lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
+    lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
+    rf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
+    rf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
+    lb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
+    lb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
+    rb_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
+    rb_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.0, 0.1, 4ms);
 
     // 狗身平衡VMC
     roll_vmc  = std::make_shared<SimpleVMC>(-200.0, 0.0, 100);
     pitch_vmc = std::make_shared<SimpleVMC>(500.0, 100.0, 100);
 
-    node_->declare_parameter("direction_filter_gate", 0.2);
+    node_->declare_parameter("direction_filter_gate", 0.6);
     node_->declare_parameter("vmc_kp", 100.0);
     node_->declare_parameter("vmc_kd", 120.0);
-    node_->declare_parameter("vmc_mass", 0.5);
+    node_->declare_parameter("vmc_mass", 1.0);
 
     node_->declare_parameter("horizontal_vmc_kp", 500.0);
     node_->declare_parameter("horizontal_vmc_kd", 150.0);
     node_->declare_parameter("horizontal_vmc_mass", 3.0);
 
-    node_->declare_parameter("roll_vmc_kp", -300.0);
+    node_->declare_parameter("roll_vmc_kp", -650.0);
     node_->declare_parameter("roll_vmc_kd", -100.0);
     node_->declare_parameter("pitch_vmc_kp", 500.0);
     node_->declare_parameter("pitch_vmc_kd", 0.0);
 
-    node_->declare_parameter("lf_grivate", 22.0);
-    node_->declare_parameter("rf_grivate", 22.0);
-    node_->declare_parameter("lb_grivate", 26.0);
-    node_->declare_parameter("rb_grivate", 26.0);
+    node_->declare_parameter("lf_grivate", 35.0);
+    node_->declare_parameter("rf_grivate", 35.0);
+    node_->declare_parameter("lb_grivate", 40.0);
+    node_->declare_parameter("rb_grivate", 40.0);
     node_->declare_parameter("lf_dx", 0.0);
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);
@@ -138,8 +138,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->get_parameter("rb_dx", rb_dx_temp);
     lf_base_offset << 0.25 + lf_dx_temp, 0.21, -body_height;
     rf_base_offset << 0.25 + rf_dx_temp, -0.21, -body_height;
-    lb_base_offset << -0.22 + lb_dx_temp, 0.21, -body_height;
-    rb_base_offset << -0.22 + rb_dx_temp, -0.21, -body_height;
+    lb_base_offset << -0.25 + lb_dx_temp, 0.21, -body_height;
+    rb_base_offset << -0.25 + rb_dx_temp, -0.21, -body_height;
     
 
     robot_rotation.setRPY(0.0, 0.0, 0.0);
@@ -266,9 +266,15 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
-    fsm.register_state(std::make_unique<JumpState>(this));
+    fsm.register_state(std::make_unique<Cross_WallState>(this));
 
-    control_timer   = node->create_wall_timer(4ms, [this]() { if(legs_data_updated){fsm.run();} });
+    control_timer   = node->create_wall_timer(4ms, [this]() {
+        lf_leg_calc->pos_offset = lf_base_offset;
+        rf_leg_calc->pos_offset = rf_base_offset;
+        lb_leg_calc->pos_offset = lb_base_offset;
+        rb_leg_calc->pos_offset = rb_base_offset;
+        if(legs_data_updated){fsm.run();}
+    });
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
 }
 

@@ -56,6 +56,11 @@ private:
     rclcpp::Time base_time;
     bool runned{false};
     bool publish_imu{true};
+
+    float filtered_torque[4][3];
+    float filtered_omega[4][3];
+    bool filter_initialized = false;
+    float alpha = 0.25f;   // 滤波系数
 };
 
 #endif

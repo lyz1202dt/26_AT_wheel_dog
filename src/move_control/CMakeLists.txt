@@ -60,6 +60,7 @@ src/states/walk.cpp
 src/states/climb_steps.cpp
 src/states/jump.cpp
 src/states/amble.cpp
+src/states/cross_wall.cpp
 )
 
 add_executable(test_move_node
