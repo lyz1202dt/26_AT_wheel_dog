@@ -1,5 +1,7 @@
 #pragma once
-
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 #include "fsm/base_state.hpp"
 #include "leg/step.hpp"
 #include <Eigen/Dense>
@@ -14,12 +16,12 @@ public:
     Cross_WallState(Robot* robot);
     bool enter(Robot* robot, const std::string& last_status) override;
     std::string update(Robot* robot) override;
-
+    ~Cross_WallState();
 
 private:
-    //使用笛卡尔坐标系
     int cross_wall_stage{-1};
     rclcpp::Time cross_wall_stage_time;
+    /**************************使用笛卡尔坐标系***********************/
     Vector3D wall_lf_foot_pos{0,0,0}, wall_rf_foot_pos{0,0,0}, wall_lb_foot_pos{0,0,0}, wall_rb_foot_pos{0,0,0};
     Vector3D lf_foot_exp_pos{0,0,0}, rf_foot_exp_pos{0,0,0}, lb_foot_exp_pos{0,0,0}, rb_foot_exp_pos{0,0,0};
     Vector3D lf_foot_exp_force{0,0,0}, rf_foot_exp_force{0,0,0}, lb_foot_exp_force{0,0,0}, rb_foot_exp_force{0,0,0};
@@ -27,9 +29,22 @@ private:
     Vector3D lf_foot_exp_acc{0,0,0}, rf_foot_exp_acc{0,0,0}, lb_foot_exp_acc{0,0,0}, rb_foot_exp_acc{0,0,0};
     Vector3D lf_forward_torque{0,0,0}, rf_forward_torque{0,0,0}, lb_forward_torque{0,0,0}, rb_forward_torque{0,0,0};
 
-    //使用关节角度
+    /********************使用关节角度**************************/
+    //执行期望位置
     Vector3D lf_joint_exp_pos_{0,0,0},rf_joint_exp_pos_{0,0,0},
              lb_joint_exp_pos_{0,0,0},rb_joint_exp_pos_{0,0,0};
+    //执行期望速度
+    Vector3D lf_joint_exp_vel_{0,0,0},rf_joint_exp_vel_{0,0,0},
+             lb_joint_exp_vel_{0,0,0},rb_joint_exp_vel_{0,0,0};
+    //执行期望加速度
+    Vector3D lf_joint_exp_acc_{0,0,0},rf_joint_exp_acc_{0,0,0},
+             lb_joint_exp_acc_{0,0,0},rb_joint_exp_acc_{0,0,0};
+    //规划轨迹的最终位置
+    Vector3D lf_joint_target_pos{0,0,0},rf_joint_target_pos{0,0,0},
+             lb_joint_target_pos{0,0,0},rb_joint_target_pos{0,0,0};
+    //规划轨迹的初始位置
+    Vector3D lf_joint_init_pos{0,0,0},rf_joint_init_pos{0,0,0},
+             lb_joint_init_pos{0,0,0},rb_joint_init_pos{0,0,0};
 
 
     double lf_wheel_vel{0.0},rf_wheel_vel{0.0},lb_wheel_vel{0.0},rb_wheel_vel{0.0};
@@ -67,6 +82,19 @@ private:
 
     bool foot_init = false;
 
+
+
+
+
+//     // CSV 记录相关
+//     std::ofstream csv_file_;
+//     std::mutex csv_mutex_;                // 保护文件写入（如果多线程）
+//     bool csv_enabled_ = true;              // 可配置是否启用
+//     std::vector<double> csv_buffer_;       // 可选：用于批量写入
+//     static constexpr size_t CSV_BUFFER_SIZE = 100; // 每攒够100行写入一次
+// // 在类定义中添加
+// std::vector<std::string> csv_lines_;
+// static constexpr size_t CSV_FLUSH_THRESHOLD = 100;
 
 
 
