@@ -14,6 +14,8 @@ public:
     
 private:
 std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> balance_force_calc(Robot* robot, double cur_roll, double cur_pitch);
+
+Vector3D get_next_available_pos(Vector3D leg_offset, Vector3D current_pos);
     double exp_vel_kp{3.0};
     double current_exp_vel{0.0};
     double current_body_vel{0.0};
@@ -47,5 +49,12 @@ std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> b
     int lf_step_num{0},rf_step_num{0},lb_step_num{0},rb_step_num{0};
 
     Vector3D lf_force_filter,rf_force_filter,lb_force_filter,rb_force_filter;
+
+    int action_foot_num{0},action_step{0};
+    Vector2D mass_center_pos;
+    double mass;
+    Vector3D last_pos_1, last_pos_2;
+    double  step_dy{0.08};
+    rclcpp::Time action_start_time;
 };
 
