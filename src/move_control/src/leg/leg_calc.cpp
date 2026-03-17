@@ -106,7 +106,7 @@ Eigen::Vector3d LegCalc::joint_torque_dynamic(const Eigen::Vector3d &joint_rad, 
     _temp_joint3_array(2)=joint_rad[2];
     _temp2_joint3_array(0)=joint_omega[0];
     _temp2_joint3_array(1)=joint_omega[1];
-    _temp_joint3_array(2)=joint_omega[2];
+    _temp2_joint3_array(2)=joint_omega[2];
     dynamin_solver.JntToGravity(_temp_joint3_array, G);
     dynamin_solver.JntToCoriolis(_temp_joint3_array, _temp_joint3_array, C);
     dynamin_solver.JntToMass(_temp_joint3_array, M);
