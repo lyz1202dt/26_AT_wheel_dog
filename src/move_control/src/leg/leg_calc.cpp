@@ -108,7 +108,7 @@ Eigen::Vector3d LegCalc::joint_torque_dynamic(const Eigen::Vector3d &joint_rad, 
     _temp2_joint3_array(1)=joint_omega[1];
     _temp2_joint3_array(2)=joint_omega[2];
     dynamin_solver.JntToGravity(_temp_joint3_array, G);
-    dynamin_solver.JntToCoriolis(_temp_joint3_array, _temp_joint3_array, C);
+    dynamin_solver.JntToCoriolis(_temp_joint3_array, _temp2_joint3_array, C);
     dynamin_solver.JntToMass(_temp_joint3_array, M);
 
     // 6. 转换 KDL 输出到 Eigen，方便矩阵运算
