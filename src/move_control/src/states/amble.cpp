@@ -183,6 +183,7 @@ std::string AmbleState::update(Robot* robot) {
         rf_foot_exp_force = Vector3D(0.0, 0.0, -forces(1));
         lb_foot_exp_force = Vector3D::Zero();  // 摆动腿无支撑力
         rb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
+
         
         if (!success)
             step_state = 5;

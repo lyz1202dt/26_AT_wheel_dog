@@ -51,6 +51,7 @@ src/core/estimater.cpp
 src/leg/leg_calc.cpp
 src/leg/step.cpp
 src/leg/vmc.cpp
+src/leg/online_step.cpp
 
 src/states/idel.cpp
 src/states/setup.cpp
@@ -58,10 +59,12 @@ src/states/stop.cpp
 src/states/walk.cpp
 #src/states/mpc2.cpp
 src/states/climb_steps.cpp
+src/states/climb_steps2.cpp
 src/states/jump.cpp
 src/states/amble.cpp
 src/states/force.cpp
 src/states/cross_wall.cpp
+src/states/forcewalk.cpp
 )
 
 add_executable(test_move_node

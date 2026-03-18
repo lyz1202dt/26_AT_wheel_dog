@@ -95,6 +95,9 @@ void LegStep::update_flight_trajectory(
 
     flight_trajectory_is_available  = true;
     support_trajectory_is_available = false;
+
+    needs_mid_replanning = false;
+    replanning_callback=nullptr;
 }
 
 void LegStep::update_flight_trajectory(
@@ -116,6 +119,9 @@ void LegStep::update_flight_trajectory(
 
     flight_trajectory_is_available  = true;
     support_trajectory_is_available = false;
+
+    needs_mid_replanning = false;
+    replanning_callback=nullptr;
 }
 
 
@@ -222,9 +228,10 @@ std::tuple<Vector3D, Vector3D, Vector3D> LegStep::get_target(double time, bool& 
             acc[0] = get_quintic_dtdt(flight_trajectory.lx, time);
         } else {
             // 后半段：使用重新规划的轨迹（如果有的话）
-            pos[0] = get_quintic_value(flight_trajectory.lx, time - half_time);
-            vel[0] = get_quintic_dt(flight_trajectory.lx, time - half_time);
-            acc[0] = get_quintic_dtdt(flight_trajectory.lx, time - half_time);
+            double t=needs_mid_replanning?(time - half_time):time;
+            pos[0] = get_quintic_value(flight_trajectory.lx, t);
+            vel[0] = get_quintic_dt(flight_trajectory.lx, t);
+            acc[0] = get_quintic_dtdt(flight_trajectory.lx, t);
         }
 
         // Y 方向
@@ -233,9 +240,10 @@ std::tuple<Vector3D, Vector3D, Vector3D> LegStep::get_target(double time, bool& 
             vel[1] = get_quintic_dt(flight_trajectory.ly, time);
             acc[1] = get_quintic_dtdt(flight_trajectory.ly, time);
         } else {
-            pos[1] = get_quintic_value(flight_trajectory.ly, time - half_time);
-            vel[1] = get_quintic_dt(flight_trajectory.ly, time - half_time);
-            acc[1] = get_quintic_dtdt(flight_trajectory.ly, time - half_time);
+            double t=needs_mid_replanning?(time - half_time):time;
+            pos[1] = get_quintic_value(flight_trajectory.ly, t);
+            vel[1] = get_quintic_dt(flight_trajectory.ly, t);
+            acc[1] = get_quintic_dtdt(flight_trajectory.ly, t);
         }
 
         // Z 方向分两段（前半抬腿，后半落腿）

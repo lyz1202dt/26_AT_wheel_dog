@@ -66,16 +66,16 @@ std::string StopState::update(Robot* robot) {
 
     robot_interfaces::msg::RobotTarget joints_target;
     joints_target.legs[0] = robot->lf_leg_calc->signal_leg_calc(
-        lf_foot_exp_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), lf_foot_exp_force,
+        lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force,
         &robot->lf_forward_torque, 0.0, 0.0);
     joints_target.legs[1] = robot->rf_leg_calc->signal_leg_calc(
-        rf_foot_exp_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), rf_foot_exp_force,
+        rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force,
         &robot->rf_forward_torque, 0.0, 0.0);
     joints_target.legs[2] = robot->lb_leg_calc->signal_leg_calc(
-        lb_foot_exp_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), lb_foot_exp_force,
+        lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force,
         &robot->lb_forward_torque, 0.0, 0.0);
     joints_target.legs[3] = robot->rb_leg_calc->signal_leg_calc(
-        rb_foot_exp_pos, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), rb_foot_exp_force,
+        rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force,
         &robot->rb_forward_torque, 0.0, 0.0);
     robot->legs_target_pub->publish(joints_target);
 
@@ -92,6 +92,8 @@ std::string StopState::update(Robot* robot) {
         return "amble";
     else if(step_mode==0)
         return "idel";
+    else if(step_mode==8)
+        return "climb_steps2";
     return "stop";
 }
 

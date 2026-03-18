@@ -37,9 +37,9 @@ LegCalc::LegCalc(KDL::Chain& chain)
     last_exp_joint_pos(1) = 0.0;
     last_exp_joint_pos(2) = 0.0;
 
-    // set_joint_pd(0,3.0,0.17);   //设置默认参数
-    // set_joint_pd(1,2.8,0.14);
-    // set_joint_pd(2,2.8,0.11);
+    set_joint_pd(0,3.0,0.17);   //设置默认参数
+    set_joint_pd(1,2.8,0.14);
+    set_joint_pd(2,2.8,0.11);
 
     set_joint_pd(0,50.0,3.0);   //设置默认参数
     set_joint_pd(1,50.0,3.0);
@@ -50,6 +50,24 @@ LegCalc::LegCalc(KDL::Chain& chain)
 
 LegCalc::~LegCalc() {}
 
+Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d &foot_pos,int  *result,const Eigen::Vector3d &cur_joint_pos)
+{
+    KDL::Frame frame;
+    Eigen::Vector3d temp = foot_pos + pos_offset;
+    frame.p.x(temp[0]);
+    frame.p.y(temp[1]);
+    frame.p.z(temp[2]);
+    frame.M = KDL::Rotation::Identity();
+
+    _temp_joint3_array(0)=cur_joint_pos[0];
+    _temp_joint3_array(1)=cur_joint_pos[1];
+    _temp_joint3_array(2)=cur_joint_pos[2];
+
+    *result = ik_pos_solver.CartToJnt(last_exp_joint_pos, frame, _temp_joint3_array);
+    if (*result == 0)                                                                      // 缓存本次计算结果,方便下一次迭代
+        last_exp_joint_pos = _temp_joint3_array;
+    return {_temp_joint3_array(0), _temp_joint3_array(1), _temp_joint3_array(2)};
+}
 
 Eigen::Matrix<double, 3, 3> LegCalc::get_3x3_jacobian_(const KDL::Jacobian& full_jacobian) // 只关心前三行的映射关系
 {
@@ -120,9 +138,9 @@ Eigen::Vector3d
     _temp_joint3_array(2)  = joint_rad[2];
     _temp2_joint3_array(0) = joint_omega[0];
     _temp2_joint3_array(1) = joint_omega[1];
-    _temp_joint3_array(2)  = joint_omega[2];
+    _temp2_joint3_array(2)  = joint_omega[2];
     dynamin_solver.JntToGravity(_temp_joint3_array, G);
-    dynamin_solver.JntToCoriolis(_temp_joint3_array, _temp_joint3_array, C);
+    dynamin_solver.JntToCoriolis(_temp_joint3_array, _temp2_joint3_array, C);
     dynamin_solver.JntToMass(_temp_joint3_array, M);
 
     // 6. 转换 KDL 输出到 Eigen，方便矩阵运算
@@ -252,6 +270,20 @@ robot_interfaces::msg::LegTarget LegCalc::signal_leg_calc(
     leg.wheel.torque = static_cast<float>(wheel_force * wheel_radius);
     leg.wheel.kd     = static_cast<float>(wheel_kd);
     *torque          = joint_torque;
+
+    return leg;
+}
+
+robot_interfaces::msg::LegTarget LegCalc::signal_leg_torque_calc(const Vector3D& cur_joint_pos, const Vector3D& exp_foot_force, const Vector3D& foot_vel,const Vector3D& foot_acc,double wheel_force) {
+    Vector3D joint_torque;
+    joint_torque = joint_torque_foot_force(cur_joint_pos, exp_foot_force);
+    joint_torque += joint_torque_dynamic(cur_joint_pos, joint_vel(cur_joint_pos, foot_vel), foot_acc);
+
+    robot_interfaces::msg::LegTarget leg;
+    leg.joints[0].torque = static_cast<float>(joint_torque[0]);
+    leg.joints[1].torque = static_cast<float>(joint_torque[1]);
+    leg.joints[2].torque = static_cast<float>(joint_torque[2]);
+    leg.wheel.torque = static_cast<float>(wheel_force * wheel_radius);
 
     return leg;
 }

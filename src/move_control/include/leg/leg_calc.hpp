@@ -37,6 +37,8 @@ public:
     LegCalc(KDL::Chain &chain);
     ~LegCalc();
 
+    Eigen::Vector3d joint_pos(const Eigen::Vector3d &foot_pos,int  *result,const Eigen::Vector3d &cur_joint_pos); 
+
     //int joint_pos(KDL::JntArray &joint_rad, KDL::Vector &foot_pos,KDL::JntArray &result);
     // 新增带限制开关的版本
     Eigen::Vector3d joint_pos(const Eigen::Vector3d& foot_pos, int* result);       //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
@@ -60,7 +62,11 @@ public:
     robot_interfaces::msg::LegTarget signal_leg_calc(
     const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,Vector3D* torque,const double wheel_vel=0.0,const double wheel_force=0.0);
 
+    robot_interfaces::msg::LegTarget signal_leg_torque_calc(const Vector3D& cur_joint_pos, const Vector3D& exp_foot_force, const Vector3D& foot_vel,const Vector3D& foot_acc,double wheel_force=0.0);
+
     Eigen::Vector3d pos_offset; // 足端位置到机器人中心的偏移
+    double kp[3],kd[3];
+    double wheel_kd;
 private:
 
     Eigen::Vector3d joint_acc(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_vel,Eigen::Vector3d foot_acc);
@@ -89,8 +95,6 @@ private:
     KDL::JntArrayVel _temp_joint3_vel_array;
     KDL::Twist _temp_jdot_qd;
 
-    double kp[3],kd[3];
-    double wheel_kd;
     double wheel_radius{0.065};
 
     
