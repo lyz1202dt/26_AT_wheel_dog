@@ -71,11 +71,12 @@ std::string HeightlimitState::update(Robot* robot)
     raw_wheel[1] = robot->rf_wheel_omega;
     raw_wheel[2] = robot->lb_wheel_omega;
     raw_wheel[3] = robot->rb_wheel_omega;
-    raw_wheel[0] = (float)(robot->lf_wheel_omega+robot->rf_wheel_omega+robot->lb_wheel_omega+robot->rb_wheel_omega)/4;
-    raw_wheel[1] = (float)(robot->lf_wheel_omega+robot->rf_wheel_omega+robot->lb_wheel_omega+robot->rb_wheel_omega)/4;
-    raw_wheel[2] = (float)(robot->lf_wheel_omega+robot->rf_wheel_omega+robot->lb_wheel_omega+robot->rb_wheel_omega)/4;
-    raw_wheel[3] = (float)(robot->lf_wheel_omega+robot->rf_wheel_omega+robot->lb_wheel_omega+robot->rb_wheel_omega)/4;
-
+    raw_wheel[0] = (float)(robot->lf_wheel_omega-robot->rf_wheel_omega+robot->lb_wheel_omega-robot->rb_wheel_omega)/4;
+    raw_wheel[1] = (float)(robot->lf_wheel_omega-robot->rf_wheel_omega+robot->lb_wheel_omega-robot->rb_wheel_omega)/4;
+    raw_wheel[2] = (float)(robot->lf_wheel_omega-robot->rf_wheel_omega+robot->lb_wheel_omega-robot->rb_wheel_omega)/4;
+    raw_wheel[3] = (float)(robot->lf_wheel_omega-robot->rf_wheel_omega+robot->lb_wheel_omega-robot->rb_wheel_omega)/4;
+    RCLCPP_INFO(robot->node_->get_logger(), "raw_wheel: [%lf, %lf, %lf, %lf]", 
+    raw_wheel[0], raw_wheel[1], raw_wheel[2], raw_wheel[3]);
     double filtered_wheel[4];
     for (int i = 0; i < 4; i++) {
         filtered_wheel[i] = low_pass_filter(raw_wheel[i], i);
