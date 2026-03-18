@@ -56,5 +56,6 @@ Vector3D get_next_available_pos(Vector3D leg_offset, Vector3D current_pos);
     Vector3D last_pos_1, last_pos_2;
     double  step_dy{0.08};
     rclcpp::Time action_start_time;
+    int flight_foot_num{0};
 };
 

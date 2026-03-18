@@ -1,4 +1,5 @@
 #include "states/climb_steps.hpp"
+#include <Eigen/src/Core/Matrix.h>
 #include <algorithm>
 
 ClimbStepstate::ClimbStepstate(Robot* robot)
@@ -191,10 +192,10 @@ std::string ClimbStepstate::update(Robot* robot) {
             if (max_force < foot_obstruct_gate)
                 trgged_leg = 0;
 
-            RCLCPP_INFO(robot->node_->get_logger(), "当前最大足端受力:%lf", max_force);
+            // RCLCPP_INFO(robot->node_->get_logger(), "当前最大足端受力:%lf", max_force);
 
             bool allow_next_climbing = (now - last_foot_climbing_end_time).seconds() >= climb_step_finished_idel_time;
-            if ((trgged_leg == 1 && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 1) {
+            if ((trgged_leg == 1 && foot_climbing_step == 0 && allow_next_climbing)) {
                 if (!foot_trajectory_updated) {
                     climb_step_finished_idel_time = 0.5;
                     RCLCPP_INFO(robot->node_->get_logger(), "触发左前抬腿");
@@ -220,7 +221,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     foot_trajectory_updated     = false;
                     last_foot_climbing_end_time = now; // 记录本次抬腿完成时间
                 }
-            } else if ((trgged_leg == 2 && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 2) {
+            } else if ((trgged_leg == 2 && foot_climbing_step == 0 && allow_next_climbing)) {
                 if (!foot_trajectory_updated) {
                     climb_step_finished_idel_time = 0.5;
                     RCLCPP_INFO(robot->node_->get_logger(), "触发右前抬腿");
@@ -247,7 +248,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     last_foot_climbing_end_time = now; // 记录本次抬腿完成时间
                 }
 
-            } else if ((trgged_leg == 3 && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 3) {
+            } else if ((trgged_leg == 3 && foot_climbing_step == 0 && allow_next_climbing)) {
                 if (!foot_trajectory_updated) {
                     RCLCPP_INFO(robot->node_->get_logger(), "触发左后抬腿");
                     foot_trajectory_updated = true;
@@ -273,7 +274,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     last_foot_climbing_end_time = now; // 记录本次抬腿完成时间
                 }
 
-            } else if ((trgged_leg == 4 && foot_climbing_step == 0 && allow_next_climbing) || foot_climbing_step == 4) {
+            } else if ((trgged_leg == 4 && foot_climbing_step == 0 && allow_next_climbing)) {
                 if (!foot_trajectory_updated) {
                     RCLCPP_INFO(robot->node_->get_logger(), "触发右后抬腿");
                     foot_trajectory_updated = true;
@@ -301,10 +302,23 @@ std::string ClimbStepstate::update(Robot* robot) {
             }
         }
 
+        lf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lf_grivate);
+        rf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rf_grivate);
+        lb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lb_grivate);
+        rb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rb_grivate);
+
 
         // TODO:根据足端位置选择向左还是右平移
         if (action_foot_num)                                                              // 此时需要抬腿跨越台阶
         {
+            lf_wheel_vel   = 0.0;
+            rf_wheel_vel   = 0.0;
+            lb_wheel_vel   = 0.0;
+            rb_wheel_vel   = 0.0;
+            lf_wheel_force = 0.0;
+            rf_wheel_force = 0.0;
+            lb_wheel_force = 0.0;
+            rb_wheel_force = 0.0;
             if (action_step == 0)                                                         // 第一步，平移狗身，使得质心进入支撑三角形内
             {
                 if (action_foot_num == 1 || action_foot_num == 3)                         // 左侧需要抬腿，平移身体到右边
@@ -316,7 +330,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     lb_leg_step.update_support_trajectory(lb_cart_pos, Vector3D(x_target, y_target, lb_cart_pos[2]), 2.0);
                     rb_leg_step.update_support_trajectory(rb_cart_pos, Vector3D(0.0, y_target, rb_cart_pos[2]), 2.0);
                     action_start_time = robot->node_->get_clock()->now();
-                    action_step       = 2;
+                    action_step       = 1;
                 }
                 if (action_foot_num == 2 || action_foot_num == 4)                         // 左侧需要抬腿，平移身体到右边
                 {
@@ -327,7 +341,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     lb_leg_step.update_support_trajectory(lb_cart_pos, Vector3D(0.0, y_target, lb_cart_pos[2]), 2.0);
                     rb_leg_step.update_support_trajectory(rb_cart_pos, Vector3D(x_target, y_target, rb_cart_pos[2]), 2.0);
                     action_start_time = robot->node_->get_clock()->now();
-                    action_step       = 2;
+                    action_step       = 1;
                 }
             }
             if (action_step == 1) {                                                       // 身体平移
@@ -385,6 +399,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     RCLCPP_INFO(robot->node_->get_logger(), "左后腿向前摆动");
                     Vector3D next_available_pos = get_next_available_pos(robot->lb_leg_calc->pos_offset, lb_cart_pos);
                     last_pos_1                  = next_available_pos;
+                    flight_foot_num             = 3;
                     lb_leg_step.update_flight_trajectory(
                         lb_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
                     action_start_time = robot->node_->get_clock()->now();
@@ -393,52 +408,91 @@ std::string ClimbStepstate::update(Robot* robot) {
                     RCLCPP_INFO(robot->node_->get_logger(), "右后腿向前摆动");
                     Vector3D next_available_pos = get_next_available_pos(robot->rb_leg_calc->pos_offset, rb_cart_pos);
                     last_pos_1                  = next_available_pos;
+                    flight_foot_num             = 4;
                     rb_leg_step.update_flight_trajectory(
                         rb_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
                     action_start_time = robot->node_->get_clock()->now();
                     action_step       = 3;
                 }
             }
-            if (action_step == 3) // 三腿支撑
+            if (action_step == 3) // 三腿支撑（这里腿的选择有问题，应该按照action_foot_num区分）
             {
                 bool success;
                 double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
 
-                std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+                if (flight_foot_num == 3) {
+                    std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
 
-                // 3足支撑力计算 (lf, rf, rb支撑，lb摆动)
-                auto lf_pos = (lf_foot_exp_pos + robot->lf_leg_calc->pos_offset).head(2);
-                auto rf_pos = (rf_foot_exp_pos + robot->rf_leg_calc->pos_offset).head(2);
-                auto rb_pos = (rb_foot_exp_pos + robot->rb_leg_calc->pos_offset).head(2);
+                    // 3足支撑力计算 (lf, rf, rb支撑，lb摆动)
+                    auto lf_pos = (lf_foot_exp_pos + robot->lf_leg_calc->pos_offset).head(2);
+                    auto rf_pos = (rf_foot_exp_pos + robot->rf_leg_calc->pos_offset).head(2);
+                    auto lb_pos = (lb_foot_exp_pos + robot->lb_leg_calc->pos_offset).head(2);
 
-                Eigen::Matrix3d A;
-                Eigen::Vector3d b;
+                    Eigen::Matrix3d A;
+                    Eigen::Vector3d b;
 
-                // 力平衡约束
-                A(0, 0) = 1.0; // lf
-                A(0, 1) = 1.0; // rf
-                A(0, 2) = 1.0; // rb
-                b(0)    = mass * 9.8;
+                    // 力平衡约束
+                    A(0, 0) = 1.0; // lf
+                    A(0, 1) = 1.0; // rf
+                    A(0, 2) = 1.0; // rb
+                    b(0)    = mass * 9.8;
 
-                // 绕质心的x方向力矩平衡
-                A(1, 0) = lf_pos.x() - mass_center_pos.x();
-                A(1, 1) = rf_pos.x() - mass_center_pos.x();
-                A(1, 2) = rb_pos.x() - mass_center_pos.x();
-                b(1)    = 0.0;
+                    // 绕质心的x方向力矩平衡
+                    A(1, 0) = lf_pos.x() - mass_center_pos.x();
+                    A(1, 1) = rf_pos.x() - mass_center_pos.x();
+                    A(1, 2) = lb_pos.x() - mass_center_pos.x();
+                    b(1)    = 0.0;
 
-                // 绕质心的y方向力矩平衡
-                A(2, 0) = lf_pos.y() - mass_center_pos.y();
-                A(2, 1) = rf_pos.y() - mass_center_pos.y();
-                A(2, 2) = rb_pos.y() - mass_center_pos.y();
-                b(2)    = 0.0;
+                    // 绕质心的y方向力矩平衡
+                    A(2, 0) = lf_pos.y() - mass_center_pos.y();
+                    A(2, 1) = rf_pos.y() - mass_center_pos.y();
+                    A(2, 2) = lb_pos.y() - mass_center_pos.y();
+                    b(2)    = 0.0;
 
-                // 求解3x3方程组
-                Eigen::Vector3d forces = A.colPivHouseholderQr().solve(b);
+                    // 求解3x3方程组
+                    Eigen::Vector3d forces = A.colPivHouseholderQr().solve(b);
 
-                lf_foot_exp_force = Vector3D(0.0, 0.0, -forces(0));
-                rf_foot_exp_force = Vector3D(0.0, 0.0, -forces(1));
-                lb_foot_exp_force = Vector3D::Zero(); // 摆动腿无支撑力
-                rb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
+                    lf_foot_exp_force = Vector3D(0.0, 0.0, -forces(0));
+                    rf_foot_exp_force = Vector3D(0.0, 0.0, -forces(1));
+                    lb_foot_exp_force = Vector3D::Zero(); // 摆动腿无支撑力
+                    rb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
+                } else {
+                    std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+
+                    // 3足支撑力计算 (lf, rf, rb支撑，lb摆动)
+                    auto lf_pos = (lf_foot_exp_pos + robot->lf_leg_calc->pos_offset).head(2);
+                    auto rf_pos = (rf_foot_exp_pos + robot->rf_leg_calc->pos_offset).head(2);
+                    auto rb_pos = (rb_foot_exp_pos + robot->rb_leg_calc->pos_offset).head(2);
+
+                    Eigen::Matrix3d A;
+                    Eigen::Vector3d b;
+
+                    // 力平衡约束
+                    A(0, 0) = 1.0; // lf
+                    A(0, 1) = 1.0; // rf
+                    A(0, 2) = 1.0; // rb
+                    b(0)    = mass * 9.8;
+
+                    // 绕质心的x方向力矩平衡
+                    A(1, 0) = lf_pos.x() - mass_center_pos.x();
+                    A(1, 1) = rf_pos.x() - mass_center_pos.x();
+                    A(1, 2) = rb_pos.x() - mass_center_pos.x();
+                    b(1)    = 0.0;
+
+                    // 绕质心的y方向力矩平衡
+                    A(2, 0) = lf_pos.y() - mass_center_pos.y();
+                    A(2, 1) = rf_pos.y() - mass_center_pos.y();
+                    A(2, 2) = rb_pos.y() - mass_center_pos.y();
+                    b(2)    = 0.0;
+
+                    // 求解3x3方程组
+                    Eigen::Vector3d forces = A.colPivHouseholderQr().solve(b);
+
+                    lf_foot_exp_force = Vector3D(0.0, 0.0, -forces(0));
+                    rf_foot_exp_force = Vector3D(0.0, 0.0, -forces(1));
+                    lb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
+                    rb_foot_exp_force = Vector3D::Zero(); // 摆动腿无支撑力
+                }
 
                 if (!success)
                     action_step = 4;
@@ -448,6 +502,7 @@ std::string ClimbStepstate::update(Robot* robot) {
                     RCLCPP_INFO(robot->node_->get_logger(), "左前腿向前摆动");
                     Vector3D next_available_pos = get_next_available_pos(robot->lf_leg_calc->pos_offset, lf_cart_pos);
                     last_pos_2                  = next_available_pos;
+                    flight_foot_num             = 1;
                     lf_leg_step.update_flight_trajectory(
                         lf_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
                     action_start_time = robot->node_->get_clock()->now();
@@ -456,51 +511,98 @@ std::string ClimbStepstate::update(Robot* robot) {
                     RCLCPP_INFO(robot->node_->get_logger(), "右前腿向前摆动");
                     Vector3D next_available_pos = get_next_available_pos(robot->rf_leg_calc->pos_offset, rf_cart_pos);
                     last_pos_2                  = next_available_pos;
+                    flight_foot_num             = 2;
                     rf_leg_step.update_flight_trajectory(
                         rf_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
                     action_start_time = robot->node_->get_clock()->now();
                     action_step       = 5;
                 }
             }
-            if (action_step == 5) {
+            if (action_step == 5)           //还有选择哪个足端施力的错误没修正
+            {
                 bool success;
                 double t = (robot->node_->get_clock()->now() - action_start_time).seconds();
 
-                std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+                if (flight_foot_num == 1) {
+                    std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
 
-                // 3足支撑力计算 (rf, lb, rb支撑，lf摆动)
-                auto rf_pos = (rf_foot_exp_pos + robot->rf_leg_calc->pos_offset).head(2);
-                auto lb_pos = (lb_foot_exp_pos + robot->lb_leg_calc->pos_offset).head(2);
-                auto rb_pos = (rb_foot_exp_pos + robot->rb_leg_calc->pos_offset).head(2);
+                    // 3足支撑力计算 (lf, rf, rb支撑，lb摆动)
+                    
+                    auto rf_pos = (rf_foot_exp_pos + robot->rf_leg_calc->pos_offset).head(2);
+                    auto lb_pos = (lb_foot_exp_pos + robot->lb_leg_calc->pos_offset).head(2);
+                    auto rb_pos = (rb_foot_exp_pos + robot->rb_leg_calc->pos_offset).head(2);
 
-                Eigen::Matrix3d A;
-                Eigen::Vector3d b;
+                    Eigen::Matrix3d A;
+                    Eigen::Vector3d b;
 
-                // 力平衡约束
-                A(0, 0) = 1.0; // rf
-                A(0, 1) = 1.0; // lb
-                A(0, 2) = 1.0; // rb
-                b(0)    = mass * 9.8;
+                    // 力平衡约束
+                    A(0, 0) = 1.0; // lf
+                    A(0, 1) = 1.0; // rf
+                    A(0, 2) = 1.0; // rb
+                    b(0)    = mass * 9.8;
 
-                // 绕质心的x方向力矩平衡
-                A(1, 0) = rf_pos.x() - mass_center_pos.x();
-                A(1, 1) = lb_pos.x() - mass_center_pos.x();
-                A(1, 2) = rb_pos.x() - mass_center_pos.x();
-                b(1)    = 0.0;
+                    // 绕质心的x方向力矩平衡
+                    
+                    A(1, 0) = rf_pos.x() - mass_center_pos.x();
+                    A(1, 1) = lb_pos.x() - mass_center_pos.x();
+                    A(1, 2) = rb_pos.x() - mass_center_pos.x();
+                    b(1)    = 0.0;
 
-                // 绕质心的y方向力矩平衡
-                A(2, 0) = rf_pos.y() - mass_center_pos.y();
-                A(2, 1) = lb_pos.y() - mass_center_pos.y();
-                A(2, 2) = rb_pos.y() - mass_center_pos.y();
-                b(2)    = 0.0;
+                    // 绕质心的y方向力矩平衡
+                    
+                    A(2, 0) = rf_pos.y() - mass_center_pos.y();
+                    A(2, 1) = lb_pos.y() - mass_center_pos.y();
+                    A(2, 2) = rb_pos.y() - mass_center_pos.y();
+                    b(2)    = 0.0;
 
-                // 求解3x3方程组
-                Eigen::Vector3d forces = A.colPivHouseholderQr().solve(b);
+                    // 求解3x3方程组
+                    Eigen::Vector3d forces = A.colPivHouseholderQr().solve(b);
 
-                lf_foot_exp_force = Vector3D::Zero();                                     // 摆动腿无支撑力
-                rf_foot_exp_force = Vector3D(0.0, 0.0, -forces(0));
-                lb_foot_exp_force = Vector3D(0.0, 0.0, -forces(1));
-                rb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
+                    lf_foot_exp_force=Eigen::Vector3d::Zero();
+                    rf_foot_exp_force = Vector3D(0.0, 0.0, -forces(0));
+                    lb_foot_exp_force = Vector3D(0.0, 0.0, -forces(1));
+                    rb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
+                } else {
+                    std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+
+                    // 3足支撑力计算 (lf, rf, rb支撑，lb摆动)
+                    
+                    auto lf_pos = (lf_foot_exp_pos + robot->lf_leg_calc->pos_offset).head(2);
+                    auto lb_pos = (lb_foot_exp_pos + robot->lb_leg_calc->pos_offset).head(2);
+                    auto rb_pos = (rb_foot_exp_pos + robot->rb_leg_calc->pos_offset).head(2);
+
+                    Eigen::Matrix3d A;
+                    Eigen::Vector3d b;
+
+                    // 力平衡约束
+                    A(0, 0) = 1.0; // lf
+                    A(0, 1) = 1.0; // rf
+                    A(0, 2) = 1.0; // rb
+                    b(0)    = mass * 9.8;
+
+                    // 绕质心的x方向力矩平衡
+                    
+                    A(1, 0) = lf_pos.x() - mass_center_pos.x();
+                    A(1, 1) = lb_pos.x() - mass_center_pos.x();
+                    A(1, 2) = rb_pos.x() - mass_center_pos.x();
+                    b(1)    = 0.0;
+
+                    // 绕质心的y方向力矩平衡
+                    
+                    A(2, 0) = lf_pos.y() - mass_center_pos.y();
+                    A(2, 1) = lb_pos.y() - mass_center_pos.y();
+                    A(2, 2) = rb_pos.y() - mass_center_pos.y();
+                    b(2)    = 0.0;
+
+                    // 求解3x3方程组
+                    Eigen::Vector3d forces = A.colPivHouseholderQr().solve(b);
+
+                    
+                    lf_foot_exp_force = Vector3D(0.0, 0.0, -forces(0));
+                    rf_foot_exp_force=Eigen::Vector3d::Zero();
+                    lb_foot_exp_force = Vector3D(0.0, 0.0, -forces(1));
+                    rb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
+                }
 
                 if (!success)
                     action_step = 6;
@@ -560,38 +662,42 @@ std::string ClimbStepstate::update(Robot* robot) {
                 lb_foot_exp_force = Vector3D(0.0, 0.0, -forces(2));
                 rb_foot_exp_force = Vector3D(0.0, 0.0, -forces(3));
 
-                if (!success)
-                {
-                    action_step = 0;
-                    action_foot_num=0;
-                    last_foot_climbing_end_time=robot->node_->get_clock()->now();
+                if (!success) {
+                    flight_foot_num             = 0;
+                    action_step                 = 0;
+                    action_foot_num             = 0;
+                    last_foot_climbing_end_time = robot->node_->get_clock()->now();
                 }
-                    
             }
         }
 
-        if (foot_climbing_step != 1) {                     // 处于摆动相的足端采用位置控制，否则使用VMC力控
+        if (flight_foot_num != 1) {                        // 处于摆动相的足端采用位置控制，否则使用VMC力控
             std::tie(lf_foot_exp_pos[2], lf_foot_exp_vel[2], lf_foot_exp_acc[2]) =
                 robot->lf_z_vmc->targetUpdate(lf_foot_exp_pos[2], lf_cart_pos[2], lf_foot_exp_vel[2], lf_cart_vel[2], -lf_cart_force[2]);
-            //lf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lf_grivate);
+        } else {
+            lf_foot_exp_force = Vector3D(0.0, 0.0, 0.0);
         }
 
-        if (foot_climbing_step != 2) {
+
+        if (flight_foot_num != 2) {
             std::tie(rf_foot_exp_pos[2], rf_foot_exp_vel[2], rf_foot_exp_acc[2]) =
                 robot->rf_z_vmc->targetUpdate(rf_foot_exp_pos[2], rf_cart_pos[2], rf_foot_exp_vel[2], rf_cart_vel[2], -rf_cart_force[2]);
-            //rf_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rf_grivate);
+        } else {
+            rf_foot_exp_force = Vector3D(0.0, 0.0, 0.0);
         }
 
-        if (foot_climbing_step != 3) {
+        if (flight_foot_num != 3) {
             std::tie(lb_foot_exp_pos[2], lb_foot_exp_vel[2], lb_foot_exp_acc[2]) =
                 robot->lb_z_vmc->targetUpdate(lb_foot_exp_pos[2], lb_cart_pos[2], lb_foot_exp_vel[2], lb_cart_vel[2], -lb_cart_force[2]);
-            //lb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_lb_grivate);
+        } else {
+            lb_foot_exp_force = Vector3D(0.0, 0.0, 0.0);
         }
 
-        if (foot_climbing_step != 4) {
+        if (flight_foot_num != 4) {
             std::tie(rb_foot_exp_pos[2], rb_foot_exp_vel[2], rb_foot_exp_acc[2]) =
                 robot->rb_z_vmc->targetUpdate(rb_foot_exp_pos[2], rb_cart_pos[2], rb_foot_exp_vel[2], rb_cart_vel[2], -rb_cart_force[2]);
-            //rb_foot_exp_force += Vector3D(current_exp_foot_force, 0.0, -robot->robot_rb_grivate);
+        } else {
+            rb_foot_exp_force = Vector3D(0.0, 0.0, 0.0);
         }
 
 
