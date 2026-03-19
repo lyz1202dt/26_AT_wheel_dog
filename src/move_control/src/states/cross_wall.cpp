@@ -13,7 +13,7 @@
 
 Cross_WallState::Cross_WallState(Robot* robot)
     : BaseState<Robot>("cross_wall") {
-        robot->node_->declare_parameter<int>("cross_wall_stage",0);
+        robot->node_->declare_parameter<int>("cross_wall_stage",-1);
         robot->node_->declare_parameter("cross_k_F",1.0);
 
 
@@ -45,7 +45,7 @@ Cross_WallState::Cross_WallState(Robot* robot)
 bool Cross_WallState::enter(Robot* robot, const std::string& last_status) {
     (void)robot;
     (void)last_status;
-    cross_wall_stage=0;
+    cross_wall_stage=-1;
     return true;
 }
 
