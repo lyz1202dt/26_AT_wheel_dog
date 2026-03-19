@@ -50,6 +50,13 @@ LegCalc::LegCalc(KDL::Chain& chain)
 
 LegCalc::~LegCalc() {}
 
+Eigen::Vector3d LegCalc::joint_pos_setarray(const Eigen::Vector3d &cur_joint_pos)
+{
+    _temp_joint3_array(0)=cur_joint_pos[0];
+    _temp_joint3_array(1)=cur_joint_pos[1];
+    _temp_joint3_array(2)=cur_joint_pos[2];
+}
+
 Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d &foot_pos,int  *result,const Eigen::Vector3d &cur_joint_pos)
 {
     KDL::Frame frame;
