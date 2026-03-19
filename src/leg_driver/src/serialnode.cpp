@@ -40,8 +40,8 @@ SerialNode::SerialNode()
     this->declare_parameter("joint1_kd", 0.17);
     this->declare_parameter("joint2_kp", 2.8);
     this->declare_parameter("joint2_kd", 0.14);
-    this->declare_parameter("joint3_kp", 2.8);
-    this->declare_parameter("joint3_kd", 0.11);
+    this->declare_parameter("joint3_kp", 2.5);
+    this->declare_parameter("joint3_kd", 0.09);
     this->declare_parameter("publish_imu", true); // 声明该节点是否负责发布IMU数据
 
     // 声明关节卡尔曼滤波器参数

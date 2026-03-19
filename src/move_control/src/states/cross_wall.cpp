@@ -85,26 +85,51 @@ std::string Cross_WallState::update(Robot* robot){
                 lb_wheel_force = 0.0;
                 rf_wheel_force = 0.0;
                 rb_wheel_force = 0.0;
+
+
+                wall_lf_foot_pos=robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+                wall_rf_foot_pos=robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+                wall_lb_foot_pos=robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+                wall_rb_foot_pos=robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+                lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(0.0,0.13,0.0),2.0);
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,Vector3D(0.0,0.13,0.0),2.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.13,0.0),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.13,0.0),2.0);
                 
                 change_flag=false;
                 //cross_wall_stage=1;
             }
-        }
+        }  //0:碰撞检测后,狗身向右倾斜，准备迈左后腿
+      
         if (cross_wall_stage == 1 && change_flag == true){        
+            if (cross_wall_stage != last_stage)
+            {
+                cross_wall_stage_time = robot->node_->get_clock()->now();
+                last_stage = cross_wall_stage;
+            }
+            bool success=false;
+            double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
+            std::tie(lf_foot_exp_pos,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
             
-            wall_lf_foot_pos=robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
-            wall_rf_foot_pos=robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
-            wall_lb_foot_pos=robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
-            wall_rb_foot_pos=robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+            if(!success)
+            {
+                wall_lf_foot_pos=lf_foot_exp_pos;
+                wall_rf_foot_pos=rf_foot_exp_pos;
+                wall_lb_foot_pos=lb_foot_exp_pos;
+                wall_rb_foot_pos=rb_foot_exp_pos;
 
-            lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(0.0,0.0,0.0),0.3);
-            rf_leg_step.update_support_trajectory(wall_rf_foot_pos,Vector3D(0.0,0.0,0.0),0.3);
-            lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),0.3);
-            rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),0.3);
-            
-            change_flag=false;
-            //cross_wall_stage=2;     
-        }
+                lf_leg_step.update_support_trajectory(wall_lf_foot_pos,wall_lf_foot_pos,2.0);
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,2.0);
+                lb_leg_step.update_flight_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0), Vector3D(0.12,0.13,0.0), Vector2D(0.0,0.0), 2.0,0.20);
+                change_flag=false;
+                //cross_wall_stage=2;     
+            }
+        }//1:其它保持不变,迈左后腿
         if (cross_wall_stage == 2 && change_flag == true){         // 执行设置的腿长，调整质心位置，使其落在支撑三角形内
 
             if (cross_wall_stage != last_stage)
@@ -125,14 +150,10 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,Vector3D(0.0,0.0,-0.1),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.1),2.0);
-                rb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),2.0);
-                // rf_leg_step.update_support_trajectory(wall_rf_foot_pos,Vector3D(cross_x_rf,cross_y_rf,cross_z_rf),time_s);
-                // lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(cross_x_lb,cross_y_lb,cross_z_lb),time_s);
+                lf_leg_step.update_support_trajectory(robot->lf_joint_pos,Vector3D(1.44,0.822,-0.165),4.0);
                 
                 change_flag=false;
-                //cross_wall_stage=3;     //轨迹执行完后跳转到状态2
+                //cross_wall_stage=3;    
             }
         }
         if (cross_wall_stage == 3 && change_flag == true){
@@ -143,21 +164,20 @@ std::string Cross_WallState::update(Robot* robot){
             }
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
-            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
-            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
-            lf_foot_exp_pos=wall_lf_foot_pos;
-
+            std::tie(lf_joint_exp_pos_,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success); 
+            rf_foot_exp_pos=wall_rf_foot_pos;
+            lb_foot_exp_pos=wall_lb_foot_pos;
+            rb_foot_exp_pos=wall_rb_foot_pos;
             if(!success)
             {
-                // wall_lf_foot_pos=lf_foot_exp_pos;
+               
                 wall_rf_foot_pos=rf_foot_exp_pos;
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                lf_leg_step.update_support_trajectory(robot->lf_joint_pos,Vector3D(1.2,0.822,-0.165),4.0);
-                // lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(cross_x_lf,cross_y_lf,cross_z_lf),time_s);
+                lf_leg_step.update_support_trajectory(Vector3D(1.44,0.822,-0.165),Vector3D(1.44,-0.92,0.48),4.0);
                 
+                   
                 change_flag=false;
                 //cross_wall_stage=4;
             }
@@ -173,9 +193,7 @@ std::string Cross_WallState::update(Robot* robot){
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
             std::tie(lf_joint_exp_pos_,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
-            rf_foot_exp_pos=wall_rf_foot_pos;
-            lb_foot_exp_pos=wall_lb_foot_pos;
-            rb_foot_exp_pos=wall_rb_foot_pos;
+            
             if(!success)
             {   
                 // wall_lf_foot_pos=lf_foot_exp_pos;
@@ -183,8 +201,10 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                lf_leg_step.update_support_trajectory(Vector3D(1.2,0.822,-0.165),Vector3D(1.2,-0.92,0.48),4.0);
-                // lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(cross_x_lf,cross_y_lf,cross_z_lf),time_s);
+                
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,Vector3D(0.0,0.0,0.0),4.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.00),4.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),4.0);
 
                 change_flag=false;
                 //cross_wall_stage=5;
@@ -200,20 +220,21 @@ std::string Cross_WallState::update(Robot* robot){
         
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
-            rf_foot_exp_pos=wall_rf_foot_pos;
-            lb_foot_exp_pos=wall_lb_foot_pos;
-            rb_foot_exp_pos=wall_rb_foot_pos;
-            std::tie(lf_joint_exp_pos_,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success); 
+            
             if(!success)
             {
                 // wall_lf_foot_pos=lf_foot_exp_pos;
                 wall_rf_foot_pos=rf_foot_exp_pos;
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
-                
-                lf_leg_step.update_support_trajectory(Vector3D(1.2,-0.92,0.48),Vector3D(-0.12,-1.00,0.96),2.0);
-                // lf_leg_step.update_support_trajectory(wall_lf_foot_pos,Vector3D(cross_x_lf,cross_y_lf,cross_z_lf),time_s);
 
+                lf_leg_step.update_support_trajectory(Vector3D(1.44,-0.92,0.48),Vector3D(-0.12,-1.00,0.96),2.0);
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,2.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,wall_lb_foot_pos,2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,2.0);
                 change_flag=false;
                 //cross_wall_stage=6;
             }
@@ -227,11 +248,11 @@ std::string Cross_WallState::update(Robot* robot){
             }
         
             bool success=false;
-            double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
+            double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();  
             std::tie(lf_joint_exp_pos_,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
-            rf_foot_exp_pos = wall_rf_foot_pos;
-            lb_foot_exp_pos = wall_lb_foot_pos;
-            rb_foot_exp_pos = wall_rb_foot_pos;
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
             if(!success)
             {
                 int result;
@@ -434,37 +455,37 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.10,-0.1,0.35),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.10, 0.1,0.35),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.15,-0.13,0.35),2.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.15, 0.13,0.35),2.0);
 
                 change_flag=false;
                 //cross_wall_stage=17;
             }
         }
+        // if(cross_wall_stage == 13 && change_flag == true)
+        // {
+        //     if (cross_wall_stage != last_stage)
+        //     {
+        //         cross_wall_stage_time = robot->node_->get_clock()->now();
+        //         last_stage = cross_wall_stage;
+        //     }
+        //     bool success=false;
+        //     double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
+        //     std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
+        //     std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
+        //     if(!success)
+        //     {
+        //         wall_lb_foot_pos=lb_foot_exp_pos;
+        //         wall_rb_foot_pos=rb_foot_exp_pos;
+
+        //         rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.1,-0.15,0.30),2.0);
+        //         lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.1,0.15,0.30),2.0);
+
+        //         change_flag=false;
+        //         //cross_wall_stage=18;
+        //     }
+        // }
         if(cross_wall_stage == 13 && change_flag == true)
-        {
-            if (cross_wall_stage != last_stage)
-            {
-                cross_wall_stage_time = robot->node_->get_clock()->now();
-                last_stage = cross_wall_stage;
-            }
-            bool success=false;
-            double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
-            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
-            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            if(!success)
-            {
-                wall_lb_foot_pos=lb_foot_exp_pos;
-                wall_rb_foot_pos=rb_foot_exp_pos;
-
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.1,-0.15,0.30),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.1,0.15,0.30),2.0);
-
-                change_flag=false;
-                //cross_wall_stage=18;
-            }
-        }
-        if(cross_wall_stage == 14 && change_flag == true)
         {
             if (cross_wall_stage != last_stage)
             {
@@ -490,7 +511,7 @@ std::string Cross_WallState::update(Robot* robot){
                 //cross_wall_stage=20;
             }
         }
-        if(cross_wall_stage == 15 && change_flag == true)
+        if(cross_wall_stage == 14 && change_flag == true)
         {
             if (cross_wall_stage != last_stage)
             {
@@ -514,7 +535,7 @@ std::string Cross_WallState::update(Robot* robot){
                 //cross_wall_stage=21;
             }
         }
-        if(cross_wall_stage==16 && change_flag == true)
+        if(cross_wall_stage==15 && change_flag == true)
         {
             if (cross_wall_stage != last_stage)
             {
@@ -541,7 +562,7 @@ std::string Cross_WallState::update(Robot* robot){
                 return "stop";
             }
         }
-        if(cross_wall_stage == 4|| cross_wall_stage == 5 || cross_wall_stage == 6)
+        if(cross_wall_stage == 3 || cross_wall_stage == 4 || cross_wall_stage == 5 || cross_wall_stage == 6)
         {
             lf_joint_omega  = robot->lf_leg_calc->joint_vel(lf_joint_exp_pos_, Vector3D{0,0,0});
             lf_joint_torque = robot->lf_leg_calc->joint_torque_foot_force(lf_joint_exp_pos_, Vector3D{0,0,0});
@@ -586,7 +607,7 @@ std::string Cross_WallState::update(Robot* robot){
             joints_target.legs[3] =
                 robot->signal_leg_calc(rb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0), robot->rb_leg_calc, &rb_forward_torque,rb_wheel_vel,rb_wheel_force);
         }
-        else if(cross_wall_stage == 12 || cross_wall_stage == 13 || cross_wall_stage == 14 || cross_wall_stage == 15 || cross_wall_stage == 16)
+        else if(cross_wall_stage == 12 || cross_wall_stage == 13 || cross_wall_stage == 14 || cross_wall_stage == 15)
         {
             lf_joint_omega  = robot->lf_leg_calc->joint_vel(lf_joint_exp_pos_, Vector3D{0,0,0});
             lf_joint_torque = robot->lf_leg_calc->joint_torque_foot_force(lf_joint_exp_pos_, Vector3D{0,0,0});
