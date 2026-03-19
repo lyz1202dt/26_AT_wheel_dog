@@ -13,7 +13,7 @@ public:
     std::string update(Robot* robot) override;
     
 private:
-std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> balance_force_calc(Robot* robot, double cur_roll, double cur_pitch);
+std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> balance_force_calc(Robot* robot, double cur_roll, double cur_pitch, double exp_roll,double exp_pitch);
 
 Vector3D get_next_available_pos(Vector3D leg_offset, Vector3D current_pos);
     double exp_vel_kp{3.0};
@@ -23,7 +23,6 @@ Vector3D get_next_available_pos(Vector3D leg_offset, Vector3D current_pos);
     int last_state{0};
     int current_state{0};
     int foot_climbing_step{0};
-    bool foot_trajectory_updated{false};
     rclcpp::Time foot_climbing_time;
     rclcpp::Time last_foot_climbing_end_time;  // 最后一次完成抬腿的时间，用于冷却计时
     
@@ -45,6 +44,7 @@ Vector3D get_next_available_pos(Vector3D leg_offset, Vector3D current_pos);
     double foot_obstruct_gate{6.0};
 
     double climb_step_finished_idel_time{0.4};
+    double exp_pitch{0.0};
 
     int lf_step_num{0},rf_step_num{0},lb_step_num{0},rb_step_num{0};
 
@@ -57,5 +57,8 @@ Vector3D get_next_available_pos(Vector3D leg_offset, Vector3D current_pos);
     double  step_dy{0.08};
     rclcpp::Time action_start_time;
     int flight_foot_num{0};
+    bool first_step{true};
+    
+    Vector3D last_lf_pos,last_rf_pos,last_lb_pos,last_rb_pos;
 };
 
