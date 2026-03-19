@@ -63,6 +63,7 @@ src/states/jump.cpp
 src/states/amble.cpp
 src/states/force.cpp
 src/states/forcewalk.cpp
+src/states/new_cross_step.cpp
 )
 
 add_executable(test_move_node
