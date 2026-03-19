@@ -4,32 +4,21 @@
 #include <iomanip>
 #include <pluginlib/class_list_macros.hpp>
 #include <robot_interfaces/msg/robot.hpp>
+#include <robot_interfaces/msg/robot_target.hpp>
 
 namespace dog_controller {
 DogController::DogController()
     : csv_initialized_(false) {}
 
 controller_interface::CallbackReturn DogController::on_init() {
-    state_publisher   = get_node()->create_publisher<robot_interfaces::msg::Robot>("legs_status", 10);
-    target_subscriber = get_node()->create_subscription<robot_interfaces::msg::Robot>(
-        "legs_target", 10, [this](const robot_interfaces::msg::Robot& msg) { joints_target = msg; });
+    state_publisher   = get_node()->create_publisher<robot_interfaces::msg::Robot>("legs_status", rclcpp::SensorDataQoS());
+    target_subscriber = get_node()->create_subscription<robot_interfaces::msg::RobotTarget>(
+        "legs_target", rclcpp::SensorDataQoS(), [this](const robot_interfaces::msg::RobotTarget& msg) { /*RCLCPP_INFO(get_node()->get_logger(),"订阅到关节目标");*/joints_target = msg; });
     joints_name_ = {"lf_joint1", "lf_joint2", "lf_joint3", "lf_joint4", "rf_joint1", "rf_joint2", "rf_joint3", "rf_joint4",
                     "lb_joint1", "lb_joint2", "lb_joint3", "lb_joint4", "rb_joint1", "rb_joint2", "rb_joint3", "rb_joint4"};
-    joint_kp[0]  = 0.0;
-    joint_kp[1]  = 0.0;
-    joint_kp[2]  = 0.0;
-    joint_kd[0]  = 0.0;
-    joint_kd[1]  = 0.0;
-    joint_kd[2]  = 0.0;
     wheel_kd     = 0.0;
 
     auto node = get_node();
-    node->declare_parameter("joint1_kp", 50.0);
-    node->declare_parameter("joint1_kd", 3.0);
-    node->declare_parameter("joint2_kp", 50.0);
-    node->declare_parameter("joint2_kd", 3.0);
-    node->declare_parameter("joint3_kp", 50.0);
-    node->declare_parameter("joint3_kd", 3.0);
     node->declare_parameter("wheel_kd", 0.2);
     node->declare_parameter("record_lf_torque", false);
     node->declare_parameter("joint_torque_filter_gate", 0.8);
@@ -39,19 +28,7 @@ controller_interface::CallbackReturn DogController::on_init() {
         rcl_interfaces::msg::SetParametersResult result;
         result.successful = true;
         for (const auto& param : params) {
-            if (param.get_name() == "joint1_kp")
-                joint_kp[0] = param.as_double();
-            else if (param.get_name() == "joint1_kd")
-                joint_kd[0] = param.as_double();
-            else if (param.get_name() == "joint2_kp")
-                joint_kp[1] = param.as_double();
-            else if (param.get_name() == "joint2_kd")
-                joint_kd[1] = param.as_double();
-            else if (param.get_name() == "joint3_kp")
-                joint_kp[2] = param.as_double();
-            else if (param.get_name() == "joint3_kd")
-                joint_kd[2] = param.as_double();
-            else if (param.get_name() == "wheel_kd")
+            if (param.get_name() == "wheel_kd")
                 wheel_kd = param.as_double();
             else if (param.get_name() == "record_lf_torque") {
                 csv_initialized_ = param.as_bool();
@@ -77,12 +54,6 @@ controller_interface::CallbackReturn DogController::on_init() {
 controller_interface::CallbackReturn DogController::on_configure(const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
     auto node   = get_node();
-    joint_kp[0] = node->get_parameter("joint1_kp").as_double();
-    joint_kd[0] = node->get_parameter("joint1_kd").as_double();
-    joint_kp[1] = node->get_parameter("joint2_kp").as_double();
-    joint_kd[1] = node->get_parameter("joint2_kd").as_double();
-    joint_kp[2] = node->get_parameter("joint3_kp").as_double();
-    joint_kd[2] = node->get_parameter("joint3_kd").as_double();
     wheel_kd    = node->get_parameter("wheel_kd").as_double();
     return controller_interface::ControllerInterface::CallbackReturn::SUCCESS;
 }
@@ -140,10 +111,12 @@ controller_interface::return_type DogController::update(const rclcpp::Time& time
                    + joints_target.legs[leg_idx].wheel.torque;
             effort = std::clamp(effort, -2.0, 2.0);
         } else {
-            effort =
-                joint_kp[joint_idx] * (joints_target.legs[leg_idx].joints[joint_idx].rad - joints_state.legs[leg_idx].joints[joint_idx].rad)
-                + joint_kd[joint_idx]
-                      * (joints_target.legs[leg_idx].joints[joint_idx].omega - joints_state.legs[leg_idx].joints[joint_idx].omega);
+            // 使用消息中的kp和kd参数
+            double kp = static_cast<double>(joints_target.legs[leg_idx].joints[joint_idx].kp);
+            double kd = static_cast<double>(joints_target.legs[leg_idx].joints[joint_idx].kd);
+            
+            effort = kp * (joints_target.legs[leg_idx].joints[joint_idx].rad - joints_state.legs[leg_idx].joints[joint_idx].rad)
+                   + kd * (joints_target.legs[leg_idx].joints[joint_idx].omega - joints_state.legs[leg_idx].joints[joint_idx].omega);
             effort = effort + (double)joints_target.legs[leg_idx].joints[joint_idx].torque;
             effort = std::clamp(effort, -20.0, 20.0);
         }

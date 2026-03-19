@@ -12,7 +12,10 @@
 #include <rclcpp/parameter.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/subscription.hpp>
+#include <robot_interfaces/msg/detail/leg_target__struct.hpp>
+#include <robot_interfaces/msg/detail/robot__struct.hpp>
 #include <robot_interfaces/msg/robot.hpp>
+#include <robot_interfaces/msg/joint_target.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 #include <tuple>
@@ -51,7 +54,18 @@ public:
     
     Eigen::Vector3d foot_pos(const Eigen::Vector3d& joint_rad);
 
+    void set_joint_pd(int index,double kp,double kd);
+
+    void get_joint_pd(int index,double &kp,double &kd);
+
+    robot_interfaces::msg::LegTarget signal_leg_calc(
+    const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,Vector3D* torque,const double wheel_vel=0.0,const double wheel_force=0.0);
+
+    robot_interfaces::msg::LegTarget signal_leg_torque_calc(const Vector3D& cur_joint_pos, const Vector3D& exp_foot_force, const Vector3D& foot_vel,const Vector3D& foot_acc,double wheel_force=0.0);
+
     Eigen::Vector3d pos_offset; // 足端位置到机器人中心的偏移
+    double kp[3],kd[3];
+    double wheel_kd;
 private:
 
     Eigen::Vector3d joint_acc(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_vel,Eigen::Vector3d foot_acc);
@@ -79,4 +93,6 @@ private:
 
     KDL::JntArrayVel _temp_joint3_vel_array;
     KDL::Twist _temp_jdot_qd;
+
+    double wheel_radius{0.065};
 };

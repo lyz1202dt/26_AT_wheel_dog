@@ -39,8 +39,10 @@
 
 #include <robot_interfaces/msg/move_cmd.hpp>
 #include <robot_interfaces/msg/robot.hpp>
+#include <robot_interfaces/msg/robot_target.hpp>
 #include <sensor_msgs/msg/detail/imu__struct.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 
 class Estimater;
@@ -63,9 +65,6 @@ public:
 
     std::tuple<Vector3D, double> get_robot_mass_info(
         const Vector3D& lf_joint_pos, const Vector3D& rf_joint_pos, const Vector3D& lb_joint_pos, const Vector3D& rb_joint_pos);
-    robot_interfaces::msg::Leg signal_leg_calc(
-        const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
-        std::shared_ptr<LegCalc> leg_calc, Vector3D* torque, double wheel_vel = 0.0, double wheel_force = 0.0);
     void quaternionLowPassFilter(double& w, double& x, double& y, double& z, double w1, double x1, double y1, double z1, double alpha);
 
     bool add_param_cb(std::function<bool(const rclcpp::Parameter& params)> callback);
@@ -80,11 +79,11 @@ public:
     rclcpp::Node::SharedPtr node_;
     rclcpp::TimerBase::SharedPtr control_timer;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_server_;
-    rclcpp::Publisher<robot_interfaces::msg::Robot>::SharedPtr legs_target_pub;
+    rclcpp::Publisher<robot_interfaces::msg::RobotTarget>::SharedPtr legs_target_pub;
     rclcpp::Subscription<robot_interfaces::msg::Robot>::SharedPtr legs_state_sub;
     rclcpp::Subscription<robot_interfaces::msg::MoveCmd>::SharedPtr move_cmd_sub;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr imu_sub;
-    rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_sub;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_state_sub;
     rclcpp::SyncParametersClient::SharedPtr robot_description_param_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> robot_tf_broadcaster;
 
@@ -100,7 +99,7 @@ public:
     // 机器人位姿信息
     tf2::Quaternion robot_rotation;           // 机器人姿态
     geometry_msgs::msg::Twist robot_velocity; // 机器人速度信息
-    double direction_filter_gate{0.8};        // 方向滤波器参数
+    double direction_filter_gate{0.6};        // 方向滤波器参数
 
     Estimater estimater;
 

@@ -21,7 +21,7 @@ std::string IdelState::update(Robot* robot) {
     auto rb_foot_exp_pos = robot->rb_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
 
     int result;
-    robot_interfaces::msg::Robot joints_target;
+    robot_interfaces::msg::RobotTarget joints_target;
     auto lf_joint_target = robot->lf_leg_calc->joint_pos(Vector3D(0.0, 0.0, 0.0), &result);
     auto rf_joint_target = robot->rf_leg_calc->joint_pos(Vector3D(0.0, 0.0, 0.0), &result);
     auto lb_joint_target = robot->lb_leg_calc->joint_pos(Vector3D(0.0, 0.0, 0.0), &result);
@@ -42,16 +42,20 @@ std::string IdelState::update(Robot* robot) {
         joints_target.legs[2].joints[i].torque = 0.0f;
         joints_target.legs[3].joints[i].torque = 0.0f;
     }
-    joints_target.legs[0].wheel.omega  = 0.0f;
-    joints_target.legs[1].wheel.omega  = 0.0f;
-    joints_target.legs[2].wheel.omega  = 0.0f;
-    joints_target.legs[3].wheel.omega  = 0.0f;
-    joints_target.legs[0].wheel.torque = 0.0f;
-    joints_target.legs[1].wheel.torque = 0.0f;
-    joints_target.legs[2].wheel.torque = 0.0f;
-    joints_target.legs[3].wheel.torque = 0.0f;
+    for (int i = 0; i < 4; i++) {
+        joints_target.legs[i].wheel.omega  = 0.0f;
+        joints_target.legs[i].wheel.torque = 0.0f;
+        for (int j = 0; j < 3; j++) {
+            joints_target.legs[i].joints[j].kp = robot->lf_leg_calc->kp[j];
+            joints_target.legs[i].joints[j].kd = robot->lf_leg_calc->kd[j];
+        }
+        joints_target.legs[i].wheel.kd = robot->lf_leg_calc->wheel_kd;
+    }
+
     robot->legs_target_pub->publish(joints_target);
-    if (robot->move_cmd.step_mode == 1) // 如果希望跳转到STOP状态（VMC站立），那么跳转
+    if (robot->move_cmd.step_mode == 1)  // 如果希望跳转到STOP状态（VMC站立），那么跳转
         return "stop";
+    if (robot->move_cmd.step_mode == 10) // 切到测试纯VMC状态
+        return "force";
     return "idel";
 }

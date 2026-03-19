@@ -21,6 +21,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Wheel.msg"
   "msg/MoveCmd.msg"
   "msg/JumpCmd.msg"
+  "msg/RobotTarget.msg"
+  "msg/LegTarget.msg"
+ "msg/JointTarget.msg"
+ "msg/WheelTarget.msg"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs
 )
 
