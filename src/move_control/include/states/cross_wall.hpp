@@ -18,7 +18,7 @@ public:
 
 private:
     //使用笛卡尔坐标系
-    int cross_wall_stage{-1};
+    int cross_wall_stage{0};
     rclcpp::Time cross_wall_stage_time;
     Vector3D wall_lf_foot_pos{0,0,0}, wall_rf_foot_pos{0,0,0}, wall_lb_foot_pos{0,0,0}, wall_rb_foot_pos{0,0,0};
     Vector3D lf_foot_exp_pos{0,0,0}, rf_foot_exp_pos{0,0,0}, lb_foot_exp_pos{0,0,0}, rb_foot_exp_pos{0,0,0};
@@ -49,5 +49,9 @@ private:
     bool allow_vel{true};
 
     float k_F{1.0f};
+
+    //力变量
+    Vector2D mass_center_pos;
+    double mass;
 
 };
