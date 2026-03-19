@@ -90,13 +90,10 @@ std::string StopState::update(Robot* robot) {
         return "amble";
     else if(step_mode==0)
         return "idel";
-<<<<<<< HEAD
-    else if(step_mode==9)
-        return "jump_steps";
-=======
     else if(step_mode==8)
         return "climb_steps2";
->>>>>>> origin/vmc2
+    else if(step_mode==9)
+        return "jump_steps";
     return "stop";
 }
 

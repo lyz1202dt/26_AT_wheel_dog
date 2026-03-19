@@ -272,12 +272,9 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<AmbleState>(this));
     fsm.register_state(std::make_unique<ForceState>(this));
     fsm.register_state(std::make_unique<ForcewalkState>(this));
-<<<<<<< HEAD
-    fsm.register_state(std::make_unique<JumpStepstate>(this));
+    fsm.register_state(std::make_unique<JumpStepState>(this));
 
-=======
     fsm.register_state(std::make_unique<ClimbSteps2State>(this));
->>>>>>> origin/vmc2
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
         lf_leg_calc->pos_offset=lf_base_offset;
