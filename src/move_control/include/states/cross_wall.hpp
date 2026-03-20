@@ -37,6 +37,14 @@ private:
 
     double lf_wheel_vel{0.0},rf_wheel_vel{0.0},lb_wheel_vel{0.0},rb_wheel_vel{0.0};
     double lf_wheel_force{0.0},rf_wheel_force{0.0},lb_wheel_force{0.0},rb_wheel_force{0.0};
+
+    bool stopping = false;
+    double stop_t = 0.0;
+    double stop_T = 0.6;   // 建议 0.3~0.6
+
+    double lf_vel_start, rf_vel_start, lb_vel_start, rb_vel_start;
+    double lf_force_start, rf_force_start, lb_force_start, rb_force_start;
+
     bool enable_posture_safe{true};
     
     LegStep lf_leg_step, rf_leg_step, lb_leg_step, rb_leg_step;
