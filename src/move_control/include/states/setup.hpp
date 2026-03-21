@@ -16,6 +16,7 @@ public:
     std::string update(Robot* robot) override;
     
 private:
+int cnt = 0;
     int setup_stage{0};
     bool trajectory_calced{false};
     rclcpp::Time setup_time;

@@ -1,6 +1,7 @@
 #include "states/stop.hpp"
 #include "core/robot.hpp"
 #include <Eigen/Dense>
+#include <rclcpp/logging.hpp>
 
 StopState::StopState(Robot* robot)
     : BaseState<Robot>("stop") {
@@ -62,8 +63,12 @@ std::string StopState::update(Robot* robot) {
     std::tie(rb_foot_exp_pos[2], rb_foot_exp_vel[2], rb_foot_exp_acc[2]) =
         robot->rb_z_vmc->targetUpdate(0.0, rb_cart_pos[2], 0.0, rb_cart_vel[2], -rb_cart_force[2]);
     rb_foot_exp_force += Vector3D(0.0, 0.0, -robot->robot_rb_grivate);
-
-
+    
+cnt++;
+    if(cnt>=100)    {
+        cnt = 0;
+    RCLCPP_INFO(robot->node_->get_logger(), "lf_cart_pos = (%.2f, %.2f, %.2f) lb_cart_pos = (%.2f, %.2f, %.2f) rf_cart_pos = (%.2f, %.2f, %.2f) rb_cart_pos = (%.2f, %.2f, %.2f)",
+     lf_cart_pos.x(), lf_cart_pos.y(), lf_cart_pos.z(), lb_cart_pos.x(), lb_cart_pos.y(), lb_cart_pos.z(), rf_cart_pos.x(), rf_cart_pos.y(), rf_cart_pos.z(), rb_cart_pos.x(), rb_cart_pos.y(), rb_cart_pos.z());}
     robot_interfaces::msg::RobotTarget joints_target;
     joints_target.legs[0] = robot->lf_leg_calc->signal_leg_calc(
         lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force,
@@ -92,8 +97,8 @@ std::string StopState::update(Robot* robot) {
         return "idel";
     else if(step_mode==8)
         return "climb_steps2";
-    else if(step_mode==9)
-        return "jump_steps";
+    else if(step_mode==5)
+        return "jump_step";
     return "stop";
 }
 

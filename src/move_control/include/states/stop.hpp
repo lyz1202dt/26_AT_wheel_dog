@@ -14,6 +14,7 @@ public:
     std::string update(Robot* robot) override;
 
 private:
+int cnt = 0;
     std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>
         balance_force_calc(Robot* robot, double cur_roll, double cur_pitch);
 };

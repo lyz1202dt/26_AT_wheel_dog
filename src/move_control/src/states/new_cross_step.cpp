@@ -1,275 +1,723 @@
 #include "states/new_cross_step.hpp"
 #include "core/robot.hpp"
+#include "leg/step.hpp"
+#include <rcl/timer.h>
+#include <rclcpp/logging.hpp>
+#include <math.h>
+
+bool use_limit_lf = false;
+bool use_limit_rf = false;
+bool use_limit_lb = false;
+bool use_limit_rb = false;
 
 JumpStepState::JumpStepState(Robot* robot)
-    : BaseState<Robot>("jump_step") {
-
-    robot->node_->declare_parameter("jump_height", 0.12);
-    robot->node_->declare_parameter("jump_forward", 0.05);
-    robot->node_->declare_parameter("jump_duration", 0.25);
-    robot->node_->declare_parameter("rear_slide_vel", 0.10);
-    robot->node_->declare_parameter("foot_obstacle_threshold", 18.0);
-    robot->node_->declare_parameter("jump_cooldown_time", 0.5);
-    robot->node_->declare_parameter("exp_vel_kp", 2.0);
-
-    robot->add_param_cb([this](const rclcpp::Parameter& param) {
-        auto name = param.get_name();
-        if (name == "jump_height")
-            jump_height = param.as_double();
-        else if (name == "jump_forward")
-            jump_forward = param.as_double();
-        else if (name == "jump_duration")
-            jump_duration = param.as_double();
-        else if (name == "rear_slide_vel")
-            rear_slide_vel = param.as_double();
-        else if (name == "foot_obstacle_threshold")
-            foot_obstacle_threshold = param.as_double();
-        else if (name == "jump_cooldown_time")
-            jump_cooldown_time = param.as_double();
-        else if (name == "exp_vel_kp")
-            exp_vel_kp = param.as_double();
-        return true;
-    });
+    : BaseState<Robot>("jump_step")
+{
+    
 }
 
-bool JumpStepState::enter(Robot* robot, const std::string& last_status) {
-    (void)last_status;
-    RCLCPP_INFO(robot->node_->get_logger(), "==== 进入 跳台阶 模式 ====");
-
-    // 初始化状态
-    req_state = STATE_GLIDE;
-    current_state = STATE_GLIDE;
-
-    // 时间
-    auto now = robot->node_->get_clock()->now();
-    jump_start_time = now;
-    last_jump_finish_time = now;
-
-    // 力清零
-    lf_cart_force.setZero();
-    rf_cart_force.setZero();
-    lb_cart_force.setZero();
-    rb_cart_force.setZero();
-
-    current_body_vel = 0.0;
+bool JumpStepState::enter(Robot* robot, const std::string& last_status)
+{
+    jump_stage = 0;
     return true;
 }
 
-// ===================== 局部坐标转世界坐标（姿态参与计算） =====================
-Vector3D JumpStepState::local_to_world(Robot* robot, const Vector3D& local_pos) {
-    double cur_roll, cur_pitch, cur_yaw;
-    tf2::Matrix3x3(robot->robot_rotation).getRPY(cur_roll, cur_pitch, cur_yaw);
-
-    tf2::Quaternion q;
-    q.setRPY(cur_roll, cur_pitch, cur_yaw);
-    Eigen::Quaterniond eigen_q(q);
-    Eigen::Matrix3d rot_mat = eigen_q.toRotationMatrix();
-
-    // 机身姿态旋转 → 得到世界坐标系下足端位置
-    Vector3D world_pos = rot_mat * local_pos;
-    return world_pos;
-}
-
-// ===================== 平衡计算（和walk完全同风格） =====================
-std::tuple<Vector3D, Vector3D, Vector3D, Vector3D>
-JumpStepState::balance_force_calc(Robot* robot, double cur_roll, double cur_pitch) {
-    double sin_pitch = std::sin(cur_pitch);
-    double sin_roll = std::sin(cur_roll);
-
-    double roll_torque = robot->roll_vmc->update(cur_roll, robot->robot_velocity.angular.x, 0.0);
-    double pitch_torque = robot->pitch_vmc->update(cur_pitch, robot->robot_velocity.angular.y, 0.0);
-
-    Vector3D lf_force = Vector3D::Zero();
-    Vector3D rf_force = Vector3D::Zero();
-    Vector3D lb_force = Vector3D::Zero();
-    Vector3D rb_force = Vector3D::Zero();
-
-    lf_force.z() += pitch_torque * robot->lf_leg_calc->pos_offset[0];
-    rf_force.z() += pitch_torque * robot->rf_leg_calc->pos_offset[0];
-    lb_force.z() += pitch_torque * robot->lb_leg_calc->pos_offset[0];
-    rb_force.z() += pitch_torque * robot->rb_leg_calc->pos_offset[0];
-
-    lf_force.z() += roll_torque * robot->lf_leg_calc->pos_offset[1];
-    rf_force.z() += roll_torque * robot->rf_leg_calc->pos_offset[1];
-    lb_force.z() += roll_torque * robot->lb_leg_calc->pos_offset[1];
-    rb_force.z() += roll_torque * robot->rb_leg_calc->pos_offset[1];
-
-    return {lf_force, rf_force, lb_force, rb_force};
-}
-
-// ===================== 主循环 update（核心逻辑） =====================
-std::string JumpStepState::update(Robot* robot) {
-    std::string next_state = "jump_step";
-
-    // 期望足端变量
-    Vector3D lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
-    Vector3D lf_foot_exp_vel, rf_foot_exp_vel, lb_foot_exp_vel, rb_foot_exp_vel;
-    Vector3D lf_foot_exp_acc, rf_foot_exp_acc, lb_foot_exp_acc, rb_foot_exp_acc;
-    Vector3D lf_foot_exp_force, rf_foot_exp_force, lb_foot_exp_force, rb_foot_exp_force;
-
-    // 读取姿态
-    double cur_roll, cur_pitch, cur_yaw;
-    tf2::Matrix3x3(robot->robot_rotation).getRPY(cur_roll, cur_pitch, cur_yaw);
-
-    // 倾倒保护
-    if (fabs(cur_roll) > 45 * M_PI / 180 || fabs(cur_pitch) > 55 * M_PI / 180) {
-        return "idel";
-    }
-
-    // 平衡力
-    std::tie(lf_foot_exp_force, rf_foot_exp_force, lb_foot_exp_force, rb_foot_exp_force) =
-        balance_force_calc(robot, cur_roll, cur_pitch);
-
-    // ------------------- 足端实时状态 -------------------
-    auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
-    auto lf_cart_vel = robot->lf_leg_calc->foot_vel(robot->lf_joint_pos, robot->lf_joint_vel);
-    lf_cart_force = 0.2 * robot->lf_leg_calc->foot_force(robot->lf_joint_pos, robot->lf_joint_torque, robot->lf_forward_torque)
-                  + 0.8 * lf_cart_force;
-
-    auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
-    auto rf_cart_vel = robot->rf_leg_calc->foot_vel(robot->rf_joint_pos, robot->rf_joint_vel);
-    rf_cart_force = 0.2 * robot->rf_leg_calc->foot_force(robot->rf_joint_pos, robot->rf_joint_torque, robot->rf_forward_torque)
-                  + 0.8 * rf_cart_force;
-
-    auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
-    auto lb_cart_vel = robot->lb_leg_calc->foot_vel(robot->lb_joint_pos, robot->lb_joint_vel);
-    lb_cart_force = 0.2 * robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque)
-                  + 0.8 * lb_cart_force;
-
-    auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
-    auto rb_cart_vel = robot->rb_leg_calc->foot_vel(robot->rb_joint_pos, robot->rb_joint_vel);
-    rb_cart_force = 0.2 * robot->rb_leg_calc->foot_force(robot->rb_joint_pos, robot->rb_joint_torque, robot->rb_forward_torque)
-                  + 0.8 * rb_cart_force;
-
-    // ------------------- 默认：后轮保持默认位置 -------------------
-    lb_foot_exp_pos = robot->lb_leg_stop_pos;
-    rb_foot_exp_pos = robot->rb_leg_stop_pos;
-    lb_foot_exp_vel = Vector3D::Zero();
-    rb_foot_exp_vel = Vector3D::Zero();
-
-    // ------------------- 默认轮速 -------------------
-    double lf_wheel_vel = robot->move_cmd.vx;
-    double rf_wheel_vel = -robot->move_cmd.vx;
-    double lb_wheel_vel = robot->move_cmd.vx;
-    double rb_wheel_vel = -robot->move_cmd.vx;
-
-    double lf_wheel_force = 0.0;
-    double rf_wheel_force = 0.0;
-    double lb_wheel_force = 0.0;
-    double rb_wheel_force = 0.0;
-
-    auto now = robot->node_->get_clock()->now();
-    bool can_jump_again = (now - last_jump_finish_time).seconds() >= jump_cooldown_time;
-
-    // ===================== 状态机 =====================
-    if (current_state == STATE_GLIDE) {
-        // 正常滑行
-        req_state = STATE_GLIDE;
-
-        // 前轮碰到台阶 → 准备跳
-        if ((lf_cart_force.x() > foot_obstacle_threshold ||
-             rf_cart_force.x() > foot_obstacle_threshold) && can_jump_again)
-        {
-            RCLCPP_INFO(robot->node_->get_logger(), "检测到台阶，准备前腿跳跃");
-            req_state = STATE_PRE_JUMP;
-        }
-    }
-    else if (current_state == STATE_PRE_JUMP) {
-        // 开始规划前腿跳跃轨迹
-        jump_start_time = now;
-        req_state = STATE_FRONT_LEGS_JUMP;
-
-        // 局部目标点
-        Vector3D lf_local = lf_cart_pos + Vector3D(jump_forward, 0, jump_height);
-        Vector3D rf_local = rf_cart_pos + Vector3D(jump_forward, 0, jump_height);
-
-        // 转世界坐标系
-        Vector3D lf_world = local_to_world(robot, lf_local);
-        Vector3D rf_world = local_to_world(robot, rf_local);
-
-        // 前腿轨迹
-        lf_leg_step.update_flight_trajectory(lf_cart_pos, Vector3D::Zero(), lf_world,
-                                             Vector2D::Zero(), jump_duration, jump_height);
-        rf_leg_step.update_flight_trajectory(rf_cart_pos, Vector3D::Zero(), rf_world,
-                                             Vector2D::Zero(), jump_duration, jump_height);
-    }
-    else if (current_state == STATE_FRONT_LEGS_JUMP) {
-        // 执行跳跃
-        bool lf_ok, rf_ok;
-        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) =
-            lf_leg_step.get_target((now - jump_start_time).seconds(), lf_ok);
-        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) =
-            rf_leg_step.get_target((now - jump_start_time).seconds(), rf_ok);
-
-        // 跳跃时：前轮锁死，后轮缓慢滑动
-        lf_wheel_vel = 0.0;
-        rf_wheel_vel = 0.0;
-        lb_wheel_vel = rear_slide_vel;
-        rb_wheel_vel = -rear_slide_vel;
-
-        // 跳跃完成
-        if (!lf_ok && !rf_ok) {
-            RCLCPP_INFO(robot->node_->get_logger(), "前腿已跳上台阶");
-            req_state = STATE_FRONT_ON_STEP;
-            last_jump_finish_time = now;
-        }
-    }
-    else if (current_state == STATE_FRONT_ON_STEP) {
-        // 前轮已上台：前轮不动，后轮驱动前进
-        lf_wheel_vel = 0.0;
-        rf_wheel_vel = 0.0;
-        lb_wheel_vel = rear_slide_vel * 0.8;
-        rb_wheel_vel = -rear_slide_vel * 0.8;
-
-        // 再次碰到台阶 → 再次跳跃
-        if ((lf_cart_force.x() > foot_obstacle_threshold ||
-             rf_cart_force.x() > foot_obstacle_threshold) && can_jump_again)
-        {
-            RCLCPP_INFO(robot->node_->get_logger(), "再次检测到台阶，再次跳跃");
-            req_state = STATE_PRE_JUMP;
-        }
-    }
-
-    current_state = req_state;
-
-    // ------------------- VMC 高度控制（同walk风格） -------------------
-    if (current_state != STATE_FRONT_LEGS_JUMP) {
-        std::tie(lf_foot_exp_pos[2], lf_foot_exp_vel[2], lf_foot_exp_acc[2]) =
-            robot->lf_z_vmc->targetUpdate(lf_foot_exp_pos[2], lf_cart_pos[2], lf_foot_exp_vel[2], lf_cart_vel[2], -lf_cart_force[2]);
-        std::tie(rf_foot_exp_pos[2], rf_foot_exp_vel[2], rf_foot_exp_acc[2]) =
-            robot->rf_z_vmc->targetUpdate(rf_foot_exp_pos[2], rf_cart_pos[2], rf_foot_exp_vel[2], rf_cart_vel[2], -rf_cart_force[2]);
-    }
-
-    std::tie(lb_foot_exp_pos[2], lb_foot_exp_vel[2], lb_foot_exp_acc[2]) =
-        robot->lb_z_vmc->targetUpdate(lb_foot_exp_pos[2], lb_cart_pos[2], lb_foot_exp_vel[2], lb_cart_vel[2], -lb_cart_force[2]);
-    std::tie(rb_foot_exp_pos[2], rb_foot_exp_vel[2], rb_foot_exp_acc[2]) =
-        robot->rb_z_vmc->targetUpdate(rb_foot_exp_pos[2], rb_cart_pos[2], rb_foot_exp_vel[2], rb_cart_vel[2], -rb_cart_force[2]);
-
-    // ------------------- 下发指令（完全同walk） -------------------
+std::string JumpStepState::update(Robot* robot)
+{
     robot_interfaces::msg::RobotTarget joints_target;
 
-    joints_target.legs[0] = robot->lf_leg_calc->signal_leg_calc(
-        lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_foot_exp_force,
-        &robot->lf_forward_torque, lf_wheel_vel, lf_wheel_force);
+    // 默认力
+    auto lf_force = Vector3D(0,0,-robot->robot_lf_grivate);
+    auto rf_force = Vector3D(0,0,-robot->robot_rf_grivate);
+    auto lb_force = Vector3D(0,0,-robot->robot_lb_grivate);
+    auto rb_force = Vector3D(0,0,-robot->robot_rb_grivate);
 
-    joints_target.legs[1] = robot->rf_leg_calc->signal_leg_calc(
-        rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_foot_exp_force,
-        &robot->rf_forward_torque, rf_wheel_vel, rf_wheel_force);
+    // ========================== 阶段 0：前进 ==========================
+    if (jump_stage == 0)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "正在前进");
+        lf_wheel_vel = 0.7;
+        rf_wheel_vel = -0.7;
+        lb_wheel_vel = 0.7;
+        rb_wheel_vel = -0.7;
 
-    joints_target.legs[2] = robot->lb_leg_calc->signal_leg_calc(
-        lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_foot_exp_force,
-        &robot->lb_forward_torque, lb_wheel_vel, lb_wheel_force);
+        lf_wheel_force = 0;
+        rf_wheel_force = 0;
+        lb_wheel_force = 0;
+        rb_wheel_force = 0;
 
-    joints_target.legs[3] = robot->rb_leg_calc->signal_leg_calc(
-        rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force,
-        &robot->rb_forward_torque, rb_wheel_vel, rb_wheel_force);
+        auto f_lf = robot->lf_leg_calc->foot_force(robot->lf_joint_pos, robot->lf_joint_torque, robot->lf_forward_torque);
+        auto f_rf = robot->rf_leg_calc->foot_force(robot->rf_joint_pos, robot->rf_joint_torque, robot->rf_forward_torque);
 
-    robot->legs_target_pub->publish(joints_target);
+        if (f_lf[0] > 6.0 || f_rf[0] > 6.0)
+        {
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
-    // 停止条件
-    if (robot->move_cmd.step_mode == 1) {
-        return "stop";
+            step_lf_foot_pos = lf_cart_pos;
+            step_rf_foot_pos = rf_cart_pos;
+            step_lb_foot_pos = lb_cart_pos;
+            step_rb_foot_pos = rb_cart_pos;
+
+            // 前腿：伸直轨迹
+            lf_leg_step.update_flight_trajectory(step_lf_foot_pos, {0,0,0}, 
+                {0.03, 0.0, -0.12}, {0,0}, 1.0, -0.12);
+            rf_leg_step.update_flight_trajectory(step_rf_foot_pos, {0,0,0}, 
+                {0.03, 0.0, -0.12}, {0,0}, 1.0, -0.12);
+
+            // 后腿支撑
+            lb_leg_step.update_support_trajectory(step_lb_foot_pos, step_lb_foot_pos, 0.23);
+            rb_leg_step.update_support_trajectory(step_rb_foot_pos, step_rb_foot_pos, 0.23);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            jump_stage = 1;
+        }
     }
 
-    return next_state;
+    // ========================== 阶段 1：腿伸直 ==========================
+    else if (jump_stage == 1)
+    {
+        bool success = false;
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        RCLCPP_INFO(robot->node_->get_logger(), "腿伸直中，时间：%.2f", t); 
+
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.01;  
+        rb_wheel_vel = -0.01;
+
+        // 伸直完成 → 进入【迅速收腿】状态
+        if (!success || t > 1.0)
+        {
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            lf_leg_step.update_flight_trajectory(lf_cart_pos, {0,0,0}, 
+                {0.03, 0.07, 0.18}, {0,0}, 0.6, 0.18);  // 向上快速收腿
+            rf_leg_step.update_flight_trajectory(rf_cart_pos, {0,0,0}, 
+                {0.03, 0.07, 0.18}, {0,0}, 0.6, 0.18);
+
+            lb_leg_step.update_support_trajectory(lb_cart_pos, step_lb_foot_pos, 0.6);
+            rb_leg_step.update_support_trajectory(rb_cart_pos, step_rb_foot_pos, 0.6);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            jump_stage = 2; // 收腿状态
+        }
+    }
+
+    // ========================== 阶段 2：迅速收腿 ==========================
+    else if (jump_stage == 2)
+    {
+        bool success = false;
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        RCLCPP_INFO(robot->node_->get_logger(), "迅速收腿，时间：%.2f", t); 
+        foot_force_compen = Vector3D(10.0, 0.0, 220.0);
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+        
+        lf_force += foot_force_compen;
+        rf_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.2;
+        rb_wheel_vel = -0.2;
+
+        if (t > 0.8)
+        {
+            jump_stage = 3;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 3：前腿第二次上台阶 ==========================
+    else if (jump_stage == 3)
+    {
+        bool success = false;
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 3】前腿第二次上台阶");
+
+        auto f_lf = robot->lf_leg_calc->foot_force(robot->lf_joint_pos, robot->lf_joint_torque, robot->lf_forward_torque);
+        auto f_rf = robot->rf_leg_calc->foot_force(robot->rf_joint_pos, robot->rf_joint_torque, robot->rf_forward_torque);
+
+        if (f_lf[0] > 2.0 && f_rf[0] > 2.0)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "✅ 前腿已站稳，开始第二次上台阶规划");
+            
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            lf_leg_step.update_flight_trajectory(lf_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+            rf_leg_step.update_flight_trajectory(rf_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+
+            lb_leg_step.update_support_trajectory(lb_cart_pos, step_lb_foot_pos, 0.8);
+            rb_leg_step.update_support_trajectory(rb_cart_pos, step_rb_foot_pos, 0.8);
+        }
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        Vector3D foot_force_compen(0.0, 0.0, 290.0);
+        lf_force += foot_force_compen;
+        rf_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.3;
+        rb_wheel_vel = -0.3;
+
+        if (t > 0.8)
+        {
+            jump_stage = 4;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 4：轮子驱动（准备后腿跳）==========================
+    else if (jump_stage == 4)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 4】轮子驱动，准备后腿跳");
+        
+        lf_wheel_vel = 0.7;
+        rf_wheel_vel = -0.7;
+        lb_wheel_vel = 0.7;
+        rb_wheel_vel = -0.7;
+
+        auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+        auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+        auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+        auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+        lf_leg_step.update_support_trajectory(lf_cart_pos, lf_cart_pos, 0.23);
+        rf_leg_step.update_support_trajectory(rf_cart_pos, rf_cart_pos, 0.23);
+        lb_leg_step.update_support_trajectory(lb_cart_pos, lb_cart_pos, 0.23);
+        rb_leg_step.update_support_trajectory(rb_cart_pos, rb_cart_pos, 0.23);
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        bool success = false;
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        if (t > 0.5)
+        {
+            jump_stage = 5;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 5：后腿第一次跳 ==========================
+    else if (jump_stage == 5)
+    {
+        bool success = false;
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 5】后腿第一次跳");
+
+        auto f_lb = robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque);
+        auto f_rb = robot->rb_leg_calc->foot_force(robot->rb_joint_pos, robot->rb_joint_torque, robot->rb_forward_torque);
+
+        if (f_lb[0] > 2.0 && f_rb[0] > 2.0)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "✅ 后腿已站稳，开始后腿跳跃规划");
+            
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            
+            lf_leg_step.update_support_trajectory(lf_cart_pos, step_lf_foot_pos, 0.8);
+            rf_leg_step.update_support_trajectory(rf_cart_pos, step_rf_foot_pos, 0.8);
+
+            lb_leg_step.update_flight_trajectory(lb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+            rb_leg_step.update_flight_trajectory(rb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+        }
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        Vector3D foot_force_compen(0.0, 0.0, 290.0);
+        lb_force += foot_force_compen;
+        rb_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.0;
+        rb_wheel_vel = 0.0;
+
+        if (t > 0.8)
+        {
+            jump_stage = 6;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 6：轮子驱动（第二次循环准备）==========================
+    else if (jump_stage == 6)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 6】轮子驱动，准备第二次循环");
+        
+        lf_wheel_vel = 0.7;
+        rf_wheel_vel = -0.7;
+        lb_wheel_vel = 0.7;
+        rb_wheel_vel = -0.7;
+
+        auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+        auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+        auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+        auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+        lf_leg_step.update_support_trajectory(lf_cart_pos, lf_cart_pos, 0.23);
+        rf_leg_step.update_support_trajectory(rf_cart_pos, rf_cart_pos, 0.23);
+        lb_leg_step.update_support_trajectory(lb_cart_pos, lb_cart_pos, 0.23);
+        rb_leg_step.update_support_trajectory(rb_cart_pos, rb_cart_pos, 0.23);
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        bool success = false;
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        if (t > 0.5)
+        {
+            jump_stage = 7;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 7：第二次循环 - 前腿第一次跳 ==========================
+    else if (jump_stage == 7)
+    {
+        bool success = false;
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 7】第二次循环 - 前腿第一次跳");
+
+        auto f_lf = robot->lf_leg_calc->foot_force(robot->lf_joint_pos, robot->lf_joint_torque, robot->lf_forward_torque);
+        auto f_rf = robot->rf_leg_calc->foot_force(robot->rf_joint_pos, robot->rf_joint_torque, robot->rf_forward_torque);
+
+        if (f_lf[0] > 2.0 && f_rf[0] > 2.0)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "✅ 前腿已站稳，开始第二次循环前腿跳跃");
+            
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            
+            lf_leg_step.update_flight_trajectory(lf_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+            rf_leg_step.update_flight_trajectory(rf_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+
+            lb_leg_step.update_support_trajectory(lb_cart_pos, step_lb_foot_pos, 0.8);
+            rb_leg_step.update_support_trajectory(rb_cart_pos, step_rb_foot_pos, 0.8);
+        }
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        Vector3D foot_force_compen(0.0, 0.0, 290.0);
+        lf_force += foot_force_compen;
+        rf_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.3;
+        rb_wheel_vel = -0.3;
+
+        if (t > 0.8)
+        {
+            jump_stage = 8;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 8：第二次循环 - 轮子驱动 ==========================
+    else if (jump_stage == 8)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 8】第二次循环 - 轮子驱动");
+        
+        lf_wheel_vel = 0.7;
+        rf_wheel_vel = -0.7;
+        lb_wheel_vel = 0.7;
+        rb_wheel_vel = -0.7;
+
+        auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+        auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+        auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+        auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+        lf_leg_step.update_support_trajectory(lf_cart_pos, lf_cart_pos, 0.23);
+        rf_leg_step.update_support_trajectory(rf_cart_pos, rf_cart_pos, 0.23);
+        lb_leg_step.update_support_trajectory(lb_cart_pos, lb_cart_pos, 0.23);
+        rb_leg_step.update_support_trajectory(rb_cart_pos, rb_cart_pos, 0.23);
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        bool success = false;
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        if (t > 0.5)
+        {
+            jump_stage = 9;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 9：第二次循环 - 前腿第二次跳 ==========================
+    else if (jump_stage == 9)
+    {
+        bool success = false;
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 9】第二次循环 - 前腿第二次跳");
+
+        auto f_lf = robot->lf_leg_calc->foot_force(robot->lf_joint_pos, robot->lf_joint_torque, robot->lf_forward_torque);
+        auto f_rf = robot->rf_leg_calc->foot_force(robot->rf_joint_pos, robot->rf_joint_torque, robot->rf_forward_torque);
+
+        if (f_lf[0] > 2.0 && f_rf[0] > 2.0)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "✅ 前腿已站稳，开始第二次循环前腿第二次跳跃");
+            
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            
+            lf_leg_step.update_flight_trajectory(lf_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+            rf_leg_step.update_flight_trajectory(rf_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+
+            lb_leg_step.update_support_trajectory(lb_cart_pos, step_lb_foot_pos, 0.8);
+            rb_leg_step.update_support_trajectory(rb_cart_pos, step_rb_foot_pos, 0.8);
+        }
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        Vector3D foot_force_compen(0.0, 0.0, 290.0);
+        lf_force += foot_force_compen;
+        rf_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.3;
+        rb_wheel_vel = -0.3;
+
+        if (t > 0.8)
+        {
+            jump_stage = 10;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 10：第二次循环 - 轮子驱动准备后腿跳 ==========================
+    else if (jump_stage == 10)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 10】第二次循环 - 轮子驱动准备后腿跳");
+        
+        lf_wheel_vel = 0.7;
+        rf_wheel_vel = -0.7;
+        lb_wheel_vel = 0.7;
+        rb_wheel_vel = -0.7;
+
+        auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+        auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+        auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+        auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+        lf_leg_step.update_support_trajectory(lf_cart_pos, lf_cart_pos, 0.23);
+        rf_leg_step.update_support_trajectory(rf_cart_pos, rf_cart_pos, 0.23);
+        lb_leg_step.update_support_trajectory(lb_cart_pos, lb_cart_pos, 0.23);
+        rb_leg_step.update_support_trajectory(rb_cart_pos, rb_cart_pos, 0.23);
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        bool success = false;
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        if (t > 0.5)
+        {
+            jump_stage = 11;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 11：第二次循环 - 后腿跳 ==========================
+    else if (jump_stage == 11)
+    {
+        bool success = false;
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 11】第二次循环 - 后腿跳");
+
+        auto f_lb = robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque);
+        auto f_rb = robot->rb_leg_calc->foot_force(robot->rb_joint_pos, robot->rb_joint_torque, robot->rb_forward_torque);
+
+        if (f_lb[0] > 2.0 && f_rb[0] > 2.0)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "✅ 后腿已站稳，开始第二次循环后腿跳跃");
+            
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            
+            lf_leg_step.update_support_trajectory(lf_cart_pos, step_lf_foot_pos, 0.8);
+            rf_leg_step.update_support_trajectory(rf_cart_pos, step_rf_foot_pos, 0.8);
+
+            lb_leg_step.update_flight_trajectory(lb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+            rb_leg_step.update_flight_trajectory(rb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+        }
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        Vector3D foot_force_compen(0.0, 0.0, 290.0);
+        lb_force += foot_force_compen;
+        rb_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.0;
+        rb_wheel_vel = 0.0;
+
+        if (t > 0.8)
+        {
+            jump_stage = 12;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 12：最后阶段 - 轮子持续驱动 ==========================
+    else if (jump_stage == 12)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 12】最后阶段 - 轮子持续驱动");
+        
+        lf_wheel_vel = 0.7;
+        rf_wheel_vel = -0.7;
+        lb_wheel_vel = 0.7;
+        rb_wheel_vel = -0.7;
+
+        auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+        auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+        auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+        auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+        lf_leg_step.update_support_trajectory(lf_cart_pos, lf_cart_pos, 0.23);
+        rf_leg_step.update_support_trajectory(rf_cart_pos, rf_cart_pos, 0.23);
+        lb_leg_step.update_support_trajectory(lb_cart_pos, lb_cart_pos, 0.23);
+        rb_leg_step.update_support_trajectory(rb_cart_pos, rb_cart_pos, 0.23);
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        bool success = false;
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        if (t > 0.6)
+        {
+            jump_stage = 13;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 13：最后阶段 - 后腿跳第一次 ==========================
+    else if (jump_stage == 13)
+    {
+        bool success = false;
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 13】最后阶段 - 后腿跳第一次");
+
+        auto f_lb = robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque);
+        auto f_rb = robot->rb_leg_calc->foot_force(robot->rb_joint_pos, robot->rb_joint_torque, robot->rb_forward_torque);
+
+        if (f_lb[0] > 2.0 && f_rb[0] > 2.0)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "✅ 后腿已站稳，开始最后第一次后腿跳跃");
+            
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            
+            lf_leg_step.update_support_trajectory(lf_cart_pos, step_lf_foot_pos, 0.8);
+            rf_leg_step.update_support_trajectory(rf_cart_pos, step_rf_foot_pos, 0.8);
+
+            lb_leg_step.update_flight_trajectory(lb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+            rb_leg_step.update_flight_trajectory(rb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+        }
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        Vector3D foot_force_compen(0.0, 0.0, 290.0);
+        lb_force += foot_force_compen;
+        rb_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.0;
+        rb_wheel_vel = 0.0;
+
+        if (t > 0.8)
+        {
+            jump_stage = 14;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 14：最后阶段 - 轮子驱动准备最后一次跳 ==========================
+    else if (jump_stage == 14)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 14】最后阶段 - 轮子驱动准备最后一次跳");
+        
+        lf_wheel_vel = 0.7;
+        rf_wheel_vel = -0.7;
+        lb_wheel_vel = 0.7;
+        rb_wheel_vel = -0.7;
+
+        auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+        auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+        auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+        auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+        lf_leg_step.update_support_trajectory(lf_cart_pos, lf_cart_pos, 0.23);
+        rf_leg_step.update_support_trajectory(rf_cart_pos, rf_cart_pos, 0.23);
+        lb_leg_step.update_support_trajectory(lb_cart_pos, lb_cart_pos, 0.23);
+        rb_leg_step.update_support_trajectory(rb_cart_pos, rb_cart_pos, 0.23);
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        bool success = false;
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        if (t > 0.5)
+        {
+            jump_stage = 15;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    // ========================== 阶段 15：最后阶段 - 后腿跳第二次（完毕）==========================
+    else if (jump_stage == 15)
+    {
+        bool success = false;
+        RCLCPP_INFO(robot->node_->get_logger(), "【阶段 15】最后阶段 - 后腿跳第二次，完毕");
+
+        auto f_lb = robot->lb_leg_calc->foot_force(robot->lb_joint_pos, robot->lb_joint_torque, robot->lb_forward_torque);
+        auto f_rb = robot->rb_leg_calc->foot_force(robot->rb_joint_pos, robot->rb_joint_torque, robot->rb_forward_torque);
+
+        if (f_lb[0] > 2.0 && f_rb[0] > 2.0)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "✅ 后腿已站稳，开始最后第二次后腿跳跃");
+            
+            auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            jump_stage_time = robot->node_->get_clock()->now();
+            
+            lf_leg_step.update_support_trajectory(lf_cart_pos, step_lf_foot_pos, 0.8);
+            rf_leg_step.update_support_trajectory(rf_cart_pos, step_rf_foot_pos, 0.8);
+
+            lb_leg_step.update_flight_trajectory(lb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+            rb_leg_step.update_flight_trajectory(rb_cart_pos, {0,0,0}, 
+                {0.03, 0.0, 0.15}, {0,0}, 0.8, 0.15);
+        }
+
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+
+        Vector3D foot_force_compen(0.0, 0.0, 290.0);
+        lb_force += foot_force_compen;
+        rb_force += foot_force_compen;
+
+        lf_wheel_vel = 0.0;
+        rf_wheel_vel = 0.0;
+        lb_wheel_vel = 0.0;
+        rb_wheel_vel = 0.0;
+
+        // 完毕 → 返回 stop 状态
+        if (t > 0.8)
+        {
+            RCLCPP_INFO(robot->node_->get_logger(), "🎉 整个流程完毕！");
+            return "stop";
+        }
+    }
+
+    // ========================== 统一输出 ==========================
+    joints_target.legs[0] = robot->lf_leg_calc->signal_leg_calc(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc, lf_force, &robot->lf_forward_torque, lf_wheel_vel, lf_wheel_force);
+    joints_target.legs[1] = robot->rf_leg_calc->signal_leg_calc(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc, rf_force, &robot->rf_forward_torque, rf_wheel_vel, rf_wheel_force);
+    joints_target.legs[2] = robot->lb_leg_calc->signal_leg_calc(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc, lb_force, &robot->lb_forward_torque, lb_wheel_vel, lb_wheel_force);
+    joints_target.legs[3] = robot->rb_leg_calc->signal_leg_calc(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_force, &robot->rb_forward_torque, rb_wheel_vel, rb_wheel_force);
+
+    static int cnt = 0;
+    cnt++;
+    if(cnt>=100)
+    {
+        cnt = 0;
+        RCLCPP_ERROR(robot->node_->get_logger(),
+            "\033[31mlf_foot_exp_pos = (%.2f, %.2f, %.2f) rf_foot_exp_pos = (%.2f, %.2f, %.2f) lb_foot_exp_pos = (%.2f, %.2f, %.2f) rb_foot_exp_pos = (%.2f, %.2f, %.2f)\033[0m",
+            lf_foot_exp_pos.x(), lf_foot_exp_pos.y(), lf_foot_exp_pos.z(), rf_foot_exp_pos.x(), rf_foot_exp_pos.y(), rf_foot_exp_pos.z(), lb_foot_exp_pos.x(), lb_foot_exp_pos.y(), lb_foot_exp_pos.z(), rb_foot_exp_pos.x(), rb_foot_exp_pos.y(), rb_foot_exp_pos.z());
+    }
+
+    robot->legs_target_pub->publish(joints_target);
+    return "jump_step";
 }

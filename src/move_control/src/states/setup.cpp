@@ -43,7 +43,18 @@ std::string SetupState::update(Robot* robot) {
     auto rf_target = rf_leg_step.get_target((now - setup_time).seconds(), success);
     auto lb_target = lb_leg_step.get_target((now - setup_time).seconds(), success);
     auto rb_target = rb_leg_step.get_target((now - setup_time).seconds(), success);
-
+   
+    // auto lf_cart_pos   = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+    // auto rf_cart_pos   = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+    // auto lb_cart_pos   = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+    // auto rb_cart_pos   = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+    //  cnt++;
+    
+//   cnt++;
+//     if(cnt>=100)    {
+//         cnt = 0;
+//     RCLCPP_INFO(robot->node_->get_logger(), "lf_cart_pos = (%.2f, %.2f, %.2f) lb_cart_pos = (%.2f, %.2f, %.2f) rf_cart_pos = (%.2f, %.2f, %.2f) rb_cart_pos = (%.2f, %.2f, %.2f)",
+//      lf_cart_pos.x(), lf_cart_pos.y(), lf_cart_pos.z(), lb_cart_pos.x(), lb_cart_pos.y(), lb_cart_pos.z(), rf_cart_pos.x(), rf_cart_pos.y(), rf_cart_pos.z(), rb_cart_pos.x(), rb_cart_pos.y(), rb_cart_pos.z());}
     robot_interfaces::msg::RobotTarget joints_target;
     for (int i = 0; i < 3; i++) {
         joints_target.legs[0].joints[i].rad = static_cast<float>(std::get<0>(lf_target)[i]);

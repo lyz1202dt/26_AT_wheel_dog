@@ -33,7 +33,7 @@
   </contact>
 
   <worldbody>
-    <body name="body_link">
+    <body name="body_link" pos="3.5 0 0">
       <inertial pos="-0.0013088 -0.0021597 0.057384" quat="0.00809625 0.707378 0.00817387 0.706742" mass="3.1484" diaginertia="0.0124624 0.0116616 0.00613259"/>
       <joint name="float_joint" type="free"/>
       <geom type="mesh" rgba="1 1 1 1" mesh="body_link"/>
