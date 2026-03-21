@@ -1,0 +1,1086 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="elephant.SLDASM">
+
+  <ros2_control name="dog_system" type="system">
+
+          <hardware>
+              <plugin>mujoco_ros2_control/MujocoSystem</plugin>
+          </hardware>
+
+          <joint name="lf_joint1">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="lf_joint2">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="lf_joint3">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+      
+
+          <joint name="rf_joint1">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="rf_joint2">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="rf_joint3">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          
+
+          <joint name="lb_joint1">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="lb_joint2">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="lb_joint3">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          
+
+          <joint name="rb_joint1">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="rb_joint2">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          <joint name="rb_joint3">
+              <!-- <command_interface name="position" />
+                <command_interface name="velocity" /> -->
+              <command_interface name="effort" />
+              <state_interface name="position" />
+              <state_interface name="velocity" />
+              <state_interface name="effort" />
+          </joint>
+
+          
+
+      </ros2_control>
+
+      <link name="world" />
+      <joint name="float_joint" type="floating">
+          <parent link="world" />
+          <child link="body_link" />
+      </joint>  
+  
+  <link
+    name="body_link">
+    <inertial>
+      <origin
+        xyz="0.0074675 1.5026E-09 0.016183"
+        rpy="0 0 0" />
+      <mass
+        value="2.2266" />
+      <inertia
+        ixx="0.0083942"
+        ixy="1.221E-07"
+        ixz="-7.9822E-07"
+        iyy="0.0059449"
+        iyz="-2.0832E-10"
+        izz="0.012527" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/body_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/body_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="lf_link1">
+    <inertial>
+      <origin
+        xyz="0.00845046290689605 -0.000845793522106808 0.043881366917354"
+        rpy="0 0 0" />
+      <mass
+        value="0.309387230860271" />
+      <inertia
+        ixx="0.000298027526923667"
+        ixy="2.51882027527755E-08"
+        ixz="2.51419101636831E-08"
+        iyy="0.000137451497546928"
+        iyz="6.29060605853215E-06"
+        izz="0.000190768663560688" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lf_joint1"
+    type="revolute">
+    <origin
+      xyz="0.1966 0.060013 0.042001"
+      rpy="1.5708 0 1.5708" />
+    <parent
+      link="body_link" />
+    <child
+      link="lf_link1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="lf_link2">
+    <inertial>
+      <origin
+        xyz="0.037518845938181 -0.000535375111112013 0.0598735276559882"
+        rpy="0 0 0" />
+      <mass
+        value="0.778998088622978" />
+      <inertia
+        ixx="0.000468564012915251"
+        ixy="3.32467483397795E-05"
+        ixz="-2.58892222904719E-08"
+        iyy="0.00211942831618237"
+        iyz="-3.01259186630498E-08"
+        izz="0.00254117271259907" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lf_joint2"
+    type="revolute">
+    <origin
+      xyz="0.031287 0 0.06"
+      rpy="-1.5708 0.46851 -1.5708" />
+    <parent
+      link="lf_link1" />
+    <child
+      link="lf_link2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="lf_link3">
+    <inertial>
+      <origin
+        xyz="0.0624136452983811 -4.32381414006144E-09 0.000809235314849194"
+        rpy="0 0 0" />
+      <mass
+        value="0.574756313424316" />
+      <inertia
+        ixx="0.000175593322871572"
+        ixy="-3.75104518979133E-13"
+        ixz="1.09234077381133E-17"
+        iyy="0.00100511735338069"
+        iyz="-2.50335573152043E-19"
+        izz="0.00115699740184826" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lf_joint3"
+    type="revolute">
+    <origin
+      xyz="0.20707 -0.0041231 0.0716"
+      rpy="0 0 -1.7376" />
+    <parent
+      link="lf_link2" />
+    <child
+      link="lf_link3" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="lf_link4">
+    <inertial>
+      <origin
+        xyz="-1.22019089277003E-10 0.000378375716664214 -8.47355796640414E-11"
+        rpy="0 0 0" />
+      <mass
+        value="0.0848322169853741" />
+      <inertia
+        ixx="4.13433919258288E-05"
+        ixy="-3.3881317890172E-21"
+        ixz="-2.05244429644008E-21"
+        iyy="4.13555372030617E-05"
+        iyz="1.39318577254788E-18"
+        izz="7.44813705583866E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lf_link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lf_joint4"
+    type="fixed">
+    <origin
+      xyz="0.22 0 0.001"
+      rpy="0 0 -1.5708" />
+    <parent
+      link="lf_link3" />
+    <child
+      link="lf_link4" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="rf_link1">
+    <inertial>
+      <origin
+        xyz="-0.00847691431057551 0.000763905303813497 0.0440042751242407"
+        rpy="0 0 0" />
+      <mass
+        value="0.309387230860329" />
+      <inertia
+        ixx="0.000298027526923693"
+        ixy="-2.53804940990973E-08"
+        ixz="3.61287915138203E-08"
+        iyy="0.000137451497546946"
+        iyz="-6.29060605854492E-06"
+        izz="0.000190768663560696" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rf_joint1"
+    type="revolute">
+    <origin
+      xyz="0.1966 -0.059987 0.042001"
+      rpy="1.5708 0 1.5708" />
+    <parent
+      link="body_link" />
+    <child
+      link="rf_link1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="rf_link2">
+    <inertial>
+      <origin
+        xyz="0.0395441219388503 -0.00528138368334932 0.029099318848943"
+        rpy="0 0 0" />
+      <mass
+        value="0.839751446091301" />
+      <inertia
+        ixx="0.000443730196803412"
+        ixy="8.93808112343725E-06"
+        ixz="-2.90131560013542E-08"
+        iyy="0.00214357667755672"
+        iyz="-2.56068592307078E-08"
+        izz="0.00253825871424242" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rf_joint2"
+    type="revolute">
+    <origin
+      xyz="-0.031313 0 0.06"
+      rpy="1.5708 0.58724 -1.5708" />
+    <parent
+      link="rf_link1" />
+    <child
+      link="rf_link2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="rf_link3">
+    <inertial>
+      <origin
+        xyz="0.0624136485464566 1.07212073385821E-08 -0.000190773858448401"
+        rpy="0 0 0" />
+      <mass
+        value="0.574756313424317" />
+      <inertia
+        ixx="0.000175593322871514"
+        ixy="-3.7510129347767E-13"
+        ixz="5.37644484004962E-18"
+        iyy="0.00100511735338073"
+        iyz="6.08928360583285E-19"
+        izz="0.00115699740184825" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.847058823529412 0.847058823529412 0.847058823529412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rf_joint3"
+    type="revolute">
+    <origin
+      xyz="0.20707 -0.0041231 0.0726"
+      rpy="0 0 0.92712" />
+    <parent
+      link="rf_link2" />
+    <child
+      link="rf_link3" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="rf_link4">
+    <inertial>
+      <origin
+        xyz="1.74385506035435E-12 -0.000378375756879101 -3.71302988355637E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.0848322169853739" />
+      <inertia
+        ixx="4.13433919259714E-05"
+        ixy="4.2351647362715E-21"
+        ixz="-5.8194646266051E-20"
+        iyy="4.13555372032043E-05"
+        iyz="1.37340964547368E-18"
+        izz="7.44813705583865E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rf_link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rf_joint4"
+    type="fixed">
+    <origin
+      xyz="0.22 0 0"
+      rpy="3.1416 0 -1.5708" />
+    <parent
+      link="rf_link3" />
+    <child
+      link="rf_link4" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="lb_link1">
+    <inertial>
+      <origin
+        xyz="0.00847691431057812 -0.00076390530381491 0.0440042751242285"
+        rpy="0 0 0" />
+      <mass
+        value="0.309387230860269" />
+      <inertia
+        ixx="0.000298027526923666"
+        ixy="-2.53804940987658E-08"
+        ixz="-3.61287915144368E-08"
+        iyy="0.000137451497546927"
+        iyz="6.29060605853232E-06"
+        izz="0.000190768663560687" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lb_joint1"
+    type="revolute">
+    <origin
+      xyz="-0.1966 0.059987 0.042001"
+      rpy="-1.5708 0 1.5708" />
+    <parent
+      link="body_link" />
+    <child
+      link="lb_link1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="lb_link2">
+    <inertial>
+      <origin
+        xyz="0.0375188461714253 -0.000535374724325299 0.0598735275298266"
+        rpy="0 0 0" />
+      <mass
+        value="0.778998090519277" />
+      <inertia
+        ixx="0.000468564011389898"
+        ixy="3.32467479304132E-05"
+        ixz="-2.58903751846615E-08"
+        iyy="0.00211942831773616"
+        iyz="-3.01297779416851E-08"
+        izz="0.00254117271262524" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lb_joint2"
+    type="revolute">
+    <origin
+      xyz="0.031313 0 0.06"
+      rpy="1.5708 0.63722 1.5708" />
+    <parent
+      link="lb_link1" />
+    <child
+      link="lb_link2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="lb_link3">
+    <inertial>
+      <origin
+        xyz="0.0624136453036072 -4.36293232097817E-09 -0.000190764642489794"
+        rpy="0 0 0" />
+      <mass
+        value="0.574756313424315" />
+      <inertia
+        ixx="0.000175593322871785"
+        ixy="-3.7510614189426E-13"
+        ixz="6.55633049866752E-18"
+        iyy="0.0010051173533807"
+        iyz="1.42823806410899E-18"
+        izz="0.00115699740184848" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lb_joint3"
+    type="revolute">
+    <origin
+      xyz="0.20707 -0.0041231 0.0726"
+      rpy="0 0 1.2854" />
+    <parent
+      link="lb_link2" />
+    <child
+      link="lb_link3" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="lb_link4">
+    <inertial>
+      <origin
+        xyz="1.80070403033028E-11 -0.000378375792418839 3.78090891928196E-11"
+        rpy="0 0 0" />
+      <mass
+        value="0.0848322169853741" />
+      <inertia
+        ixx="4.13433919258643E-05"
+        ixy="-3.3881317890172E-21"
+        ixz="4.09546898598279E-21"
+        iyy="4.1355537203097E-05"
+        iyz="1.38580989561717E-18"
+        izz="7.44813705583867E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/lb_link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lb_joint4"
+    type="fixed">
+    <origin
+      xyz="0.22 0 0"
+      rpy="3.1416 0 -1.5708" />
+    <parent
+      link="lb_link3" />
+    <child
+      link="lb_link4" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="rb_link1">
+    <inertial>
+      <origin
+        xyz="-0.00845046290689727 0.000845793522107642 0.0438813669173536"
+        rpy="0 0 0" />
+      <mass
+        value="0.309387230860269" />
+      <inertia
+        ixx="0.000298027526923666"
+        ixy="2.51882027539084E-08"
+        ixz="-2.5141910163544E-08"
+        iyy="0.000137451497546928"
+        iyz="-6.29060605853177E-06"
+        izz="0.000190768663560688" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rb_joint1"
+    type="revolute">
+    <origin
+      xyz="-0.1966 -0.060013 0.042001"
+      rpy="-1.5708 0 1.5708" />
+    <parent
+      link="body_link" />
+    <child
+      link="rb_link1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="rb_link2">
+    <inertial>
+      <origin
+        xyz="0.0417659042069862 0.0010593660937355 0.0589078330920117"
+        rpy="0 0 0" />
+      <mass
+        value="0.724056145237142" />
+      <inertia
+        ixx="0.0003969463690821"
+        ixy="-3.33357407308601E-05"
+        ixz="-2.4669469706277E-08"
+        iyy="0.00208867687198129"
+        iyz="-3.113262069785E-08"
+        izz="0.00245287462226213" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rb_joint2"
+    type="revolute">
+    <origin
+      xyz="-0.031287 0 0.06"
+      rpy="-1.5708 0.43772 1.5708" />
+    <parent
+      link="rb_link1" />
+    <child
+      link="rb_link2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="rb_link3">
+    <inertial>
+      <origin
+        xyz="0.0634926670027809 -4.43817060880036E-09 -0.000529839097588247"
+        rpy="0 0 0" />
+      <mass
+        value="0.564988657328945" />
+      <inertia
+        ixx="0.00017476587522684"
+        ixy="-3.75096695782833E-13"
+        ixz="-3.01343021889871E-18"
+        iyy="0.00100428990573575"
+        iyz="1.14283267744349E-19"
+        izz="0.00115560742987778" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rb_joint3"
+    type="revolute">
+    <origin
+      xyz="0.20707 0.0041231 0.0726"
+      rpy="0 0 -0.96369" />
+    <parent
+      link="rb_link2" />
+    <child
+      link="rb_link3" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4"
+      upper="4"
+      effort="20"
+      velocity="16" />
+  </joint>
+  <link
+    name="rb_link4">
+    <inertial>
+      <origin
+        xyz="2.49494869208888E-13 -0.000378375760483773 3.74866804264684E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.084832216985374" />
+      <inertia
+        ixx="4.13433919258646E-05"
+        ixy="1.35525271560688E-20"
+        ixz="-9.85794210069223E-22"
+        iyy="4.13555372030973E-05"
+        iyz="1.39305028391757E-18"
+        izz="7.44813705583866E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://elephant.SLDASM/meshes/rb_link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rb_joint4"
+    type="fixed">
+    <origin
+      xyz="0.22 0 0"
+      rpy="-3.1416 0 -1.5708" />
+    <parent
+      link="rb_link3" />
+    <child
+      link="rb_link4" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>
