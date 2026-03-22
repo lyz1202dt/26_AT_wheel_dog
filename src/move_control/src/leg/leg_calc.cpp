@@ -41,25 +41,15 @@ LegCalc::LegCalc(KDL::Chain& chain)
     set_joint_pd(3,0.0,0.5);
 }
 
-LegCalc::~LegCalc() {}
+LegCalc::~LegCalc() {
 
-Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d &foot_pos,int  *result,const Eigen::Vector3d &cur_joint_pos)
+}
+
+void LegCalc::set_init_joint_pos(const Eigen::Vector3d init_joint_pos)
 {
-    KDL::Frame frame;
-    Eigen::Vector3d temp = foot_pos + pos_offset;
-    frame.p.x(temp[0]);
-    frame.p.y(temp[1]);
-    frame.p.z(temp[2]);
-    frame.M = KDL::Rotation::Identity();
-
-    _temp_joint3_array(0)=cur_joint_pos[0];
-    _temp_joint3_array(1)=cur_joint_pos[1];
-    _temp_joint3_array(2)=cur_joint_pos[2];
-
-    *result = ik_pos_solver.CartToJnt(last_exp_joint_pos, frame, _temp_joint3_array);
-    if (*result == 0)                                                                      // 缓存本次计算结果,方便下一次迭代
-        last_exp_joint_pos = _temp_joint3_array;
-    return {_temp_joint3_array(0), _temp_joint3_array(1), _temp_joint3_array(2)};
+    last_exp_joint_pos(0)=init_joint_pos[0];
+    last_exp_joint_pos(1)=init_joint_pos[1];
+    last_exp_joint_pos(2)=init_joint_pos[2];
 }
 
 Eigen::Matrix<double, 3, 3> LegCalc::get_3x3_jacobian_(const KDL::Jacobian& full_jacobian) // 只关心前三行的映射关系
@@ -87,6 +77,33 @@ Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d& foot_pos, int* result)
         last_exp_joint_pos = _temp_joint3_array;
     return {_temp_joint3_array(0), _temp_joint3_array(1), _temp_joint3_array(2)};
 }
+
+Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d &foot_pos,int *result,const Eigen::Vector3d init_joint_pos) {
+    KDL::Frame frame;
+    Eigen::Vector3d temp = foot_pos + pos_offset;
+    frame.p.x(temp[0]);
+    frame.p.y(temp[1]);
+    frame.p.z(temp[2]);
+    frame.M=KDL::Rotation::Identity();
+
+    _temp_joint3_array(0)=init_joint_pos[0];
+    _temp_joint3_array(1)=init_joint_pos[1];
+    _temp_joint3_array(2)=init_joint_pos[2];
+    
+    *result= ik_pos_solver.CartToJnt(last_exp_joint_pos, frame,_temp_joint3_array);
+    if(*result==0)  //缓存本次计算结果,方便下一次迭代
+        last_exp_joint_pos=_temp_joint3_array;
+    return {_temp_joint3_array(0),_temp_joint3_array(1),_temp_joint3_array(2)};
+}
+
+
+Eigen::Vector3d LegCalc::joint_pos_setarray(const Eigen::Vector3d init_joint_pos_)
+{
+    _temp_joint3_array(0)=init_joint_pos_[0];
+    _temp_joint3_array(1)=init_joint_pos_[1];
+    _temp_joint3_array(2)=init_joint_pos_[2];
+}
+
 
 Eigen::Vector3d LegCalc::joint_vel(const Eigen::Vector3d& joint_rad, const Eigen::Vector3d& foot_vel) {
     _temp_joint3_array(0) = joint_rad[0];

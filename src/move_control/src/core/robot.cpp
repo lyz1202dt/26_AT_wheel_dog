@@ -18,7 +18,7 @@
 #include "states/force.hpp"
 #include "states/jump.hpp"
 #include "states/walk.hpp"
-
+#include "states/cross_wall.hpp"
 
 using namespace std::chrono_literals;
 
@@ -52,7 +52,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("direction_filter_gate", 0.6);
     node_->declare_parameter("vmc_kp", 100.0);
     node_->declare_parameter("vmc_kd", 120.0);
-    node_->declare_parameter("vmc_mass", 0.5);
+    node_->declare_parameter("vmc_mass", 1.0);
 
     node_->declare_parameter("horizontal_vmc_kp", 500.0);
     node_->declare_parameter("horizontal_vmc_kd", 150.0);
@@ -272,7 +272,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<AmbleState>(this));
     fsm.register_state(std::make_unique<ForceState>(this));
     fsm.register_state(std::make_unique<ForcewalkState>(this));
-    fsm.register_state(std::make_unique<ClimbSteps2State>(this));
+    fsm.register_state(std::make_unique<Cross_WallState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
         lf_leg_calc->pos_offset=lf_base_offset;

@@ -136,7 +136,7 @@ std::string WalkState::update(Robot* robot) {
                 robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
                 step_time * (1.0 - step_support_rate), step_height, footstep_correction);
             // 主相对角腿也需要规划飞行轨迹（右后）
-            rb_leg_step.update_flight_trajectory(
+            rb_leg_step.update_flight_trajectory(                           
                 robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), -Vector3D(rb_exp_vel[0], rb_exp_vel[1], 0.0), rb_exp_vel,
                 step_time * (1.0 - step_support_rate), step_height, footstep_correction);
             // lf_leg_step.update_flight_trajectory(

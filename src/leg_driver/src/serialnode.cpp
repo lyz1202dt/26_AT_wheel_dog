@@ -24,16 +24,24 @@ SerialNode::SerialNode()
     // 这些参数可以根据实际电机力矩噪声特性调整
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 3; j++) {
-            torque_filters[i][j] = KalmanFilter(0.005f, 0.01f, 0.0f, 1.0f);
+            torque_filters[i][j] = KalmanFilter(0.0005f, 0.05f, 0.0f, 1.0f);
         }
         wheel_torque_filters[i] = KalmanFilter(0.001f, 0.5f, 0.0f, 1.0f);
     }
 
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 3; j++) {
+            filtered_torque[i][j] = 0.0f;
+        }
+    }
+
+    this->declare_parameter("alpha", 0.25);    
+
     this->declare_parameter("publish_imu", true); // 声明该节点是否负责发布IMU数据
 
     // 声明关节卡尔曼滤波器参数
-    this->declare_parameter("joint_kalman_filter_q", 0.005);
-    this->declare_parameter("joint_kalman_filter_r", 0.02);
+    this->declare_parameter("joint_kalman_filter_q", 0.0005);
+    this->declare_parameter("joint_kalman_filter_r", 0.05);
 
     // 声明轮子卡尔曼滤波器参数
     this->declare_parameter("wheel_kalman_filter_q", 0.001);
@@ -78,6 +86,9 @@ SerialNode::SerialNode()
                     wheel_torque_filters[i].setMeasurementNoise(r_value);
                 }
                 RCLCPP_INFO(this->get_logger(), "更新轮子卡尔曼滤波器 R 参数: %.6f", r_value);
+            } else if (param.get_name() == "alpha") {
+                alpha = static_cast<float>(param.as_double());
+                RCLCPP_INFO(this->get_logger(), "更新低通滤波器  参数: %.2f", alpha);
             }
         }
 
@@ -92,7 +103,7 @@ SerialNode::SerialNode()
 
     // 先创建 publisher/subscriber，确保回调中 publish 时 publisher 已就绪
     robot_pub = this->create_publisher<robot_interfaces::msg::Robot>("legs_status", 10);
-
+ 
     if (publish_imu) {
         imu_posture_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>("/imu_pose_sensor/pose", rclcpp::SensorDataQoS());
         imu_state_pub   = this->create_publisher<sensor_msgs::msg::Imu>("/imu_imu_sensor/imu", rclcpp::SensorDataQoS());
@@ -147,19 +158,19 @@ SerialNode::~SerialNode() {
 
 void SerialNode::publishLegState(const DogStatePack0_t* legs_state) {
     robot_interfaces::msg::Robot msg;
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 3; j++) {
-            msg.legs[i].joints[j].rad   = legs_state->leg[i].joint[j].rad;
-            msg.legs[i].joints[j].omega = legs_state->leg[i].joint[j].omega;
-            // 对力矩值应用卡尔曼滤波
-            float raw_torque             = legs_state->leg[i].joint[j].torque;
-            msg.legs[i].joints[j].torque = torque_filters[i][j].update(raw_torque);
-        }
-        msg.legs[i].wheel.omega = legs_state->leg[i].wheel.omega;
-        // 对轮子力矩值应用卡尔曼滤波
-        float raw_wheel_torque   = legs_state->leg[i].wheel.torque;
-        msg.legs[i].wheel.torque = wheel_torque_filters[i].update(raw_wheel_torque);
-    }
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < 3; j++) {
+    //         msg.legs[i].joints[j].rad   = legs_state->leg[i].joint[j].rad;
+    //         msg.legs[i].joints[j].omega = legs_state->leg[i].joint[j].omega;
+    //         // 对力矩值应用卡尔曼滤波
+    //         float raw_torque             = legs_state->leg[i].joint[j].torque;
+    //         msg.legs[i].joints[j].torque = torque_filters[i][j].update(raw_torque);
+    //     }
+    //     msg.legs[i].wheel.omega = legs_state->leg[i].wheel.omega;
+    //     // 对轮子力矩值应用卡尔曼滤波
+    //     float raw_wheel_torque   = legs_state->leg[i].wheel.torque;
+    //     msg.legs[i].wheel.torque = wheel_torque_filters[i].update(raw_wheel_torque);
+    // }
 
     // for (int i = 0; i < 4; i++) {
     //     for (int j = 0; j < 3; j++) {
@@ -170,6 +181,37 @@ void SerialNode::publishLegState(const DogStatePack0_t* legs_state) {
     //     msg.legs[i].wheel.omega  = legs_state->leg[i].wheel.omega;
     //     msg.legs[i].wheel.torque = legs_state->leg[i].wheel.torque;
     // }
+     for (int i = 0; i < 4; i++) {
+         for (int j = 0; j < 3; j++) {
+
+            msg.legs[i].joints[j].rad    = legs_state->leg[i].joint[j].rad;
+            float raw_omega  = legs_state->leg[i].joint[j].omega;
+            float raw_torque = legs_state->leg[i].joint[j].torque;
+            // 第一次初始化
+            if (!filter_initialized) {
+                filtered_torque[i][j] = raw_torque;
+                filtered_omega[i][j] = raw_omega;
+            }
+            // 低通滤波
+            filtered_torque[i][j] =
+                alpha * raw_torque +
+                (1.0f - alpha) * filtered_torque[i][j];
+
+            msg.legs[i].joints[j].torque = filtered_torque[i][j];
+
+            filtered_omega[i][j] =
+                alpha * raw_omega +
+                (1.0f - alpha) * filtered_omega[i][j];
+
+            msg.legs[i].joints[j].omega = filtered_omega[i][j];
+        }
+        msg.legs[i].wheel.omega  = legs_state->leg[i].wheel.omega;
+        msg.legs[i].wheel.torque = legs_state->leg[i].wheel.torque;
+    }
+
+    filter_initialized = true;
+
+
 
     state_log_print_cnt++;
     if (state_log_update_cnt == state_log_print_cnt) {
@@ -262,7 +304,7 @@ void SerialNode::legsSubscribCb(const robot_interfaces::msg::RobotTarget& msg) {
     target_log_print_cnt++;
     if (target_log_update_cnt == target_log_print_cnt) {
         target_log_print_cnt = 0;
-        RCLCPP_INFO(this->get_logger(), "订阅到电机目标值");
+       // RCLCPP_INFO(this->get_logger(), "订阅到电机目标值");
     }
 
     first_update = false;
