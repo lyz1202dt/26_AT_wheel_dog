@@ -16,6 +16,7 @@ public:
     std::string update(Robot* robot) override;bool execute(Robot* robot) ;
 
 private:
+    bool flag;
     bool stage3_init{false};
     int jump_stage;
     rclcpp::Time jump_stage_time;
