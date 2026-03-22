@@ -10,8 +10,8 @@ def generate_launch_description():
     simulate_env_launch_scripe="dog_mujoco_sim.py"
 
     urdf_path = os.path.join(
-        get_package_share_directory("dog"),
-        "model", "dog.urdf"
+        get_package_share_directory("dog2"),
+        "model", "dog2.urdf"
     )
     # 读取URDF内容
     with open(urdf_path, 'r') as inf:

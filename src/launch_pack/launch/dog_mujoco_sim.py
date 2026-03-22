@@ -13,12 +13,12 @@ from launch.actions import (
 
 
 def generate_launch_description():
-    dog_pack_path=get_package_share_directory("dog")
+    dog_pack_path=get_package_share_directory("dog2")
     launch_pack_path=get_package_share_directory("launch_pack")
 
     namespace=""
     mjcf_file=os.path.join(dog_pack_path,"model","scene.xml")
-    urdf_file=os.path.join(dog_pack_path,"model","dog.urdf")
+    urdf_file=os.path.join(dog_pack_path,"model","dog2.urdf")
     controller_config_file=os.path.join(launch_pack_path,"config","ros2_controller.yaml")
 
     # 读取URDF文件内容并作为字符串存储
