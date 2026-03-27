@@ -7,16 +7,29 @@
 #include <robot_interfaces/msg/robot_target.hpp>
 
 namespace dog_controller {
+
 DogController::DogController()
     : csv_initialized_(false) {}
 
 controller_interface::CallbackReturn DogController::on_init() {
-    state_publisher   = get_node()->create_publisher<robot_interfaces::msg::Robot>("legs_status", rclcpp::SensorDataQoS());
+    state_publisher = get_node()->create_publisher<robot_interfaces::msg::Robot>(
+        "legs_status", rclcpp::SensorDataQoS());
+
     target_subscriber = get_node()->create_subscription<robot_interfaces::msg::RobotTarget>(
-        "legs_target", rclcpp::SensorDataQoS(), [this](const robot_interfaces::msg::RobotTarget& msg) { /*RCLCPP_INFO(get_node()->get_logger(),"订阅到关节目标");*/joints_target = msg; });
-    joints_name_ = {"lf_joint1", "lf_joint2", "lf_joint3", "lf_joint4", "rf_joint1", "rf_joint2", "rf_joint3", "rf_joint4",
-                    "lb_joint1", "lb_joint2", "lb_joint3", "lb_joint4", "rb_joint1", "rb_joint2", "rb_joint3", "rb_joint4"};
-    wheel_kd     = 0.0;
+        "legs_target", rclcpp::SensorDataQoS(),
+        [this](const robot_interfaces::msg::RobotTarget& msg) {
+            joints_target = msg;
+        });
+
+    // 只保留前三个关节，不再有轮子
+    joints_name_ = {
+        "lf_joint1", "lf_joint2", "lf_joint3",
+        "rf_joint1", "rf_joint2", "rf_joint3",
+        "lb_joint1", "lb_joint2", "lb_joint3",
+        "rb_joint1", "rb_joint2", "rb_joint3"
+    };
+
+    wheel_kd = 0.0;
 
     auto node = get_node();
     node->declare_parameter("wheel_kd", 0.2);
@@ -40,9 +53,9 @@ controller_interface::CallbackReturn DogController::on_init() {
                 } else {
                     csv_file_.close();
                 }
-            } else if (param.get_name() == "joint_torque_filter_gate") // 设置电机力矩低通滤波器增益
+            } else if (param.get_name() == "joint_torque_filter_gate")
                 joint_torque_filter_gate = param.as_double();
-            else if (param.get_name() == "joint_omega_filter_gate")    // 设置电机转速低通滤波器增益
+            else if (param.get_name() == "joint_omega_filter_gate")
                 joint_omega_filter_gate = param.as_double();
         }
         return result;
@@ -53,75 +66,67 @@ controller_interface::CallbackReturn DogController::on_init() {
 
 controller_interface::CallbackReturn DogController::on_configure(const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
-    auto node   = get_node();
-    wheel_kd    = node->get_parameter("wheel_kd").as_double();
+    auto node = get_node();
+    wheel_kd = node->get_parameter("wheel_kd").as_double();
     return controller_interface::ControllerInterface::CallbackReturn::SUCCESS;
 }
+
 controller_interface::CallbackReturn DogController::on_activate(const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
     return controller_interface::ControllerInterface::CallbackReturn::SUCCESS;
 }
+
 controller_interface::CallbackReturn DogController::on_deactivate(const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
     return controller_interface::ControllerInterface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::return_type DogController::update(const rclcpp::Time& time, const rclcpp::Duration& period) {
-    auto joints_num = joints_name_.size();
+    auto joints_num = joints_name_.size(); // 12 个关节
 
+    // 更新关节状态
+    for (size_t i = 0; i < joints_num; i++) {
+        size_t leg_idx   = i / 3; // 每条腿 3 个关节
+        size_t joint_idx = i % 3;
 
-    for (size_t i = 0; i < joints_num; i++)                            // 从接口读取关节状态
-    {
-        size_t leg_idx   = i / 4;                                      // 腿部索引（0-3）
-        size_t joint_idx = i % 4;                                      // 关节在腿内的索引（0-3）
-
-        if (joint_idx == 3)                                            // 第4个关节是轮子
-        {
-            joints_state.legs[leg_idx].wheel.omega  = static_cast<float>(state_interfaces_[i * 3 + 1].get_value());
-            joints_state.legs[leg_idx].wheel.torque = static_cast<float>(state_interfaces_[i * 3 + 2].get_value());
-        } else {
-            joints_state.legs[leg_idx].joints[joint_idx].rad   = static_cast<float>(state_interfaces_[i * 3 + 0].get_value());
-            joints_state.legs[leg_idx].joints[joint_idx].omega = static_cast<float>(
-                joint_omega_filter_gate * joints_state.legs[leg_idx].joints[joint_idx].omega
-                + (1.0 - joint_omega_filter_gate) * state_interfaces_[i * 3 + 1].get_value());
-            joints_state.legs[leg_idx].joints[joint_idx].torque = static_cast<float>(
-                joint_torque_filter_gate * joints_state.legs[leg_idx].joints[joint_idx].torque
-                + (1.0 - joint_torque_filter_gate) * state_interfaces_[i * 3 + 2].get_value());
-        }
+        joints_state.legs[leg_idx].joints[joint_idx].rad   = static_cast<float>(state_interfaces_[i * 3 + 0].get_value());
+        joints_state.legs[leg_idx].joints[joint_idx].omega = static_cast<float>(
+            joint_omega_filter_gate * joints_state.legs[leg_idx].joints[joint_idx].omega
+            + (1.0 - joint_omega_filter_gate) * state_interfaces_[i * 3 + 1].get_value());
+        joints_state.legs[leg_idx].joints[joint_idx].torque = static_cast<float>(
+            joint_torque_filter_gate * joints_state.legs[leg_idx].joints[joint_idx].torque
+            + (1.0 - joint_torque_filter_gate) * state_interfaces_[i * 3 + 2].get_value());
     }
-    state_publisher->publish(joints_state);                            // 发布关节状态
 
-    if (csv_file_.is_open()) {                                         // 如果需要记录，那么记录关节数据
-        RCLCPP_INFO(get_node()->get_logger(), "记录数据");
+    state_publisher->publish(joints_state);
+
+    // CSV 记录
+    if (csv_file_.is_open()) {
         auto now     = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time_).count();
-        csv_file_ << elapsed << "," << std::fixed << std::setprecision(6) << joints_state.legs[0].joints[0].torque << ","
-                  << joints_state.legs[0].joints[1].torque << "," << joints_state.legs[0].joints[2].torque << "\n";
+        csv_file_ << elapsed << ","
+                  << std::fixed << std::setprecision(6)
+                  << joints_state.legs[0].joints[0].torque << ","
+                  << joints_state.legs[0].joints[1].torque << ","
+                  << joints_state.legs[0].joints[2].torque << "\n";
         csv_file_.flush();
     }
 
-    for (size_t i = 0; i < joints_num; i++)                            // 将期望写入硬件层
-    {
-        size_t leg_idx   = i / 4;                                      // 腿部索引（0-3）
-        size_t joint_idx = i % 4;                                      // 关节在腿内的索引（0-3）
+    // 写入硬件
+    for (size_t i = 0; i < joints_num; i++) {
+        size_t leg_idx   = i / 3;
+        size_t joint_idx = i % 3;
 
-        double effort = 0.0;
-        if (joint_idx == 3) {                                          // 当前关节是轮子
-            effort = wheel_kd * (joints_target.legs[leg_idx].wheel.omega - joints_state.legs[leg_idx].wheel.omega)
-                   + joints_target.legs[leg_idx].wheel.torque;
-            effort = std::clamp(effort, -2.0, 2.0);
-        } else {
-            // 使用消息中的kp和kd参数
-            double kp = static_cast<double>(joints_target.legs[leg_idx].joints[joint_idx].kp);
-            double kd = static_cast<double>(joints_target.legs[leg_idx].joints[joint_idx].kd);
-            
-            effort = kp * (joints_target.legs[leg_idx].joints[joint_idx].rad - joints_state.legs[leg_idx].joints[joint_idx].rad)
-                   + kd * (joints_target.legs[leg_idx].joints[joint_idx].omega - joints_state.legs[leg_idx].joints[joint_idx].omega);
-            effort = effort + (double)joints_target.legs[leg_idx].joints[joint_idx].torque;
-            effort = std::clamp(effort, -20.0, 20.0);
-        }
+        double kp = static_cast<double>(joints_target.legs[leg_idx].joints[joint_idx].kp);
+        double kd = static_cast<double>(joints_target.legs[leg_idx].joints[joint_idx].kd);
+        double effort = kp * (joints_target.legs[leg_idx].joints[joint_idx].rad - joints_state.legs[leg_idx].joints[joint_idx].rad)
+                      + kd * (joints_target.legs[leg_idx].joints[joint_idx].omega - joints_state.legs[leg_idx].joints[joint_idx].omega)
+                      + static_cast<double>(joints_target.legs[leg_idx].joints[joint_idx].torque);
+
+        effort = std::clamp(effort, -20.0, 20.0);
         command_interfaces_[i].set_value(effort);
     }
+
     return controller_interface::return_type::OK;
 }
 
@@ -146,6 +151,7 @@ controller_interface::InterfaceConfiguration DogController::state_interface_conf
     }
     return cfg;
 }
+
 } // namespace dog_controller
 
 PLUGINLIB_EXPORT_CLASS(dog_controller::DogController, controller_interface::ControllerInterface)
