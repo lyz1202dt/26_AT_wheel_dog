@@ -52,6 +52,22 @@ std::string IdelState::update(Robot* robot) {
         joints_target.legs[i].wheel.kd = robot->lf_leg_calc->wheel_kd;
     }
 
+    auto lf_current_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+    auto rf_current_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+    auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+    auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+    static int cnt = 0;
+    cnt++;
+    if(cnt>=100)
+    {
+        cnt = 0;
+        RCLCPP_ERROR(robot->node_->get_logger(),"\033[lf_current_pos = (%.2f, %.2f, %.2f) rf_current_pos = (%.2f, %.2f, %.2f) lb_current_pos = (%.2f, %.2f, %.2f) rb_current_pos = (%.2f, %.2f, %.2f)\033[0m", 
+        lf_current_pos[0], lf_current_pos[1], lf_current_pos[2], 
+        rf_current_pos[0], rf_current_pos[1], rf_current_pos[2], 
+        lb_current_pos[0], lb_current_pos[1], lb_current_pos[2], 
+        rb_current_pos[0], rb_current_pos[1], rb_current_pos[2]);
+    }
+    
     robot->legs_target_pub->publish(joints_target);
     if (robot->move_cmd.step_mode == 1)  // 如果希望跳转到STOP状态（VMC站立），那么跳转
         return "stop";

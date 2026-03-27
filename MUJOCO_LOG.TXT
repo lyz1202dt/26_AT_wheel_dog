@@ -55,3 +55,6 @@ ERROR: could not initialize GLFW
 Sat Mar 21 20:25:25 2026
 ERROR: could not initialize GLFW
 
+Thu Mar 26 22:26:23 2026
+WARNING: Nan, Inf or huge value in CTRL at ACTUATOR 4. The simulation is unstable. Time = 25.8500.
+

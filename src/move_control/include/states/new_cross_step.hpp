@@ -4,36 +4,66 @@
 #include "core/robot.hpp"
 #include "leg/step.hpp"
 #include <rclcpp/rclcpp.hpp>
-
-using Vector3D = Eigen::Vector3d;
-using Vector2D = Eigen::Vector2d;
+#include <Eigen/Dense>
 
 class JumpStepState : public BaseState<Robot>
 {
 public:
     explicit JumpStepState(Robot* robot);
+
     bool enter(Robot* robot, const std::string& last_status) override;
-    std::string update(Robot* robot) override;bool execute(Robot* robot) ;
+    std::string update(Robot* robot) override;
 
 private:
-    bool flag;
-    bool stage3_init{false};
-    int jump_stage;
+    // 阶段控制
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_server_;
+    void default_param_cb(const rclcpp::Parameter& param);
+    int jump_stage = 0;
     rclcpp::Time jump_stage_time;
-    Vector3D foot_force_compen{0.0, 0.0, 0.0}; 
-    Vector3D step_lf_foot_pos;
-    Vector3D step_rf_foot_pos;
-    Vector3D step_lb_foot_pos;
-    Vector3D step_rb_foot_pos;
    
-    LegStep lf_leg_step, rf_leg_step, lb_leg_step, rb_leg_step;
+    // 足端位置缓存（初始化零向量）
+    Eigen::Vector3d step_lf_foot_pos  = Eigen::Vector3d::Zero();
+    Eigen::Vector3d step_rf_foot_pos  = Eigen::Vector3d::Zero();
+    Eigen::Vector3d step_lb_foot_pos  = Eigen::Vector3d::Zero();
+    Eigen::Vector3d step_rb_foot_pos  = Eigen::Vector3d::Zero();
 
-    Vector3D lf_foot_exp_pos{0,0,0}, rf_foot_exp_pos{0,0,0}, lb_foot_exp_pos{0,0,0}, rb_foot_exp_pos{0,0,0};
-    Vector3D lf_foot_exp_vel{0,0,0}, rf_foot_exp_vel{0,0,0}, lb_foot_exp_vel{0,0,0}, rb_foot_exp_vel{0,0,0};
-    Vector3D lf_foot_exp_acc{0,0,0}, rf_foot_exp_acc{0,0,0}, lb_foot_exp_acc{0,0,0}, rb_foot_exp_acc{0,0,0};
+    // 轨迹规划对象
+    LegStep lf_leg_step;
+    LegStep rf_leg_step;
+    LegStep lb_leg_step;
+    LegStep rb_leg_step;
 
-    float lf_wheel_vel, rf_wheel_vel, lb_wheel_vel, rb_wheel_vel;
-    float lf_wheel_force, rf_wheel_force, lb_wheel_force, rb_wheel_force;
+    // 期望足端状态（全部初始化为 0）
+    Eigen::Vector3d lf_foot_exp_pos   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_foot_exp_vel   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lf_foot_exp_acc   = Eigen::Vector3d::Zero();
+
+    Eigen::Vector3d rf_foot_exp_pos   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d rf_foot_exp_vel   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d rf_foot_exp_acc   = Eigen::Vector3d::Zero();
+
+    Eigen::Vector3d lb_foot_exp_pos   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lb_foot_exp_vel   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d lb_foot_exp_acc   = Eigen::Vector3d::Zero();
+
+    Eigen::Vector3d rb_foot_exp_pos   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d rb_foot_exp_vel   = Eigen::Vector3d::Zero();
+    Eigen::Vector3d rb_foot_exp_acc   = Eigen::Vector3d::Zero();
+
+    // 轮子控制
+    double lf_wheel_vel    = 0.0;
+    double rf_wheel_vel    = 0.0;
+    double lb_wheel_vel    = 0.0;
+    double rb_wheel_vel    = 0.0;
+
+    double lf_wheel_force  = 0.0;
+    double rf_wheel_force  = 0.0;
+    double lb_wheel_force  = 0.0;
+    double rb_wheel_force  = 0.0;
+
+    // 辅助变量
+    bool flag = false;
+    Eigen::Vector3d foot_force_compen = Eigen::Vector3d::Zero();
 };
 
 #endif
