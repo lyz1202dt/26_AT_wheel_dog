@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(box_yolo_pnp)
+project(pnp_box)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -11,6 +11,7 @@ find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 
 # find dependencies
+find_package(robot_interfaces REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
@@ -40,6 +41,13 @@ target_compile_features(main PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++1
   geometry_msgs
   sensor_msgs
   tf2
+)
+
+ament_target_dependencies(
+  main
+  rclcpp
+  sensor_msgs
+  robot_interfaces
 )
 
 install(TARGETS main

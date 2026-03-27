@@ -3,14 +3,19 @@
 #include <librealsense2/hpp/rs_pipeline.hpp>
 
 // #include <algorithm>
+#include <cmath>
 
 #include "inference.h"
+#include <opencv2/core/mat.hpp>
 #include <librealsense2/rs.hpp>
+#include <opencv2/core/types.hpp>
 #include <opencv2/highgui.hpp>
 #include <rclcpp/executors.hpp>
+#include <unistd.h>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
+#include <robot_interfaces/msg/move_cmd.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
@@ -35,10 +40,10 @@ public:
         clahe = createCLAHE(2.0); 
     }
 
-    void runBoxIdentify(Mat camera){
+    char runBoxIdentify(Mat camera){
         /* ============ 对图片进行处理 ============= */
         Mat drawing = camera.clone();   // 备份图片信息
-        if(drawing.empty()) return;
+        if(drawing.empty()) return -1;
 
         Mat gray;       
         cvtColor(camera, gray, COLOR_BGR2GRAY);   // 转为灰度图
@@ -53,15 +58,15 @@ public:
 
         /* ========= 制作掩码 ========== */
         vector<Detection> output = inf.runInference(camera);
-
-        Mat mask = Mat::zeros(Size(camera.cols,camera.rows),CV_8UC1); // 制作掩码
+        Mat mask = Mat::zeros(Size(camera.cols,camera.rows),CV_8UC1); // 制作掩码;
         for(const auto& detection : output){
-            Rect box = detection.box;
-            box.x -= 3;
-            box.y -= 3;
-            box.height += 6;
-            box.width += 6;
-            rectangle(mask,box,Scalar(255),-1);
+                Rect box = detection.box;
+                box.x -= 3;
+                box.y -= 3;
+                box.height += 6;
+                box.width += 6;
+
+                rectangle(mask,box,Scalar(255),-1);
         }
 
         // 进行计数引用上次成功的掩码（待开发）
@@ -72,20 +77,105 @@ public:
         // else if(countNonZero(mask) > 0){
         //     mask_copy = mask.clone();
         // }
-
+        vector<Point2f> bestRectPoints;
+        checkRect(edges, mask, bestRectPoints);
+        
+        bool success = false;
+            
+        // 如果有找到合适的矩形
+        if(bestRectPoints.size() == 4) {
+            // 对点进行排序
+            bestRectPoints = sortRectanglePoints(bestRectPoints);
+            
+            // 绘制矩形
+            for(int i = 0; i < 4; i++) {
+                line(drawing, bestRectPoints[i], bestRectPoints[(i + 1) % 4], 
+                Scalar(0, 255, 0), 3);
+            }
+            
+            // 绘制角点
+            for(int i = 0; i < 4; i++) {
+                circle(drawing, bestRectPoints[i], 8, 
+                    Scalar(0, 0, 255), -1);
+                    putText(drawing, to_string(i), bestRectPoints[i] + Point2f(5, 5),
+                    FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 2);
+                }
+                
+            // PnP解算
+            success = solvePnP(objectPoints, bestRectPoints, 
+                cameraMatrix, distCoeffs, 
+                rvec, tvec, false, SOLVEPNP_ITERATIVE
+            );
+            if(success){
+                boolrvec = true;
+                booltvec = true;
+            }
+            drawFrameAxes(drawing,cameraMatrix,distCoeffs,rvec,tvec,0.05);
+        }
+        imshow(".",drawing);
+        imshow("edge",edges);
+        imshow("mask",mask);
+        char c = waitKey(1);
+        return c;
+    }
+        
+    void pnp_parameter(){
+        // 相机参数 双目
+        cameraMatrix = (Mat_<double>(3,3) << 
+        775.0817798329149, 0, 657.9073666547347, 
+        0, 775.3491152597893, 363.5442002041569, 
+        0, 0, 1);
+        
+        // 相机参数 双目
+        distCoeffs = (Mat_<double>(1,5) << 
+        0.08020486644231081, -0.1733432710897198, 
+        -0.001440808381498728, -0.0005563035195006499, 
+        0.09159837936546486);
+        
+        objectPoints.clear();
+        
+        float width = 0.25f;  // 矩形宽度
+        float height = 0.25f; // 矩形高度
+        objectPoints.push_back(Point3f(-width/2, -height/2, 0));  // 左上
+        objectPoints.push_back(Point3f(width/2, -height/2, 0));   // 右上
+        objectPoints.push_back(Point3f(width/2, height/2, 0));     // 右下
+        objectPoints.push_back(Point3f(-width/2, height/2, 0));   // 左下
+    }
+    
+    void getrvec(Mat &rvec_copy){
+        rvec_copy = rvec.clone();
+        boolrvec = false;
+    }
+    
+    void gettvec(Mat &tvec_copy){
+        tvec_copy = tvec.clone();
+        booltvec = false;
+    }
+    // 相机参数 双目
+    Mat cameraMatrix;
+    
+    // 相机参数 双目
+    Mat distCoeffs;
+    
+    // 3D点坐标（世界坐标系，单位：米）
+    vector<Point3f> objectPoints;
+    
+    bool boolrvec = false;
+    bool booltvec = false;
+private:
+    vector<Point2f> checkRect(const Mat &edge,const Mat &mask,vector<Point2f> &bestRectPoints){
         // 应用掩码
-        bitwise_and(edges, mask, edges);
+        bitwise_and(edge, mask, edge);
         
         // 形态学操作
         Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
-        dilate(edges, edges, kernel);
+        dilate(edge, edge, kernel);
         
         // 查找轮廓
         vector<vector<Point>> contours;
         vector<Vec4i> hierarchy;
-        findContours(edges, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+        findContours(edge, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
         
-        vector<Point2f> bestRectPoints;
         double bestArea = 0;
         
         for(size_t i = 0; i < contours.size(); i++) {
@@ -146,95 +236,16 @@ public:
                 bestRectPoints = approx; 
             }
         }
-        
-        // 如果有找到合适的矩形
-        if(bestRectPoints.size() == 4) {
-            // 对点进行排序
-            bestRectPoints = sortRectanglePoints(bestRectPoints);
-            
-            // 绘制矩形
-            for(int i = 0; i < 4; i++) {
-                line(drawing, bestRectPoints[i], bestRectPoints[(i + 1) % 4], 
-                     Scalar(0, 255, 0), 3);
-            }
-            
-            // 绘制角点
-            for(int i = 0; i < 4; i++) {
-                circle(drawing, bestRectPoints[i], 8, 
-                       Scalar(0, 0, 255), -1);
-                putText(drawing, to_string(i), bestRectPoints[i] + Point2f(5, 5),
-                        FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 2);
-            }
-            
-            // PnP解算
-            bool success = solvePnP(objectPoints, bestRectPoints, 
-                cameraMatrix, distCoeffs, 
-                rvec, tvec, false, SOLVEPNP_ITERATIVE
-            );
-
-            if(success){
-                boolrvec = true;
-                booltvec = true;
-
-                drawFrameAxes(drawing,cameraMatrix,distCoeffs,rvec,tvec,5);
-                imshow(".",drawing);
-                waitKey(1);
-            }
-        }
+        return bestRectPoints;
     }
-
-    void pnp_parameter(){
-        // 相机参数 双目
-        cameraMatrix = (Mat_<double>(3,3) << 
-        775.0817798329149, 0, 657.9073666547347, 
-        0, 775.3491152597893, 363.5442002041569, 
-        0, 0, 1);
-
-        // 相机参数 双目
-        distCoeffs = (Mat_<double>(1,5) << 
-        0.08020486644231081, -0.1733432710897198, 
-        -0.001440808381498728, -0.0005563035195006499, 
-        0.09159837936546486);
-
-        objectPoints.clear();
-
-        float width = 0.25f;  // 矩形宽度
-        float height = 0.25f; // 矩形高度
-        objectPoints.push_back(Point3f(-width/2, -height/2, 0));  // 左上
-        objectPoints.push_back(Point3f(width/2, -height/2, 0));   // 右上
-        objectPoints.push_back(Point3f(width/2, height/2, 0));     // 右下
-        objectPoints.push_back(Point3f(-width/2, height/2, 0));   // 左下
-    }
-
-    void getrvec(Mat &rvec_copy){
-        rvec_copy = rvec.clone();
-        boolrvec = false;
-    }
-
-    void gettvec(Mat &tvec_copy){
-        tvec_copy = tvec.clone();
-        booltvec = false;
-    }
-    // 相机参数 双目
-    Mat cameraMatrix;
-    
-    // 相机参数 双目
-    Mat distCoeffs;
-    
-    // 3D点坐标（世界坐标系，单位：米）
-    vector<Point3f> objectPoints;
-
-    bool boolrvec = false;
-    bool booltvec = false;
-private:
     // pnp结果
     Mat rvec, tvec;
-
-
+    
+    
     Inference inf;
-
+    
     Ptr<CLAHE> clahe;
-
+    
     // 改进的角点排序：按左上、右上、右下、左下顺序
     vector<Point2f> sortRectanglePoints(vector<Point2f>& points) {
         if(points.size() != 4) return points;
@@ -265,11 +276,10 @@ private:
         // 重新排列：左上、右上、右下、左下
         for(int i = 0; i < 4; i++) {
             sorted[i] = points[(topLeftIdx + i) % 4];
-        }
-        
+        }     
         return sorted;
     }
-
+    
     // 计算四边形的面积
     double polygonArea(const vector<Point2f>& pts) {
         if(pts.size() != 4) return 0;
@@ -282,76 +292,45 @@ private:
         return abs(area) * 0.5;
     }
 };
-
-
+    
+    
 /* ================== 话题通信的类 ===================== */
 class TargetPosePublisher : public rclcpp::Node
 {
 public:
-    TargetPosePublisher() : Node("target_pose_publisher")
+TargetPosePublisher() : Node("robot_move_cmd")
     {
-        pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-            "/target_pose", 10);
-
-        position_pub_ = this->create_publisher<geometry_msgs::msg::Vector3>(
-            "/target_relative_position", 10);
+        position_pub_ = this->create_publisher<robot_interfaces::msg::MoveCmd>(
+            "robot_move_cmd", 10);
     }
 
-    void publishPose(const cv::Mat &rvec, const cv::Mat &tvec)
-    
+    void publishPose()
     {
-        if(rvec.empty() || tvec.empty())
-        {
-            RCLCPP_WARN(this->get_logger(), "rvec or tvec is empty!");
-            return;
+        if(one){
+            sleep(8);
+            one = false;
         }
 
-        // rvec -> 旋转矩阵
-        cv::Mat R;
-        cv::Rodrigues(rvec, R);
+        robot_interfaces::msg::MoveCmd speed;
 
-        // 转成 tf2 矩阵
-        tf2::Matrix3x3 tf_R(
-            R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2),
-            R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2),
-            R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2)
-        );
+        speed.step_mode = step_mode;
+        speed.wheel_vel = 0;
+        speed.vx = vx;
+        speed.vy = vy;
+        speed.vz = vz;
 
-        // 旋转矩阵 -> 四元数
-        tf2::Quaternion q;
-        tf_R.getRotation(q);
-
-        geometry_msgs::msg::PoseStamped pose_msg;
-        pose_msg.header.stamp = this->now();
-        pose_msg.header.frame_id = "camera";
-
-        pose_msg.pose.position.x = tvec.at<double>(0, 0);
-        pose_msg.pose.position.y = tvec.at<double>(1, 0);
-        pose_msg.pose.position.z = tvec.at<double>(2, 0);
-
-        pose_msg.pose.orientation.x = q.x();
-        pose_msg.pose.orientation.y = q.y();
-        pose_msg.pose.orientation.z = q.z();
-        pose_msg.pose.orientation.w = q.w();
-
-        pose_pub_->publish(pose_msg);
-
-        geometry_msgs::msg::Vector3 position_msg;
-        position_msg.x = tvec.at<double>(0, 0);
-        position_msg.y = tvec.at<double>(1, 0);
-        position_msg.z = tvec.at<double>(2, 0);
-
-        position_pub_->publish(position_msg);
+        position_pub_->publish(speed);
     }
+    double step_mode = 0,vx = 0,vy = 0,vz = 0;
 
 private:
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
-    rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr position_pub_;
+    bool one = true;
+    rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr position_pub_;
 };
 
 int main(int argc, char **argv)
 {
-    BoxIdentify work("/home/yuan/Vscode_word/box_yolo_pnp（复件）/best.onnx");
+    BoxIdentify work("/home/yuan/Vscode_word/box_yolo_pnp/best.onnx");
 
     work.pnp_parameter();
 
@@ -370,6 +349,9 @@ int main(int argc, char **argv)
     rclcpp::init(argc, argv);
     auto node = std::make_shared<TargetPosePublisher>();
     
+    node->publishPose();
+    node->step_mode = 2;
+
     while(rclcpp::ok()){
         rs2::frameset frameset = pipe.wait_for_frames();
         rs2::frame color = frameset.get_color_frame();
@@ -383,7 +365,8 @@ int main(int argc, char **argv)
             Mat::AUTO_STEP
         );
 
-        work.runBoxIdentify(camera);
+        char c = work.runBoxIdentify(camera);
+        if(c == 27) break;
 
         if((!work.boolrvec) || (!work.booltvec))    continue;
         
@@ -391,7 +374,34 @@ int main(int argc, char **argv)
         work.getrvec(rvec);
         work.gettvec(tvec);
 
-        node->publishPose(rvec,tvec);
+        node->vx = 0;
+        node->vy = 0;
+        node->vz = 0;
+
+        if(tvec.empty()){
+            node->vz = 1.0; // 如果pnp失败，让狗以最大速度旋转
+        }
+        else if(tvec.at<double>(0,0) > 0.08){
+            node->vz = -0.4; // 如果物块在右侧，小幅度顺时针旋转
+        }
+        else if(tvec.at<double>(0,0) < -0.08){
+            node->vz = 0.4; // 如果物块在左侧，小幅度逆时针旋转
+        }
+        else{
+            if(tvec.at<double>(2,0) > 2){
+                node->vx = 1.0; // 与目标距离大于两米，让狗以最大速度移动
+            }
+            else if(tvec.at<double>(2,0) > 0.35){
+                node->vx = 1-(2-tvec.at<double>(2,0) / 1.65); // 两米及以内，速度逐步降低
+            }
+            else{
+                node->vx = 0;
+            }
+        }
+
+        // 向狗发布指令
+        node->publishPose();
+
         rclcpp::spin_some(node);
     }
     

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>box_yolo_pnp</name>
+  <name>pnp_box</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="lyz@todo.todo">lyz</maintainer>
@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>launch</depend>
+  <depend>robot_interfaces</depend>
   <depend>launch_ros</depend>
 
   <test_depend>ament_lint_auto</test_depend>
