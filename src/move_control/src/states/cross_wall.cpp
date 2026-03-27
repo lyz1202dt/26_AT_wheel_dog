@@ -565,7 +565,8 @@ std::string Cross_WallState::update(Robot* robot){
             {
                 int result;
                 
-                rf_joint_exp_pos_ = robot->rf_leg_calc->joint_pos(rf_foot_exp_pos,&result,Vector3D(-0.13,-0.42,-0.536));
+                robot->rf_leg_calc->set_init_joint_pos(Vector3D(-0.13,-0.42,-0.536));
+                rf_joint_exp_pos_ = robot->rf_leg_calc->joint_pos(rf_foot_exp_pos,&result);
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
