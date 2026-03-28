@@ -1,0 +1,69 @@
+# 遥控器节点参数配置
+
+# 串口配置
+serial_port: "/dev/ttyUSB1"
+baud_rate: 115200
+
+# 滤波参数
+# filter_gate: 摇杆XY方向速度、角速度的一阶低通滤波系数
+#   范围: 0.0 ~ 1.0
+#   建议: 0.1~0.3 (值越大响应越快，噪声越多)
+filter_gate: 0.2
+
+# filter_alpha: 第4摇杆(轮子速度)的滤波系数
+filter_alpha: 0.2
+
+# 速度限制参数
+# max_speed: 最大前进速度 (m/s 或相对值)
+max_speed: 1.0
+
+# max_forword_speed: 最大前进速度
+max_forword_speed: 1.0
+
+# max_backward_speed: 最大后退速度 (通常小于前进速度以保证安全)
+max_backward_speed: 0.5
+
+# max_omega: 最大自转角速度 (度/秒)
+# 建议: 180~360
+max_omega: 180.0
+
+# Bezier曲线参数配置
+# 格式: [P0, P1, P2] - 二阶Bezier曲线的控制点
+# 用于对摇杆输入进行非线性变换，实现端点加速效果
+# P0: 起点 (通常为0)
+# P1: 中间点 (控制弯曲程度，值越大越靠近线性)
+# P2: 终点 (通常为1)
+bezier_coefficients:
+  - 0.0   # P0: 起点
+  - 0.05  # P1: 中间点 (较小的值会让低速更精细，高速更灵敏)
+  - 1.0   # P2: 终点
+
+# 超时检测参数
+# timeout_ms: 超过此时间未收到数据时认为通信断开
+timeout_ms: 200
+
+# 调试选项
+debug: true
+log_level: "INFO"  # DEBUG, INFO, WARN, ERROR
+
+# 校准参数 (如果遥控器摇杆范围不是0~2047)
+# 注意: 通常不需要修改，仅当摇杆值域异常时使用
+calibration:
+  rocker_min: 0
+  rocker_max: 2047
+  rocker_neutral: 1024  # 中点值
+
+# 死区设置 (防止摇杆漂移)
+# deadzone: 摇杆值在此范围内时视为0
+deadzone: 0.05  # 百分比形式，即5%
+
+# 按键映射 (key1 各bit位说明)
+# bit 0: 步态模式 0
+# bit 1: 步态模式 1  
+# bit 2: 保留
+# bit 3: 保留
+# ...
+key1_mapping:
+  bit0: "walk_mode"
+  bit1: "trot_mode"
+  description: "按键1用于选择步态模式"
