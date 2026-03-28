@@ -12,11 +12,11 @@ RemoteNode::RemoteNode()
     std::string port = "/dev/ttyUSB1";
     int baudrate = 115200;
 
-    // 创建串口对象
-    ser_ = std::make_unique<serial::Serial>(port, baudrate, serial::Timeout::simpleTimeout(50));
-
+    // 创建序列对象
     try
     {
+        ser_ = std::make_unique<serial::Serial>(port, baudrate, serial::Timeout::simpleTimeout(50));
+        
         if (!ser_->isOpen())
         {
             ser_->open();
@@ -26,7 +26,12 @@ RemoteNode::RemoteNode()
     catch (const serial::SerialException& e)
     {
         RCLCPP_ERROR(this->get_logger(), "串口打开失败: %s", e.what());
-        return;
+        ser_ = nullptr;
+    }
+    catch (const std::exception& e)
+    {
+        RCLCPP_ERROR(this->get_logger(), "初始化异常: %s", e.what());
+        ser_ = nullptr;
     }
 
     // 创建ROS2发布器
@@ -49,8 +54,16 @@ RemoteNode::RemoteNode()
         }
     );
 
-    // 启动串口接收线程
-    serial_thread_ = std::thread(&RemoteNode::serialLoop, this);
+    // 仅在串口打开成功时启动接收线程
+    if (ser_ && ser_->isOpen())
+    {
+        serial_thread_ = std::thread(&RemoteNode::serialLoop, this);
+    }
+    else
+    {
+        RCLCPP_WARN(this->get_logger(), "串口未打开，接收线程未启动");
+        running_ = false;
+    }
 }
 
 RemoteNode::~RemoteNode()
@@ -72,13 +85,32 @@ void RemoteNode::serialLoop()
 
     while (rclcpp::ok() && running_)
     {
-        if (!readFrame(buffer))
-            continue;
+        try
+        {
+            if (!ser_ || !ser_->isOpen())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
 
-        RemotePack_t data;
-        memcpy(&data, buffer, sizeof(RemotePack_t));
-        
-        processData(data);
+            if (!readFrame(buffer))
+                continue;
+
+            RemotePack_t data;
+            memcpy(&data, buffer, sizeof(RemotePack_t));
+            
+            processData(data);
+        }
+        catch (const std::exception& e)
+        {
+            RCLCPP_ERROR(this->get_logger(), "串口线程异常: %s", e.what());
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        catch (...)
+        {
+            RCLCPP_ERROR(this->get_logger(), "串口线程发生未知异常");
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
 }
 
@@ -88,64 +120,72 @@ bool RemoteNode::readFrame(uint8_t *buffer)
     if (!ser_ || !ser_->isOpen())
         return false;
 
-    uint8_t byte;
-
-    // 扫描寻找帧头 0xAA
-    while (true)
+    try
     {
-        if (ser_->available() < 1)
+        uint8_t byte;
+
+        // 扫描寻找帧头 0xAA
+        while (true)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            if (!running_)
-                return false;
-            continue;
+            if (ser_->available() < 1)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                if (!running_)
+                    return false;
+                continue;
+            }
+
+            size_t bytes_read = ser_->read(&byte, 1);
+            if (bytes_read != 1)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+
+            if (byte == REMOTE_PACK_HEAD)
+            {
+                buffer[0] = byte;
+                break;
+            }
         }
 
-        size_t bytes_read = ser_->read(&byte, 1);
-        if (bytes_read != 1)
+        // 读取剩余字节
+        size_t remaining = REMOTE_PACK_SIZE - 1;
+        size_t bytes_read = 0;
+
+        while (bytes_read < remaining)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            continue;
+            if (!ser_->available())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                if (!running_)
+                    return false;
+                continue;
+            }
+
+            size_t len = ser_->read(buffer + 1 + bytes_read, remaining - bytes_read);
+            if (len == 0)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+            bytes_read += len;
         }
 
-        if (byte == REMOTE_PACK_HEAD)
+        // 验证帧尾
+        if (buffer[REMOTE_PACK_SIZE - 1] != 0x00)  // 根据需要调整帧尾标识
         {
-            buffer[0] = byte;
-            break;
+            RCLCPP_DEBUG(this->get_logger(), "无效的帧尾: 0x%02x", buffer[REMOTE_PACK_SIZE - 1]);
+            return false;
         }
+
+        return true;
     }
-
-    // 读取剩余字节
-    size_t remaining = REMOTE_PACK_SIZE - 1;
-    size_t bytes_read = 0;
-
-    while (bytes_read < remaining)
+    catch (const std::exception& e)
     {
-        if (!ser_->available())
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            if (!running_)
-                return false;
-            continue;
-        }
-
-        size_t len = ser_->read(buffer + 1 + bytes_read, remaining - bytes_read);
-        if (len == 0)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            continue;
-        }
-        bytes_read += len;
-    }
-
-    // 验证帧尾
-    if (buffer[REMOTE_PACK_SIZE - 1] != 0x00)  // 根据需要调整帧尾标识
-    {
-        RCLCPP_DEBUG(this->get_logger(), "无效的帧尾: 0x%02x", buffer[REMOTE_PACK_SIZE - 1]);
+        RCLCPP_ERROR(this->get_logger(), "读取帧异常: %s", e.what());
         return false;
     }
-
-    return true;
 }
 
 // ==================== Bezier曲线变换 ====================
