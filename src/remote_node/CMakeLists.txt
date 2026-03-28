@@ -12,11 +12,13 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(robot_interfaces REQUIRED)
 find_package(serial REQUIRED)
+find_package(Threads REQUIRED)
 
 # Create executable
 add_executable(remote_node
   src/main.cpp
   src/remote_node.cpp
+  src/comm.cpp
 )
 
 # Include directories
@@ -31,6 +33,11 @@ ament_target_dependencies(remote_node
   rclcpp
   robot_interfaces
   serial
+)
+
+# Link system libraries
+target_link_libraries(remote_node
+  Threads::Threads
 )
 
 # Install targets

@@ -1,191 +1,148 @@
 #include "remote_node/remote_node.hpp"
 #include <cstring>
 #include <cmath>
+#include <rclcpp/logging.hpp>
 
-// 常数定义
-static constexpr size_t REMOTE_PACK_SIZE = sizeof(RemotePack_t);
-static constexpr uint8_t REMOTE_PACK_HEAD = 0xAA;
-
+// ==================== 构造函数 ====================
 RemoteNode::RemoteNode()
-    : Node("remote_node"), running_(true)
+    : Node("remote_node")
 {
     std::string port = "/dev/ttyUSB0";
     int baudrate = 115200;
 
-    // 创建序列对象
-    try
+    // 创建通信模块
+    comm_ = std::make_shared<RemoteComm>();
+    
+    // 初始化通信模块
+    auto error_cb = [this](uint32_t type)
     {
-        ser_ = std::make_unique<serial::Serial>(port, baudrate, serial::Timeout::simpleTimeout(50));
-        
-        if (!ser_->isOpen())
+        std::string error_msg;
+        switch (type)
         {
-            ser_->open();
+            case COMM_BAD_HEAD: error_msg = "数据包头错误"; break;
+            case COMM_BAD_SUM:  error_msg = "校验和错误"; break;
+            case COMM_BAD_LEN:  error_msg = "数据包长度错误"; break;
+            case COMM_BAD_ACK:  error_msg = "应答包错误"; break;
+            default:            error_msg = "未知错误"; break;
         }
-        RCLCPP_INFO(this->get_logger(), "成功打开遥控器串口: %s, 波特率: %d", port.c_str(), baudrate);
-    }
-    catch (const serial::SerialException& e)
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, 
+            "遥控器通信错误: %s", error_msg.c_str());
+    };
+
+    if (!comm_->Init(port, baudrate, error_cb))
     {
-        RCLCPP_ERROR(this->get_logger(), "遥控器串口打开失败: %s", e.what());
-        ser_ = nullptr;
+        RCLCPP_ERROR(this->get_logger(), 
+            "遥控器通信初始化失败 %s:%d\n"
+            "故障排查:\n"
+            "  1. 确认串口设备 %s 存在: ls -la %s\n"
+            "  2. 确认用户有权限: groups | grep dialout\n"
+            "  3. 波特率 %d bps 与遥控器一致",
+                    port.c_str(), baudrate, 
+                    port.c_str(), port.c_str(),
+                    baudrate);
     }
-    catch (const std::exception& e)
+    else
     {
-        RCLCPP_ERROR(this->get_logger(), "遥控器串口初始化异常: %s", e.what());
-        ser_ = nullptr;
+        RCLCPP_INFO(this->get_logger(), "遥控器通信已初始化 %s:%d", 
+                   port.c_str(), baudrate);
     }
 
     // 创建ROS2发布器
     move_cmd_pub = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd", 10);
-    RCLCPP_INFO(this->get_logger(), "RemoteNode 初始化完成，发布话题: robot_move_cmd");
+    RCLCPP_INFO(this->get_logger(), "遥控器节点已初始化，发布'robot_move_cmd'话题");
 
     // 记录初始时间
     last_receive_time_ = this->now();
 
+    // 注册数据接收回调（命令字 1 对应遥控器数据）
+    recv_cb_id_ = comm_->RegisterRecvCb(
+        [this](uint8_t *src, uint16_t size, void* user_data)
+        {
+            if (size >= sizeof(RemoteData_t))
+            {
+                RemoteData_t data;
+                memcpy(&data, src, sizeof(RemoteData_t));
+                this->ProcessData(data);
+                RCLCPP_INFO(this->get_logger(), "接收到遥控器数据包，已处理");
+            }
+            else
+            {
+                RCLCPP_WARN(this->get_logger(), 
+                    "数据包大小不足: 收到=%u字节, 期望=%zu字节\n"
+                    "故障排查:\n"
+                    "  1. 检查遥控器发送的数据包格式\n"
+                    "  2. 确认命令字 (0x01) 是否正确\n"
+                    "  3. 查看原始数据 (十六进制):",
+                    size, sizeof(RemoteData_t));
+                    
+                // 打印前20字节数据用于诊断
+                if (size > 0)
+                {
+                    std::string hex_str;
+                    for (uint16_t i = 0; i < size && i < 20; i++)
+                    {
+                        char buf[4];
+                        snprintf(buf, sizeof(buf), "%02x ", src[i]);
+                        hex_str += buf;
+                    }
+                    RCLCPP_WARN(this->get_logger(), "原始数据: %s", hex_str.c_str());
+                }
+            }
+        },
+        1,  // 命令字 1
+        nullptr
+    );
+
+    // 现在启动接收线程（在回调注册后）
+    comm_->StartReceiver();
+
     // 创建超时检测定时器（100ms检测一次）
     timeout_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
-        [this]() {
-            auto time_diff = (this->now() - last_receive_time_).seconds() * 1000.0f;  // 转换为毫秒
+        [this]()
+        {
+            auto time_diff = (this->now() - last_receive_time_).seconds() * 1000.0f;
             if (time_diff > TIMEOUT_MS)
             {
                 RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, 
-                    "遥控器通信超时 (%.0fms)，摇杆已复位", time_diff);
+                    "遥控器通信超时 (%.0fms)，摇杆已复位\n"
+                    "故障排查:\n"
+                    "  1. 遥控器设备是否已连接\n"
+                    "  2. 遥控器是否通电\n"
+                    "  3. 接收器是否与遥控器配对\n"
+                    "  4. 数据包命令字是否为 0x01\n"
+                    "  5. 使用 'ros2 run remote_node remote_node --ros-args --log-level debug' 查看详细日志", 
+                    time_diff);
             }
         }
     );
-
-    // 仅在串口打开成功时启动接收线程
-    if (ser_ && ser_->isOpen())
-    {
-        serial_thread_ = std::thread(&RemoteNode::serialLoop, this);
-    }
-    else
-    {
-        RCLCPP_WARN(this->get_logger(), "串口未打开，接收线程未启动");
-        running_ = false;
-    }
 }
 
+// ==================== 析构函数 ====================
 RemoteNode::~RemoteNode()
 {
-    running_ = false;
-    if (serial_thread_.joinable())
-        serial_thread_.join();
-
-    if (ser_ && ser_->isOpen())
-        ser_->close();
-
-    RCLCPP_INFO(this->get_logger(), "RemoteNode 已关闭");
+    if (comm_)
+    {
+        comm_->UnregisterRecvCb(recv_cb_id_);
+        comm_->Stop();
+    }
+    RCLCPP_INFO(this->get_logger(), "遥控器节点已关闭");
 }
 
-// ==================== 串口线程 ====================
-void RemoteNode::serialLoop()
+// ==================== 错误处理回调（未在此版本使用） ====================
+void RemoteNode::OnBadDataPack(uint32_t type)
 {
-    uint8_t buffer[REMOTE_PACK_SIZE];
-
-    while (rclcpp::ok() && running_)
+    std::string error_msg;
+    switch (type)
     {
-        try
-        {
-            if (!ser_ || !ser_->isOpen())
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            }
-
-            if (!readFrame(buffer))
-                continue;
-
-            RemotePack_t data;
-            memcpy(&data, buffer, sizeof(RemotePack_t));
-            
-            processData(data);
-        }
-        catch (const std::exception& e)
-        {
-            RCLCPP_ERROR(this->get_logger(), "串口线程异常: %s", e.what());
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-        catch (...)
-        {
-            RCLCPP_ERROR(this->get_logger(), "串口线程发生未知异常");
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        case COMM_BAD_HEAD: error_msg = "数据包头错误"; break;
+        case COMM_BAD_SUM:  error_msg = "校验和错误"; break;
+        case COMM_BAD_LEN:  error_msg = "数据包长度错误"; break;
+        case COMM_BAD_ACK:  error_msg = "应答包错误"; break;
+        default:            error_msg = "未知错误"; break;
     }
-}
-
-// ==================== 帧读取 ====================
-bool RemoteNode::readFrame(uint8_t *buffer)
-{
-    if (!ser_ || !ser_->isOpen())
-        return false;
-
-    try
-    {
-        uint8_t byte;
-
-        // 扫描寻找帧头 0xAA
-        while (true)
-        {
-            if (ser_->available() < 1)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                if (!running_)
-                    return false;
-                continue;
-            }
-
-            size_t bytes_read = ser_->read(&byte, 1);
-            if (bytes_read != 1)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                continue;
-            }
-
-            if (byte == REMOTE_PACK_HEAD)
-            {
-                buffer[0] = byte;
-                break;
-            }
-        }
-
-        // 读取剩余字节
-        size_t remaining = REMOTE_PACK_SIZE - 1;
-        size_t bytes_read = 0;
-
-        while (bytes_read < remaining)
-        {
-            if (!ser_->available())
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                if (!running_)
-                    return false;
-                continue;
-            }
-
-            size_t len = ser_->read(buffer + 1 + bytes_read, remaining - bytes_read);
-            if (len == 0)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                continue;
-            }
-            bytes_read += len;
-        }
-
-        // 验证帧尾
-        if (buffer[REMOTE_PACK_SIZE - 1] != 0x00)  // 根据需要调整帧尾标识
-        {
-            RCLCPP_DEBUG(this->get_logger(), "无效的帧尾: 0x%02x", buffer[REMOTE_PACK_SIZE - 1]);
-            return false;
-        }
-
-        return true;
-    }
-    catch (const std::exception& e)
-    {
-        RCLCPP_ERROR(this->get_logger(), "读取帧异常: %s", e.what());
-        return false;
-    }
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, 
+        "遥控器通信错误: %s", error_msg.c_str());
 }
 
 // ==================== Bezier曲线变换 ====================
@@ -213,7 +170,7 @@ float RemoteNode::BezierTransform(float x, const std::vector<float>& bezier)
 }
 
 // ==================== 数据处理 ====================
-void RemoteNode::processData(const RemotePack_t &data)
+void RemoteNode::ProcessData(const RemoteData_t &data)
 {
     // 更新最后接收时间
     last_receive_time_ = this->now();
@@ -274,6 +231,7 @@ void RemoteNode::processData(const RemotePack_t &data)
 
     // 调试输出（可以使用--ros-args --log-level debug 启用）
     RCLCPP_DEBUG(this->get_logger(), 
-        "Remote: rocker[0]=%f, rocker[1]=%f, omega=%.2f°/s, wheel_v=%.2f, key1=0x%02x",
+        "遥控器数据: 摇杆0=%.3f, 摇杆1=%.3f, 角速度=%.1f°/s, 轮速=%.3f, 按键=0x%02x",
         vel[0], vel[1], last_omega, vel[2], data.key1);
 }
+

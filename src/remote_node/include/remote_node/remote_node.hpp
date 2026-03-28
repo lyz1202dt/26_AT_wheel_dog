@@ -2,22 +2,22 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <robot_interfaces/msg/move_cmd.hpp>
-#include <serial/serial.h>
+#include "remote_node/comm.hpp"
 
 #include <thread>
 #include <atomic>
 #include <vector>
 #include <cmath>
+#include <memory>
 
-// ==================== 遥控器数据包 ====================
+// ==================== 遥控器数据包（协议定义） ====================
+// 在通信协议中，数据部分包含摇杆和按键信息
 #pragma pack(push, 1)
-struct RemotePack_t
+struct RemoteData_t
 {
-    uint8_t head;          // 0xAA
     int16_t rocker[4];     // 摇杆 ADC 值，范围 0~2047
     uint8_t key1;          // 按键组 1 状态
     uint8_t key2;          // 按键组 2 状态
-    uint8_t end;           // 帧尾标识
 };
 #pragma pack(pop)
 
@@ -29,20 +29,22 @@ public:
     ~RemoteNode();
 
 private:
-    // 串口线程
-    void serialLoop();
-    bool readFrame(uint8_t *buffer);
+    // 数据处理回调
+    void OnRemoteDataReceived(uint8_t *src, uint16_t size, void* user_data);
+    
+    // 错误处理回调
+    void OnBadDataPack(uint32_t type);
 
     // 数据处理
-    void processData(const RemotePack_t &data);
+    void ProcessData(const RemoteData_t &data);
     
     // Bezier 曲线变换（对应STM32中的非线性映射）
     float BezierTransform(float x, const std::vector<float>& bezier);
 
 private:
-    std::unique_ptr<serial::Serial> ser_;
-    std::thread serial_thread_;
-    std::atomic<bool> running_;
+    // 通信模块
+    std::shared_ptr<RemoteComm> comm_;
+    uint32_t recv_cb_id_;
 
     // 发布器
     rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr move_cmd_pub;
