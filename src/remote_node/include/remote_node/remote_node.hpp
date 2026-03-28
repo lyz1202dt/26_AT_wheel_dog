@@ -55,14 +55,14 @@ private:
     float cur_dir = 0.0f;          // 当前方向
 
     // 滤波系数
-    float filter_gate = 0.2f;      // 摇杆滤波系数
+    float filter_gate  = 1.0f;      // 摇杆滤波系数
     float filter_alpha = 0.2f;     // 第4摇杆滤波系数
 
     // ==================== 运动参数 ====================
-    float max_speed = 1.0f;            // 最大前进速度
+    float max_speed = 0.4f;            // 最大前进速度
     float max_forword_speed = 1.0f;    // 最大前进速度
     float max_backward_speed = 0.5f;   // 最大后退速度
-    float max_omega = 180.0f;          // 最大角速度（度/秒）
+    float max_omega = 120.0f;          // 最大角速度（度/秒）
 
     // ==================== 超时检测 ====================
     rclcpp::Time last_receive_time_;   // 最后一次接收数据的时间
