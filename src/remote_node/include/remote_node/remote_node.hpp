@@ -45,7 +45,7 @@ private:
     std::atomic<bool> running_;
 
     // 发布器
-    rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr pub_;
+    rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr move_cmd_pub;
 
     // ==================== 滤波变量（对应STM32） ====================
     float last_v0 = 0.0f;          // 摇杆0滤波值

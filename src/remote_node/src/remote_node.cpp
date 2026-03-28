@@ -21,21 +21,21 @@ RemoteNode::RemoteNode()
         {
             ser_->open();
         }
-        RCLCPP_INFO(this->get_logger(), "成功打开串口: %s, 波特率: %d", port.c_str(), baudrate);
+        RCLCPP_INFO(this->get_logger(), "成功打开遥控器串口: %s, 波特率: %d", port.c_str(), baudrate);
     }
     catch (const serial::SerialException& e)
     {
-        RCLCPP_ERROR(this->get_logger(), "串口打开失败: %s", e.what());
+        RCLCPP_ERROR(this->get_logger(), "遥控器串口打开失败: %s", e.what());
         ser_ = nullptr;
     }
     catch (const std::exception& e)
     {
-        RCLCPP_ERROR(this->get_logger(), "初始化异常: %s", e.what());
+        RCLCPP_ERROR(this->get_logger(), "遥控器串口初始化异常: %s", e.what());
         ser_ = nullptr;
     }
 
     // 创建ROS2发布器
-    pub_ = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd", 10);
+    move_cmd_pub = this->create_publisher<robot_interfaces::msg::MoveCmd>("robot_move_cmd", 10);
     RCLCPP_INFO(this->get_logger(), "RemoteNode 初始化完成，发布话题: robot_move_cmd");
 
     // 记录初始时间
@@ -270,7 +270,7 @@ void RemoteNode::processData(const RemotePack_t &data)
     msg->vy = vel[0];                                    // X方向速度
     msg->vz = last_omega * M_PI / 180.0f;               // 将角速度从度转换为弧度
 
-    pub_->publish(std::move(msg));
+    move_cmd_pub->publish(std::move(msg));
 
     // 调试输出（可以使用--ros-args --log-level debug 启用）
     RCLCPP_DEBUG(this->get_logger(), 
