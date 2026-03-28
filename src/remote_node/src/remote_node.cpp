@@ -9,7 +9,7 @@ static constexpr uint8_t REMOTE_PACK_HEAD = 0xAA;
 RemoteNode::RemoteNode()
     : Node("remote_node"), running_(true)
 {
-    std::string port = "/dev/ttyUSB1";
+    std::string port = "/dev/ttyUSB0";
     int baudrate = 115200;
 
     // 创建序列对象

@@ -38,9 +38,15 @@ def generate_launch_description():
         executable="rviz2",
         arguments=["-d", rviz2_config_path]  # 可选，指定rviz配置文件
     )
+    remote_node = Node(
+        package="remote_node",     
+        executable="remote_node",  
+        name="remote_node",
+        output="screen"      # 输出到屏幕
+    )
     
     sim_launch = IncludeLaunchDescription(
     PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('launch_pack'), 'launch', simulate_env_launch_scripe)]))
     
-    return LaunchDescription([robot_state_pub,  leg_calc , rviz2 ,sim_launch])
+    return LaunchDescription([robot_state_pub,  leg_calc , rviz2 ,sim_launch,remote_node])
