@@ -8,7 +8,7 @@
 RemoteNode::RemoteNode()
     : Node("remote_node"), remote_control_cb_id_(0)
 {
-    std::string port = "/dev/ttyUSB1";
+    std::string port = "/dev/ttyUSB0";
     int baudrate = 115200;
     
     // 打开串口
