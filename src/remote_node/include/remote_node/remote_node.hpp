@@ -1,28 +1,15 @@
 #pragma once
 
 #include <rclcpp/rclcpp.hpp>
-#include <robot_interfaces/msg/move_cmd.hpp>
-#include "remote_node/comm.hpp"
-
-#include <thread>
-#include <atomic>
-#include <vector>
-#include <cmath>
 #include <memory>
+#include <serial/serial.h>
+#include <robot_interfaces/msg/move_cmd.hpp>
+#include <thread>
+#include "remote_node/remote_comm.hpp"
 
-// ==================== 遥控器数据包（协议定义） ====================
-// 遥控器数据包结构：摇杆为浮点数，按键为32位整数
-#pragma pack(push, 1)
-typedef struct
-{
-    float rocker[4];       // 摇杆值 (已归一化到 0.0~1.0 或 -1.0~1.0)
-    uint32_t Key;          // 按键信息 (32-bit按键数据)
-} PackControl_t;
-#pragma pack(pop)
+// 远程控制器数据包命令类型
+constexpr uint8_t CMD_REMOTE_CONTROL = 0x01;  // 遥控器数据包命令
 
-using RemoteData_t = PackControl_t;
-
-// ==================== ROS2节点 ====================
 class RemoteNode : public rclcpp::Node
 {
 public:
@@ -30,52 +17,28 @@ public:
     ~RemoteNode();
 
 private:
-    // 数据处理回调
-    void OnRemoteDataReceived(uint8_t *src, uint16_t size, void* user_data);
-    
-    // 错误处理回调
-    void OnBadDataPack(uint32_t type);
-
-    // 数据处理
-    void ProcessData(const RemoteData_t &data);
-    
-    // Bezier 曲线变换（对应STM32中的非线性映射）
-    float BezierTransform(float x, const std::vector<float>& bezier);
-
-private:
-    // 通信模块
-    std::shared_ptr<RemoteComm> comm_;
-    uint32_t recv_cb_id_;
-
-    // 发布器
+    // ROS2 Publishers
     rclcpp::Publisher<robot_interfaces::msg::MoveCmd>::SharedPtr move_cmd_pub;
 
-    // ==================== 滤波变量（对应STM32） ====================
-    float last_v0 = 0.0f;          // 摇杆0滤波值
-    float last_v1 = 0.0f;          // 摇杆1滤波值
-    float last_v3 = 0.0f;          // 摇杆3滤波值
-    float last_omega = 0.0f;       // 角速度滤波值
-    float cur_dir = 0.0f;          // 当前方向
-
-    // 滤波系数
-    float filter_gate  = 1.0f;      // 摇杆滤波系数
-    float filter_alpha = 0.2f;     // 第4摇杆滤波系数
-
-    // ==================== 运动参数 ====================
-    float max_speed = 0.4f;            // 最大前进速度
-    float max_forword_speed = 1.0f;    // 最大前进速度
-    float max_backward_speed = 0.5f;   // 最大后退速度
-    float max_omega = 120.0f;          // 最大角速度（度/秒）
-
-    // ==================== 超时检测 ====================
-    rclcpp::Time last_receive_time_;   // 最后一次接收数据的时间
-    rclcpp::TimerBase::SharedPtr timeout_timer_;  // 超时检测定时器
-    static constexpr int TIMEOUT_MS = 200;        // 200ms 超时
+    // 串口通信
+    std::unique_ptr<serial::Serial> serial_;
+    std::unique_ptr<std::thread> serial_recv_thread_;
     
-    // 按键状态
-    uint8_t key1 = 0;
+    // 通信协议处理器
+    std::unique_ptr<RemoteComm> remote_comm_;
 
-    // Bezier 曲线系数（可根据需要调整，这里使用默认的二阶Bezier）
-    std::vector<float> bezier{0.0f, 0.05f, 1.0f};
+    // 回调ID（用于取消注册）
+    uint32_t remote_control_cb_id_;
+
+    // 串口接收线程函数
+    void serial_recv_task();
+
+    // 串口发送线程函数
+    void serial_send_task();
+
+    // 遥控器数据接收回调
+    static void on_remote_control_data(const uint8_t* data, uint16_t size, void* user_data);
+
+    // 错误包处理回调
+    static void on_bad_packet(uint32_t error_type);
 };
-

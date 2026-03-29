@@ -13,12 +13,15 @@ find_package(rclcpp REQUIRED)
 find_package(robot_interfaces REQUIRED)
 find_package(serial REQUIRED)
 find_package(Threads REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 
 # Create executable
 add_executable(remote_node
   src/main.cpp
   src/remote_node.cpp
-  src/comm.cpp
+  src/remote_comm.cpp
 )
 
 # Include directories
@@ -33,6 +36,9 @@ ament_target_dependencies(remote_node
   rclcpp
   robot_interfaces
   serial
+  geometry_msgs
+  sensor_msgs
+  tf2
 )
 
 # Link system libraries
