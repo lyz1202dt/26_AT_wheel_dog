@@ -440,10 +440,29 @@ void RemoteComm::ReceiveDataPackTask()
             continue;
         }
 
-        // 读取 CMD + ID + DATA（共20字节）
-        uint16_t payload_to_read = 20;  // 根据实际协议固定为20字节
-        int payload_got = SerialRead(&recv_buffer_[2], payload_to_read, 100);
-        if (payload_got < 10)
+        // 循环读取完整的有效载荷数据（20字节：CMD(1) + ID(4) + DATA(16)）
+        uint16_t payload_to_read = 20;  // 新格式固定为20字节
+        int payload_got = 0;
+        int read_timeout = 200;  // 总超时时间
+        int read_attempts = 0;
+        const int max_attempts = 50;  // 最多重试50次，约100ms
+        
+        while (payload_got < payload_to_read && read_attempts < max_attempts)
+        {
+            int chunk = SerialRead(&recv_buffer_[2 + payload_got], 
+                                  payload_to_read - payload_got, 2);
+            if (chunk > 0)
+            {
+                payload_got += chunk;
+            }
+            else
+            {
+                read_attempts++;
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            }
+        }
+
+        if (payload_got < 20)
         {
             if (bad_data_cb_)
                 bad_data_cb_(COMM_BAD_LEN);
@@ -453,9 +472,10 @@ void RemoteComm::ReceiveDataPackTask()
         // 命令字和验证
         uint8_t cmd = recv_buffer_[2];  // 命令在位置2
         
-        // 调用回调函数（数据从位置7开始，共10字节RemoteData）
+        // 调用回调函数（数据从位置7开始，共20字节RemoteData）
         uint8_t *data_ptr = recv_buffer_ + 7;  // 跳过包头(1) + 长度(1) + 命令(1) + ID(4)
-        uint16_t data_size = std::min((uint16_t)10, (uint16_t)(payload_got - 5));  // 取RemoteData大小或剩余字节数
+        uint16_t data_size = 20;  // 新格式固定为20字节(float[4] + uint32_t)
+        
         if (cmd & PACK_NEED_ACK)
         {
             uint8_t ack[5];

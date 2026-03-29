@@ -11,15 +11,16 @@
 #include <memory>
 
 // ==================== 遥控器数据包（协议定义） ====================
-// 在通信协议中，数据部分包含摇杆和按键信息
+// 遥控器数据包结构：摇杆为浮点数，按键为32位整数
 #pragma pack(push, 1)
-struct RemoteData_t
+typedef struct
 {
-    int16_t rocker[4];     // 摇杆 ADC 值，范围 0~2047
-    uint8_t key1;          // 按键组 1 状态
-    uint8_t key2;          // 按键组 2 状态
-};
+    float rocker[4];       // 摇杆值 (已归一化到 0.0~1.0 或 -1.0~1.0)
+    uint32_t Key;          // 按键信息 (32-bit按键数据)
+} PackControl_t;
 #pragma pack(pop)
+
+using RemoteData_t = PackControl_t;
 
 // ==================== ROS2节点 ====================
 class RemoteNode : public rclcpp::Node
