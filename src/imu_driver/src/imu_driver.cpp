@@ -1,7 +1,10 @@
 #include "imu_driver/imu_driver.hpp"
+#include <cstdint>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <cstring>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 // CRC8 lookup table
 const uint8_t IMUDriver::CRC8_Table[256] = {
@@ -184,7 +187,7 @@ void IMUDriver::data_recv() {
 
             // 验证packet_id是否合法
             if (packet_id != MSG_ACCELERATION && packet_id != MSG_ANGULAR_VEL && packet_id != MSG_QUAT_ORIEN) {
-                RCLCPP_WARN(node_->get_logger(), "未知的数据包类型: 0x%02X", packet_id);
+                //RCLCPP_WARN(node_->get_logger(), "未知的数据包类型: 0x%02X", packet_id);
                 buffer_len = 0;
                 continue;
             }
@@ -227,75 +230,162 @@ void IMUDriver::data_recv() {
     }
 }
 
-int IMUDriver::pack_parsing() {
-    // Buffer format: [0xFC][ID][len][seq][CRC8][CRC16_H][CRC16_L][payload...][0xFD]
-    uint8_t packet_id = buffer[1];
-    uint8_t* payload = buffer + 7; // Skip 0xFC, ID, len, seq, CRC8, CRC16
+// int IMUDriver::pack_parsing() {
+//     // Buffer format: [0xFC][ID][len][seq][CRC8][CRC16_H][CRC16_L][payload...][0xFD]
+//     uint8_t packet_id = buffer[1];
+//     uint8_t* payload = buffer + 7; // Skip 0xFC, ID, len, seq, CRC8, CRC16
 
-    // Parse based on packet type
+//     // Parse based on packet type
+//     if (packet_id == MSG_ACCELERATION) {
+//         // Parse acceleration data (3 floats: X, Y, Z)
+//         float acc_x, acc_y, acc_z;
+//         memcpy(&acc_x, payload + 0, sizeof(float));
+//         memcpy(&acc_y, payload + 4, sizeof(float));
+//         memcpy(&acc_z, payload + 8, sizeof(float));
+        
+//         acceleration.setX(acc_x);
+//         acceleration.setY(acc_y);
+//         acceleration.setZ(acc_z);
+        
+//         RCLCPP_INFO(node_->get_logger(), "加速度: X=%.3f, Y=%.3f, Z=%.3f m/s²", acc_x, acc_y, acc_z);
+        
+//     } else if (packet_id == MSG_ANGULAR_VEL) {
+//         // Parse angular velocity data (3 floats: X, Y, Z)
+//         float gyro_x, gyro_y, gyro_z;
+//         memcpy(&gyro_x, payload + 0, sizeof(float));
+//         memcpy(&gyro_y, payload + 4, sizeof(float));
+//         memcpy(&gyro_z, payload + 8, sizeof(float));
+        
+//         angular_velocity.setX(gyro_x);
+//         angular_velocity.setY(gyro_y);
+//         angular_velocity.setZ(gyro_z);
+        
+//         // 发布角速度数据
+//         sensor_msgs::msg::Imu imu_state_msg;
+//         imu_state_msg.header.frame_id="world";
+//         imu_state_msg.header.stamp=node_->get_clock()->now();
+//         imu_state_msg.angular_velocity.x = gyro_x;
+//         imu_state_msg.angular_velocity.y = gyro_y;
+//         imu_state_msg.angular_velocity.z = gyro_z;
+//         imu_state_pub->publish(imu_state_msg);
+        
+//         RCLCPP_INFO(node_->get_logger(), "角速度: X=%.3f, Y=%.3f, Z=%.3f rad/s", gyro_x, gyro_y, gyro_z);
+        
+//     } else if (packet_id == MSG_QUAT_ORIEN) {
+//         // Parse quaternion orientation data (4 floats: Q0, Q1, Q2, Q3)
+//         float q0, q1, q2, q3;
+//         memcpy(&q0, payload + 0, sizeof(float));
+//         memcpy(&q1, payload + 4, sizeof(float));
+//         memcpy(&q2, payload + 8, sizeof(float));
+//         memcpy(&q3, payload + 12, sizeof(float));
+        
+//         // Set quaternion (w, x, y, z)
+//         rotation.setW(q0);
+//         rotation.setX(q1);
+//         rotation.setY(q2);
+//         rotation.setZ(q3);
+        
+//         // 发布姿态数据
+//         geometry_msgs::msg::PoseStamped pose_msg;
+//         pose_msg.header.stamp = node_->get_clock()->now();
+//         pose_msg.header.frame_id = "imu_link";
+//         pose_msg.pose.orientation.w = q0;
+//         pose_msg.pose.orientation.x = q1;
+//         pose_msg.pose.orientation.y = q2;
+//         pose_msg.pose.orientation.z = q3;
+//         imu_posture_pub->publish(pose_msg);
+        
+//         RCLCPP_INFO(node_->get_logger(), "四元数: W=%.3f, X=%.3f, Y=%.3f, Z=%.3f", q0, q1, q2, q3);
+        
+//     } else {
+//         RCLCPP_WARN(node_->get_logger(), "未知的数据包类型: 0x%02X", packet_id);
+//         return -1;
+//     }
+
+//     return 0;
+// }
+int IMUDriver::pack_parsing() {
+    uint8_t packet_id = buffer[1];
+    uint8_t* payload = buffer + 7; // Skip header
+
     if (packet_id == MSG_ACCELERATION) {
-        // Parse acceleration data (3 floats: X, Y, Z)
         float acc_x, acc_y, acc_z;
         memcpy(&acc_x, payload + 0, sizeof(float));
         memcpy(&acc_y, payload + 4, sizeof(float));
         memcpy(&acc_z, payload + 8, sizeof(float));
-        
-        acceleration.setX(acc_x);
-        acceleration.setY(acc_y);
-        acceleration.setZ(acc_z);
-        
-        RCLCPP_INFO(node_->get_logger(), "加速度: X=%.3f, Y=%.3f, Z=%.3f m/s²", acc_x, acc_y, acc_z);
-        
+
+        // ==== 修正加速度方向 ====
+        acceleration.setX(-acc_x); // Roll 方向反
+        acceleration.setY(acc_y);  // Pitch 正
+        acceleration.setZ(-acc_z); // Yaw 方向反
+
+        // RCLCPP_INFO(node_->get_logger(),
+        //     "加速度: X=%.3f, Y=%.3f, Z=%.3f m/s²",
+        //     acceleration.x(), acceleration.y(), acceleration.z());
+
     } else if (packet_id == MSG_ANGULAR_VEL) {
-        // Parse angular velocity data (3 floats: X, Y, Z)
         float gyro_x, gyro_y, gyro_z;
         memcpy(&gyro_x, payload + 0, sizeof(float));
         memcpy(&gyro_y, payload + 4, sizeof(float));
         memcpy(&gyro_z, payload + 8, sizeof(float));
-        
-        angular_velocity.setX(gyro_x);
-        angular_velocity.setY(gyro_y);
-        angular_velocity.setZ(gyro_z);
-        
-        // 发布角速度数据
+
+        // ==== 修正角速度方向 ====
+        angular_velocity.setX(-gyro_x); // Roll 方向反
+        angular_velocity.setY(gyro_y);  // Pitch 正
+        angular_velocity.setZ(-gyro_z); // Yaw 方向反
+
         sensor_msgs::msg::Imu imu_state_msg;
         imu_state_msg.header.frame_id="world";
         imu_state_msg.header.stamp=node_->get_clock()->now();
-        imu_state_msg.angular_velocity.x = gyro_x;
-        imu_state_msg.angular_velocity.y = gyro_y;
-        imu_state_msg.angular_velocity.z = gyro_z;
+        imu_state_msg.angular_velocity.x = angular_velocity.x();
+        imu_state_msg.angular_velocity.y = angular_velocity.y();
+        imu_state_msg.angular_velocity.z = angular_velocity.z();
         imu_state_pub->publish(imu_state_msg);
-        
-        RCLCPP_INFO(node_->get_logger(), "角速度: X=%.3f, Y=%.3f, Z=%.3f rad/s", gyro_x, gyro_y, gyro_z);
-        
+
+        // RCLCPP_INFO(node_->get_logger(),
+        //     "角速度: X=%.3f, Y=%.3f, Z=%.3f rad/s",
+        //     angular_velocity.x(), angular_velocity.y(), angular_velocity.z());
+
     } else if (packet_id == MSG_QUAT_ORIEN) {
-        // Parse quaternion orientation data (4 floats: Q0, Q1, Q2, Q3)
         float q0, q1, q2, q3;
         memcpy(&q0, payload + 0, sizeof(float));
         memcpy(&q1, payload + 4, sizeof(float));
         memcpy(&q2, payload + 8, sizeof(float));
         memcpy(&q3, payload + 12, sizeof(float));
-        
-        // Set quaternion (w, x, y, z)
-        rotation.setW(q0);
-        rotation.setX(q1);
-        rotation.setY(q2);
-        rotation.setZ(q3);
-        
-        // 发布姿态数据
+
+        // ==== 修正四元数（绕 Y 轴180°，Pitch 正，Roll/Yaw 反） ====
+        tf2::Quaternion q_raw(q1, q2, q3, q0); // (x,y,z,w)
+        tf2::Quaternion q_fix;
+        q_fix.setRPY(0, M_PI, 0);
+        tf2::Quaternion q_new = q_fix * q_raw;
+        q_new.normalize();
+
+        rotation.setW(q_new.w());
+        rotation.setX(q_new.x());
+        rotation.setY(q_new.y());
+        rotation.setZ(q_new.z());
+
         geometry_msgs::msg::PoseStamped pose_msg;
         pose_msg.header.stamp = node_->get_clock()->now();
         pose_msg.header.frame_id = "imu_link";
-        pose_msg.pose.orientation.w = q0;
-        pose_msg.pose.orientation.x = q1;
-        pose_msg.pose.orientation.y = q2;
-        pose_msg.pose.orientation.z = q3;
+        pose_msg.pose.orientation.w = q_new.w();
+        pose_msg.pose.orientation.x = q_new.x();
+        pose_msg.pose.orientation.y = q_new.y();
+        pose_msg.pose.orientation.z = q_new.z();
         imu_posture_pub->publish(pose_msg);
-        
-        RCLCPP_INFO(node_->get_logger(), "四元数: W=%.3f, X=%.3f, Y=%.3f, Z=%.3f", q0, q1, q2, q3);
-        
+
+        static int64_t cnt = 0;
+        cnt++;
+        if(cnt>=200)
+        {
+            RCLCPP_INFO(node_->get_logger(),
+            "四元数(修正后): W=%.3f, X=%.3f, Y=%.3f, Z=%.3f",
+            q_new.w(), q_new.x(), q_new.y(), q_new.z());
+            cnt = 0;
+        }
+
     } else {
-        RCLCPP_WARN(node_->get_logger(), "未知的数据包类型: 0x%02X", packet_id);
+        //RCLCPP_WARN(node_->get_logger(), "未知的数据包类型: 0x%02X", packet_id);
         return -1;
     }
 

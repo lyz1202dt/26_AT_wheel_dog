@@ -134,6 +134,7 @@ public:
     std::shared_ptr<VMC> lb_z_vmc, lb_x_vmc, lb_y_vmc;
     std::shared_ptr<VMC> rb_z_vmc, rb_x_vmc, rb_y_vmc;
     std::shared_ptr<SimpleVMC> roll_vmc, pitch_vmc;
+    double dy{0.0};
 
 
     // 共享参数

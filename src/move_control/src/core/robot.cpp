@@ -50,27 +50,28 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     pitch_vmc = std::make_shared<SimpleVMC>(500.0, 100.0, 100);
 
     node_->declare_parameter("direction_filter_gate", 0.6);
-    node_->declare_parameter("vmc_kp", 100.0);
-    node_->declare_parameter("vmc_kd", 120.0);
+    node_->declare_parameter("vmc_kp", 80.0);
+    node_->declare_parameter("vmc_kd", 50.0);
     node_->declare_parameter("vmc_mass", 0.5);
 
     node_->declare_parameter("horizontal_vmc_kp", 500.0);
     node_->declare_parameter("horizontal_vmc_kd", 150.0);
     node_->declare_parameter("horizontal_vmc_mass", 3.0);
 
-    node_->declare_parameter("roll_vmc_kp", -300.0);
-    node_->declare_parameter("roll_vmc_kd", 0.0);
-    node_->declare_parameter("pitch_vmc_kp", 500.0);
-    node_->declare_parameter("pitch_vmc_kd", 0.0);
+    node_->declare_parameter("roll_vmc_kp", -600.0);
+    node_->declare_parameter("roll_vmc_kd", -50.0);
+    node_->declare_parameter("pitch_vmc_kp", 550.0);
+    node_->declare_parameter("pitch_vmc_kd", 50.0);
 
-    node_->declare_parameter("lf_grivate", 22.0);   //34
-    node_->declare_parameter("rf_grivate", 22.0);
-    node_->declare_parameter("lb_grivate", 26.0);   //38
-    node_->declare_parameter("rb_grivate", 26.0);
-    node_->declare_parameter("lf_dx", 0.0);
-    node_->declare_parameter("rf_dx", 0.0);
-    node_->declare_parameter("lb_dx", 0.0);
-    node_->declare_parameter("rb_dx", 0.0);
+    node_->declare_parameter("lf_grivate", 32.0);   //34
+    node_->declare_parameter("rf_grivate", 32.0);
+    node_->declare_parameter("lb_grivate", 32.0);   //38
+    node_->declare_parameter("rb_grivate", 32.0);
+    node_->declare_parameter("a_lf_dx", 0.0);
+    node_->declare_parameter("dy", 0.0);
+    node_->declare_parameter("a_rf_dx", 0.0);
+    node_->declare_parameter("aa_lb_dx", 0.0);
+    node_->declare_parameter("a_rb_dx", 0.0);
     node_->declare_parameter("body_height", 0.25);
 
 
@@ -135,14 +136,16 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
 
     // ========== foot x offset ==========
     double lf_dx_temp, rf_dx_temp, lb_dx_temp, rb_dx_temp;
-    node_->get_parameter("lf_dx", lf_dx_temp);
-    node_->get_parameter("rf_dx", rf_dx_temp);
-    node_->get_parameter("lb_dx", lb_dx_temp);
-    node_->get_parameter("rb_dx", rb_dx_temp);
-    lf_base_offset << 0.25 + lf_dx_temp, 0.21, -body_height;
-    rf_base_offset << 0.25 + rf_dx_temp, -0.21, -body_height;
-    lb_base_offset << -0.25 + lb_dx_temp, 0.21, -body_height;
-    rb_base_offset << -0.25 + rb_dx_temp, -0.21, -body_height;
+    node_->get_parameter("a_lf_dx", lf_dx_temp);
+    node_->get_parameter("a_rf_dx", rf_dx_temp);
+    node_->get_parameter("aa_lb_dx", lb_dx_temp);
+    node_->get_parameter("a_rb_dx", rb_dx_temp);
+    node_->get_parameter("dy", dy);
+    
+    lf_base_offset << 0.25 + lf_dx_temp, 0.18 + dy, -body_height;
+    rf_base_offset << 0.25 + rf_dx_temp, -0.18 - dy, -body_height;
+    lb_base_offset << -0.26 - lb_dx_temp, 0.18 + dy, -body_height;
+    rb_base_offset << -0.26 - lb_dx_temp, -0.18 - dy, -body_height;
 
 
     robot_rotation.setRPY(0.0, 0.0, 0.0);
@@ -660,17 +663,23 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
     } else if (name == "rb_grivate") {
         robot_rb_grivate = param.as_double();
         return true;
-    } else if (name == "lf_dx") {
+    } else if (name == "a_lf_dx") {
         lf_base_offset[0] = 0.25 + param.as_double();
         return true;
-    } else if (name == "rf_dx") {
+    } else if (name == "a_rf_dx") {
         rf_base_offset[0] = 0.25 + param.as_double();
         return true;
-    } else if (name == "lb_dx") {
+    } else if (name == "aa_lb_dx") {
         lb_base_offset[0] = -0.23 + param.as_double();
         return true;
-    } else if (name == "rb_dx") {
+    } else if (name == "a_rb_dx") {
         rb_base_offset[0] = -0.23 + param.as_double();
+        return true;
+    } else if (name == "body_height") {
+        body_height = param.as_double();
+        return true;
+    } else if (name == "dy") {
+        dy = param.as_double();
         return true;
     }
 
