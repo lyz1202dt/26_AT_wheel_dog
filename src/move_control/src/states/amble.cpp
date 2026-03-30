@@ -92,7 +92,7 @@ std::string AmbleState::update(Robot* robot) {
         auto rf_pos=(rf_foot_exp_pos+robot->rf_leg_calc->pos_offset).head(2);
         auto lb_pos=(lb_foot_exp_pos+robot->lb_leg_calc->pos_offset).head(2);
         auto rb_pos=(rb_foot_exp_pos+robot->rb_leg_calc->pos_offset).head(2);
-        
+         
         // 使用Eigen求解每条腿的支撑力
         // 构建方程组: A * f = b
         // 约束条件:
