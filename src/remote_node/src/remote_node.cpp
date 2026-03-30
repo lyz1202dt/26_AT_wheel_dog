@@ -139,10 +139,10 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     RemoteNode* node = reinterpret_cast<RemoteNode*>(user_data);
 
     // data 应包含遥控器的控制数据
-    // 格式：float[4] (rocker0-3) + uint32_t (key) = 20字节
+    // 格式：float[4] (rocker0-3) + uint32_t (key) = 20 字节
     if (size < 20) {
         RCLCPP_WARN(node->get_logger(), 
-                   "遥控器数据长度错误: 期望>=20字节，实际%u字节", size);
+                   "遥控器数据长度错误：期望>=20 字节，实际%u 字节", size);
         return;
     }
     
@@ -155,6 +155,10 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     memcpy(&rocker3, data + 12, sizeof(float));
     memcpy(&key_data, data + 16, sizeof(uint32_t));
     
+    // 修正符号：rocker2 和 rocker3 的符号与遥控器显示相反，需要取反
+    rocker2 = -rocker2;
+    rocker3 = -rocker3;
+
     // 严格的按键值白名单验证 - 只允许指定的按键值
     // 允许的值：0x0, 0x8, 0x10, 0x20, 0x40, 0x800, 0x1000, 0x2000, 0x4000
     static const uint32_t VALID_KEY_VALUES[] = {
@@ -176,7 +180,7 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
         return;  // 丢弃此包，不发送
     }
 
-    // 发布ROS消息
+    // 发布 ROS 消息
     auto msg = std::make_unique<robot_interfaces::msg::MoveCmd>();
     msg->vx = rocker0;
     msg->vy = rocker1;
@@ -196,6 +200,8 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
                 (time_t_now / 3600) % 24, (time_t_now / 60) % 60, time_t_now % 60, ms.count(),
                 rocker0, rocker1, rocker2, rocker3, key_data);
 }
+
+
 
 void RemoteNode::on_bad_packet(uint32_t error_type)
 {
