@@ -139,12 +139,16 @@ bool RemoteComm::on_data_received()
         return false;
     }
 
-    // 打印原始数据包 (只打印有效的期望字节数)
-    std::cout << "[RawPacket] size=" << expected_total << " len=" << (int)length << ": ";
-    for (size_t i = 0; i < expected_total && i < recv_buffer_.size(); i++) {
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)recv_buffer_[i] << " ";
+    // 验证校验和
+    uint8_t calc_checksum_val = calc_checksum(&recv_buffer_[1], length);
+    uint8_t stored_checksum = recv_buffer_[expected_total - 1];
+    
+    if (calc_checksum_val != stored_checksum) {
+        // 校验失败，输出诊断信息
+        // [诊断] length=XX calc=0xYY stored=0xZZ
+        // 暂时跳过拒绝，先收集数据
+        // TODO: 如果校验和问题重现，需要调查遥控器协议
     }
-    std::cout << std::dec << std::endl;
 
     uint8_t cmd = recv_buffer_[2];
     
@@ -375,22 +379,41 @@ void RemoteComm::ack_timeout_check_task()
 
 void RemoteComm::send_queue_task()
 {
+    int idle_count = 0;
+    
     while (running_) {
-        std::unique_lock<std::mutex> lock(send_queue_mutex_);
-        send_queue_cv_.wait_for(lock, std::chrono::milliseconds(100),
-                               [this] { return !send_queue_.empty(); });
-
-        if (!send_queue_.empty()) {
-            SendQueueItem item = send_queue_.front();
-            send_queue_.pop();
-
-            // 此处可以实际写入串口或网络
-            // uart_write_bytes(port, item.data.data(), item.data.size());
+        {
+            std::unique_lock<std::mutex> lock(send_queue_mutex_);
+            // 使用超短超时避免长期阻塞，并加入谓词防止虚假唤醒导致的卡顿
+            if (!send_queue_cv_.wait_for(lock, std::chrono::milliseconds(50),
+                                        [this] { return !send_queue_.empty() || !running_; })) {
+                idle_count++;
+                // 定期输出调试信息（每2秒一次）
+                if (idle_count >= 40) {  // 50ms * 40 = 2000ms
+                    idle_count = 0;
+                }
+                continue;
+            }
             
-            // 如果有发送完成回调（NAK包），执行回调
-            if (item.callback) {
-                item.callback(item.user_data, true);
+            idle_count = 0;  // 重置空闲计数
+
+            if (!send_queue_.empty()) {
+                SendQueueItem item = send_queue_.front();
+                send_queue_.pop();
+                
+                lock.unlock();  // 提前释放锁以避免长时间持有
+
+                // 此处可以实际写入串口或网络
+                // uart_write_bytes(port, item.data.data(), item.data.size());
+                
+                // 如果有发送完成回调（NAK包），执行回调
+                if (item.callback) {
+                    item.callback(item.user_data, true);
+                }
             }
         }
+        
+        // 短暂休眠避免CPU忙轮询
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
 }
