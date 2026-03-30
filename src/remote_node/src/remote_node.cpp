@@ -182,7 +182,7 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     msg->vy = rocker1;
     msg->vz = rocker2;
     msg->wheel_vel = rocker3;
-    msg->step_mode = (key_data & 0xFF);
+    msg->step_mode = key_data;
 
     node->move_cmd_pub->publish(std::move(msg));
 
@@ -192,16 +192,9 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
     
     RCLCPP_INFO(node->get_logger(), 
-                "[%02ld:%02ld:%02ld.%03ld] ✓ rocker=[%.2f, %.2f, %.2f, %.2f] key=0x%04X", 
+                "[%02ld:%02ld:%02ld.%03ld] rocker=[%.2f, %.2f, %.2f, %.2f] key=0x%04X", 
                 (time_t_now / 3600) % 24, (time_t_now / 60) % 60, time_t_now % 60, ms.count(),
                 rocker0, rocker1, rocker2, rocker3, key_data);
-    
-    // 统计有效消息数
-    static uint64_t valid_msg_count = 0;
-    valid_msg_count++;
-    if (valid_msg_count % 10 == 0) {
-        RCLCPP_DEBUG(node->get_logger(), "[统计] 已接收 %lu 个有效消息", valid_msg_count);
-    }
 }
 
 void RemoteNode::on_bad_packet(uint32_t error_type)
