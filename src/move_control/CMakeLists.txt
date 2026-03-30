@@ -54,6 +54,7 @@ src/leg/vmc.cpp
 src/leg/online_step.cpp
 
 src/states/idel.cpp
+src/states/idel2.cpp
 src/states/setup.cpp
 src/states/stop.cpp
 src/states/walk.cpp

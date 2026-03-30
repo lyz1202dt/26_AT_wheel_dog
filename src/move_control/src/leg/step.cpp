@@ -273,6 +273,7 @@ std::tuple<Vector3D, Vector3D, Vector3D> LegStep::get_target(double time, bool& 
 
         pos[2] = support_trajectory.lz.b + support_trajectory.lz.k * time;
         vel[2] = support_trajectory.lz.k;
+        
     }
     else
         success=false;

@@ -12,6 +12,7 @@
 #include "states/jump.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
+#include "states/idel2.hpp"
 // #include "states/mpc2.hpp"
 #include "states/amble.hpp"
 #include "states/climb_steps.hpp"
@@ -63,10 +64,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("pitch_vmc_kp", 550.0);
     node_->declare_parameter("pitch_vmc_kd", 50.0);
 
-    node_->declare_parameter("lf_grivate", 32.0);   //34
-    node_->declare_parameter("rf_grivate", 32.0);
-    node_->declare_parameter("lb_grivate", 40.0);   //38
-    node_->declare_parameter("rb_grivate", 40.0);
+    node_->declare_parameter("lf_grivate", 20.0);   //32
+    node_->declare_parameter("rf_grivate", 20.0);
+    node_->declare_parameter("lb_grivate", 22.0);   //40
+    node_->declare_parameter("rb_grivate", 22.0);
     node_->declare_parameter("lf_dx", 0.0);
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);
@@ -278,6 +279,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<IdelState>(this));
     fsm.register_state(std::make_unique<SetupState>(this));
     fsm.register_state(std::make_unique<StopState>(this));
+    fsm.register_state(std::make_unique<Idel2State>(this));
     fsm.register_state(std::make_unique<WalkState>(this));
     // fsm.register_state(std::make_unique<MPC2State>(this));
     fsm.register_state(std::make_unique<ClimbStepstate>(this));

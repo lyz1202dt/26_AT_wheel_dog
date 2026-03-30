@@ -59,6 +59,14 @@ LegCalc::LegCalc(KDL::Chain& chain,const std::vector<double>& kp_list ={3.0,2.8,
 
 LegCalc::~LegCalc() {}
 
+
+void LegCalc::set_init_joint_pos(const Eigen::Vector3d& init_joint_pos)
+{
+    last_exp_joint_pos(0)=init_joint_pos[0];
+    last_exp_joint_pos(1)=init_joint_pos[1];
+    last_exp_joint_pos(2)=init_joint_pos[2];
+}
+
 Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d &foot_pos,int  *result,const Eigen::Vector3d &cur_joint_pos)
 {
     KDL::Frame frame;
