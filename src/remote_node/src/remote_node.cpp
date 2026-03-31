@@ -16,7 +16,7 @@ RemoteNode::RemoteNode()
     
     // 打开串口 - 使用极短的超时时间（10ms）以提高实时性
     // 这样可以更快地响应按键数据变化
-    serial_ = std::make_unique<serial::Serial>(port, baudrate, serial::Timeout::simpleTimeout(10));
+    serial_ = std::make_unique<serial::Serial>(port, baudrate, serial::Timeout::simpleTimeout(100));
     if (!serial_->isOpen()) {
         RCLCPP_ERROR(this->get_logger(), "打开设备失败:%s", port.c_str());
         return;
@@ -101,6 +101,7 @@ void RemoteNode::serial_recv_task()
                     // 逐字节传入通信协议处理器，每接收到一批数据立即处理
                     for (size_t i = 0; i < bytes_read; i++) {
                         remote_comm_->process_recv_byte(buffer[i]);
+                        RCLCPP_INFO(this->get_logger(), "接收到数据: 0x%02X", buffer[i]);
                     }
                     last_print_time = std::chrono::steady_clock::now();
                     
@@ -162,7 +163,7 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     // 严格的按键值白名单验证 - 只允许指定的按键值
     // 允许的值：0x0, 0x8, 0x10, 0x20, 0x40, 0x800, 0x1000, 0x2000, 0x4000
     static const uint32_t VALID_KEY_VALUES[] = {
-        0x0, 0x8, 0x10, 0x20, 0x40, 0x800, 0x1000, 0x2000, 0x4000
+         0x0,0x8, 0x10, 0x20, 0x40, 0x800, 0x1000, 0x2000, 0x4000
     };
     static const size_t VALID_KEY_COUNT = sizeof(VALID_KEY_VALUES) / sizeof(VALID_KEY_VALUES[0]);
     
@@ -179,14 +180,58 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
                    "[数据过滤] 非法按键值 0x%04X，已拒绝此包", key_data);
         return;  // 丢弃此包，不发送
     }
-
+    
     // 发布 ROS 消息
-    auto msg = std::make_unique<robot_interfaces::msg::MoveCmd>();
-    msg->vx = rocker0;
-    msg->vy = rocker1;
-    msg->vz = rocker2;
-    msg->wheel_vel = rocker3;
-    msg->step_mode = key_data;
+    static uint32_t last_step_mode = 0;
+    auto msg = robot_interfaces::msg::MoveCmd();
+    if(key_data == 0x8)        //idle
+    {
+        msg.step_mode = 0;      
+        last_step_mode = 0;     
+    }    
+    else if(key_data == 0x10)    //stop
+    {
+        msg.step_mode = 1;
+        last_step_mode = 1;
+    }
+    else if(key_data == 0x20)    //walk
+    {
+        msg.step_mode = 2;     
+        last_step_mode = 2;
+    }   
+    else if(key_data == 0x40)    //climb_steps
+    {
+        msg.step_mode = 3;     
+        last_step_mode = 3;
+    }
+    else if(key_data == 0x800)   //climb_steps
+    {
+        msg.step_mode = 4;      
+        last_step_mode = 4;
+    }
+    else if(key_data == 0x1000)  
+    {
+        msg.step_mode = 5;       //cross_wall
+        last_step_mode = 5;
+    }
+    else if(key_data == 0x2000)  
+    {
+        msg.step_mode = 6;       //jump
+        last_step_mode = 6;
+    }
+    else if(key_data == 0x4000)  
+    {
+        msg.step_mode = 7;      //amble
+        last_step_mode = 7;
+    }
+    else if(key_data == 0x0)     
+    {
+        msg.step_mode = last_step_mode;  //保持上次模式
+    }
+    msg.vx = rocker0;
+    msg.vy = rocker1;
+    msg.vz = rocker2;
+    msg.wheel_vel = rocker3;
 
     node->move_cmd_pub->publish(std::move(msg));
 
