@@ -58,6 +58,7 @@ LegCalc::LegCalc(KDL::Chain& chain,const std::vector<double>& kp_list ={3.0,2.8,
 }
 
 
+LegCalc::~LegCalc() {}
 
 void LegCalc::set_init_joint_pos(const Eigen::Vector3d init_joint_pos)
 {

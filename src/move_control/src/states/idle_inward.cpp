@@ -1,20 +1,20 @@
-#include "states/idel2.hpp"
+#include "states/idle_inward.hpp"
 #include "core/robot.hpp"
 #include <Eigen/Dense>
 
-Idel2State::Idel2State(Robot* robot)
-    : BaseState<Robot>("idel2") {
+idle_inward::idle_inward(Robot* robot)
+    : BaseState<Robot>("idle_inward") {
     (void)robot;
 }
 
-bool Idel2State::enter(Robot* robot, const std::string& last_status) {
+bool idle_inward::enter(Robot* robot, const std::string& last_status) {
     (void)robot;
     (void)last_status;
     return true;
 }
 
 
-std::string Idel2State::update(Robot* robot) {
+std::string idle_inward::update(Robot* robot) {
     // TODO:更新状态
     auto lf_foot_exp_pos = robot->lf_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
     auto rf_foot_exp_pos = robot->rf_leg_stop_pos = Vector3D(0.0, 0.0, 0.0);
@@ -23,25 +23,32 @@ std::string Idel2State::update(Robot* robot) {
 
     robot_interfaces::msg::RobotTarget joints_target;
     if ((!trajectory_calced)) {
+
+        robot->node_->set_parameters({
+            rclcpp::Parameter("lf_grivate", 34.0),
+            rclcpp::Parameter("rf_grivate", 34.0),
+            rclcpp::Parameter("lb_grivate", 33.0),
+            rclcpp::Parameter("rb_grivate", 33.0)
+        });
+
         RCLCPP_INFO(robot->node_->get_logger(), "开始执行内八脚运动");
 
         trajectory_calced = true;
         setup_time        = robot->node_->get_clock()->now();
-        lf_leg_step.update_support_trajectory(robot->lf_joint_pos, robot->lf_joint_pos, 4.0);
-        rf_leg_step.update_support_trajectory(robot->rf_joint_pos, robot->rf_joint_pos, 4.0);
-        lb_leg_step.update_support_trajectory(robot->lb_joint_pos, Vector3D(robot->lb_joint_pos(0), -0.79, 3.28), 4.0);
-        rb_leg_step.update_support_trajectory(robot->rb_joint_pos, Vector3D(robot->rb_joint_pos(0), 0.79, -3.28), 4.0);
+        lf_leg_step.update_support_trajectory(robot->lf_joint_pos, robot->lf_joint_pos, 3.0);
+        rf_leg_step.update_support_trajectory(robot->rf_joint_pos, robot->rf_joint_pos, 3.0);
+        lb_leg_step.update_support_trajectory(robot->lb_joint_pos, Vector3D(robot->lb_joint_pos(0), -0.79, 3.28), 3.0);
+        rb_leg_step.update_support_trajectory(robot->rb_joint_pos, Vector3D(robot->rb_joint_pos(0), 0.79, -3.28), 3.0);
     }
 
-    static bool success = true;
+    bool success;
     auto now       = robot->node_->get_clock()->now();
-    if(success)
-    {
+    
     lf_joint_target = lf_leg_step.get_target((now - setup_time).seconds(), success);
     rf_joint_target = rf_leg_step.get_target((now - setup_time).seconds(), success);
     lb_joint_target = lb_leg_step.get_target((now - setup_time).seconds(), success);
     rb_joint_target = rb_leg_step.get_target((now - setup_time).seconds(), success);
-    }
+
     static int cnt = 0;
         cnt++;
         if(cnt>=10)
@@ -82,20 +89,14 @@ std::string Idel2State::update(Robot* robot) {
     }
 
     robot->legs_target_pub->publish(joints_target);
-    if ((now - setup_time).seconds() >= 4.0)
+    if ((now - setup_time).seconds() >= 3.01)
     {
+        trajectory_calced = false;
         robot->lf_leg_calc->set_init_joint_pos(robot->lf_joint_pos);
         robot->rf_leg_calc->set_init_joint_pos(robot->rf_joint_pos);
         robot->lb_leg_calc->set_init_joint_pos(robot->lb_joint_pos);
         robot->rb_leg_calc->set_init_joint_pos(robot->rb_joint_pos);
-        //return "stop";
-    }
-
-    // if ((now - setup_time).seconds() > 5.0)
-    // {
-    //     RCLCPP_INFO(robot->node_->get_logger(), "切换至stop 状态");
-    //     return "stop";
-    // }
-    
-    return "idel2";
+        return "stop";
+    }    
+    return "idle_inward";
 }

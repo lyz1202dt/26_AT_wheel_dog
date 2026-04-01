@@ -406,7 +406,39 @@ std::string AmbleState::update(Robot* robot) {
         if (!success) {
             step_state = 0;
             if (robot->move_cmd.step_mode == 1)
-                return "stop";
+            {
+                step_state = 13;
+            }
+                
+        }
+    }
+
+    if(step_state == 13)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "准备停止stop");
+        lf_leg_step.update_support_trajectory(lf_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        rf_leg_step.update_support_trajectory(rf_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        lb_leg_step.update_support_trajectory(lb_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        rb_leg_step.update_support_trajectory(rb_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        start_time = robot->node_->get_clock()->now();
+        step_state = 14;
+    }
+    if (step_state == 14) 
+    { 
+        bool success;
+        double t = (robot->node_->get_clock()->now() - start_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+        if(!success)
+        {
+            robot->lf_z_vmc->reset(lf_cart_pos.z(), 0.0);
+            robot->rf_z_vmc->reset(rf_cart_pos.z(), 0.0);
+            robot->lb_z_vmc->reset(lb_cart_pos.z(), 0.0);
+            robot->rb_z_vmc->reset(rb_cart_pos.z(), 0.0);
+            step_state = 0;
+            return "stop";
         }
     }
 

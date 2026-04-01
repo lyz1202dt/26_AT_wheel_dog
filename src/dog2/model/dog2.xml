@@ -30,6 +30,14 @@
     <exclude body1="body_link" body2="rf_link2" />
     <exclude body1="rf_link1" body2="rf_link2" />
     <exclude body1="rf_link2" body2="rf_link3" />
+    <exclude body1="body_link" body2="lb_link1" />
+    <exclude body1="body_link" body2="lb_link2" />
+    <exclude body1="lb_link1" body2="lb_link2" />
+    <exclude body1="lb_link2" body2="lb_link3" />
+    <exclude body1="body_link" body2="rb_link1" />
+    <exclude body1="body_link" body2="rb_link2" />
+    <exclude body1="rb_link1" body2="rb_link2" />
+    <exclude body1="rb_link2" body2="rb_link3" />
   </contact>
 
   <worldbody>

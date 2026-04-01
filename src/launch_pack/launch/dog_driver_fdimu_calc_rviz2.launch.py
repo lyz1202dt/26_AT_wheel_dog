@@ -25,7 +25,15 @@ def generate_launch_description():
         {
             "joint_kp": [3.0, 2.8, 2.8],
             "joint_kd": [0.17, 0.14, 0.11],
-            "wheel_kd": 0.5
+            "wheel_kd": 0.5,
+            "roll_vmc_kp": -600.0,
+            "roll_vmc_kd": -50.0,
+            "pitch_vmc_kp": 550.0,
+            "pitch_vmc_kd": 50.0,
+            "lf_grivate": 32.0,
+            "rf_grivate": 32.0,
+            "lb_grivate": 40.0,
+            "rb_grivate": 40.0
         }
     ]
     )
