@@ -63,10 +63,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("pitch_vmc_kp", 500.0);
     node_->declare_parameter("pitch_vmc_kd", 0.0);
 
-    node_->declare_parameter("lf_grivate", 35.0);   //34
-    node_->declare_parameter("rf_grivate", 35.0);
-    node_->declare_parameter("lb_grivate", 40.0);   //38
-    node_->declare_parameter("rb_grivate", 40.0);
+    node_->declare_parameter("lf_grivate", 24.0);   //34
+    node_->declare_parameter("rf_grivate", 24.0);
+    node_->declare_parameter("lb_grivate", 28.0);   //38
+    node_->declare_parameter("rb_grivate", 28.0);
     node_->declare_parameter("lf_dx", 0.0);
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);

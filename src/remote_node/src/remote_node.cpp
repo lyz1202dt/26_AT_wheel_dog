@@ -16,7 +16,7 @@ RemoteNode::RemoteNode()
     
     // 打开串口 - 使用极短的超时时间（10ms）以提高实时性
     // 这样可以更快地响应按键数据变化
-    serial_ = std::make_unique<serial::Serial>(port, baudrate, serial::Timeout::simpleTimeout(100));
+    serial_ = std::make_unique<serial::Serial>(port, baudrate, serial::Timeout::simpleTimeout(10));
     if (!serial_->isOpen()) {
         RCLCPP_ERROR(this->get_logger(), "打开设备失败:%s", port.c_str());
         return;
@@ -101,7 +101,7 @@ void RemoteNode::serial_recv_task()
                     // 逐字节传入通信协议处理器，每接收到一批数据立即处理
                     for (size_t i = 0; i < bytes_read; i++) {
                         remote_comm_->process_recv_byte(buffer[i]);
-                        RCLCPP_INFO(this->get_logger(), "接收到数据: 0x%02X", buffer[i]);
+                        // RCLCPP_INFO(this->get_logger(), "接收到数据: 0x%02X", buffer[i]);
                     }
                     last_print_time = std::chrono::steady_clock::now();
                     
@@ -228,12 +228,21 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     {
         msg.step_mode = last_step_mode;  //保持上次模式
     }
-    msg.vx = rocker0;
-    msg.vy = rocker1;
-    msg.vz = rocker2;
-    msg.wheel_vel = rocker3;
 
-    node->move_cmd_pub->publish(std::move(msg));
+    if(std::abs(rocker0) < 100)
+        rocker0 = 0.0f;
+    if(std::abs(rocker1) < 100)
+        rocker1 = 0.0f;
+    if(std::abs(rocker2) < 100)
+        rocker2 = 0.0f;
+    if(std::abs(rocker3) < 100)
+        rocker3 = 0.0f;
+    msg.vy = std::clamp(rocker0 / 1950.0f, -1.0f, 1.0f);
+    msg.vx = std::clamp(rocker1 / 1950.0f, -1.0f, 1.0f);
+    msg.vz = std::clamp(rocker2 / 1950.0f, -1.0f, 1.0f);
+    msg.wheel_vel = 0 * std::clamp(rocker3 / 1950.0f, -1.0f, 1.0f);
+
+    node->move_cmd_pub->publish(msg);
 
     // 获取当前时间并打印数据及时间戳，用于监测响应延迟
     auto now = std::chrono::system_clock::now();
@@ -243,7 +252,7 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     RCLCPP_INFO(node->get_logger(), 
                 "[%02ld:%02ld:%02ld.%03ld] rocker=[%.2f, %.2f, %.2f, %.2f] key=0x%04X", 
                 (time_t_now / 3600) % 24, (time_t_now / 60) % 60, time_t_now % 60, ms.count(),
-                rocker0, rocker1, rocker2, rocker3, key_data);
+                msg.vx, msg.vy, msg.vz, msg.wheel_vel, key_data);
 }
 
 
