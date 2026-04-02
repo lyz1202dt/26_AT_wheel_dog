@@ -63,5 +63,13 @@ def generate_launch_description():
         executable="rviz2",
         arguments=["-d", rviz2_config_path]  # 可选，指定rviz配置文件
     )
+
+    remote_node = Node(
+        package="remote_node",
+        executable="remote_node",
+        name="remote_node",
+        output="screen"
+    )
     
-    return LaunchDescription([leg_driver, imu_driver, robot_state_pub, leg_calc, rviz2])
+    
+    return LaunchDescription([leg_driver, imu_driver, robot_state_pub, leg_calc, rviz2, remote_node])
