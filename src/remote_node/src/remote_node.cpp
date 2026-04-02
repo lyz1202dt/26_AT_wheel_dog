@@ -237,22 +237,21 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
         rocker2 = 0.0f;
     if(std::abs(rocker3) < 100)
         rocker3 = 0.0f;
-    msg.vy = std::clamp(rocker0 / 1950.0f, -1.0f, 1.0f);
+    msg.vy = std::clamp(rocker0 / 1950.0f, -0.5f, 0.5f);
     msg.vx = std::clamp(rocker1 / 1950.0f, -1.0f, 1.0f);
     msg.vz = std::clamp(rocker2 / 1950.0f, -1.0f, 1.0f);
     msg.wheel_vel = 0 * std::clamp(rocker3 / 1950.0f, -1.0f, 1.0f);
 
     node->move_cmd_pub->publish(msg);
 
-    // 获取当前时间并打印数据及时间戳，用于监测响应延迟
-    auto now = std::chrono::system_clock::now();
-    auto time_t_now = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
     
-    RCLCPP_INFO(node->get_logger(), 
-                "[%02ld:%02ld:%02ld.%03ld] rocker=[%.2f, %.2f, %.2f, %.2f] key=0x%04X", 
-                (time_t_now / 3600) % 24, (time_t_now / 60) % 60, time_t_now % 60, ms.count(),
-                msg.vx, msg.vy, msg.vz, msg.wheel_vel, key_data);
+    RCLCPP_INFO_THROTTLE(
+        node->get_logger(),
+        *node->get_clock(),
+        100,
+        "vx=%.3f vy=%.3f vz=%.3f wheel=%.3f",
+        msg.vx, msg.vy, msg.vz, msg.wheel_vel
+    );
 }
 
 
