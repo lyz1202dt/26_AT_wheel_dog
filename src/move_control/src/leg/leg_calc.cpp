@@ -30,11 +30,11 @@ LegCalc::LegCalc(KDL::Chain& chain)
     last_exp_joint_pos(1) = 0.0;
     last_exp_joint_pos(2) = 0.0;
 
-    set_joint_pd(0,3.0,0.17);   //设置默认参数
-    set_joint_pd(1,2.8,0.14);
-    set_joint_pd(2,2.8,0.11);
+    // set_joint_pd(0,3.0,0.17);   //设置默认参数
+    // set_joint_pd(1,2.8,0.14);
+    // set_joint_pd(2,2.8,0.11);
 
-    set_joint_pd(0,50.0,3.0);   //设置默认参数
+    set_joint_pd(0,50.0,3.0);   //设置仿真参数
     set_joint_pd(1,50.0,3.0);
     set_joint_pd(2,50.0,3.0);
 
@@ -78,23 +78,6 @@ Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d& foot_pos, int* result)
     return {_temp_joint3_array(0), _temp_joint3_array(1), _temp_joint3_array(2)};
 }
 
-Eigen::Vector3d LegCalc::joint_pos(const Eigen::Vector3d &foot_pos,int *result,const Eigen::Vector3d init_joint_pos) {
-    KDL::Frame frame;
-    Eigen::Vector3d temp = foot_pos + pos_offset;
-    frame.p.x(temp[0]);
-    frame.p.y(temp[1]);
-    frame.p.z(temp[2]);
-    frame.M=KDL::Rotation::Identity();
-
-    _temp_joint3_array(0)=init_joint_pos[0];
-    _temp_joint3_array(1)=init_joint_pos[1];
-    _temp_joint3_array(2)=init_joint_pos[2];
-    
-    *result= ik_pos_solver.CartToJnt(last_exp_joint_pos, frame,_temp_joint3_array);
-    if(*result==0)  //缓存本次计算结果,方便下一次迭代
-        last_exp_joint_pos=_temp_joint3_array;
-    return {_temp_joint3_array(0),_temp_joint3_array(1),_temp_joint3_array(2)};
-}
 
 
 Eigen::Vector3d LegCalc::joint_pos_setarray(const Eigen::Vector3d init_joint_pos_)

@@ -63,10 +63,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("pitch_vmc_kp", 500.0);
     node_->declare_parameter("pitch_vmc_kd", 0.0);
 
-    node_->declare_parameter("lf_grivate", 22.0);   //34
-    node_->declare_parameter("rf_grivate", 22.0);
-    node_->declare_parameter("lb_grivate", 26.0);   //38
-    node_->declare_parameter("rb_grivate", 26.0);
+    node_->declare_parameter("lf_grivate", 24.0);   //34
+    node_->declare_parameter("rf_grivate", 24.0);
+    node_->declare_parameter("lb_grivate", 28.0);   //38
+    node_->declare_parameter("rb_grivate", 28.0);
     node_->declare_parameter("lf_dx", 0.0);
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);
@@ -270,8 +270,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
-    fsm.register_state(std::make_unique<ForceState>(this));
-    fsm.register_state(std::make_unique<ForcewalkState>(this));
+    //fsm.register_state(std::make_unique<ForceState>(this));
+    //fsm.register_state(std::make_unique<ForcewalkState>(this));
     fsm.register_state(std::make_unique<Cross_WallState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
