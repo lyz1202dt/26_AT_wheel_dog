@@ -690,7 +690,10 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
         rb_base_offset[0] = -0.23 + param.as_double();
         return true;
     } else if (name == "body_height") {
-        body_height = param.as_double();
+        lf_base_offset[2] = param.as_double();
+        rf_base_offset[2] = param.as_double();
+        lb_base_offset[2] = param.as_double();
+        rb_base_offset[2] = param.as_double();
         return true;
     } 
 
