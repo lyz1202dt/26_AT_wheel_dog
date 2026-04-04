@@ -176,7 +176,7 @@ std::string JumpStepState::update(Robot* robot)
         auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
         auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
-        lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.18,0.04,0.14), 0.5);
+        lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.14,0.04,0.14), 0.5);
         rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.00, 0.01, -0.01), 0.5);
         lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.02, 0.00, 0.00), 0.5);
         rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(0.05, -0.03, 0.05), 0.5);
@@ -341,7 +341,7 @@ std::string JumpStepState::update(Robot* robot)
             auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
             auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
-       lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.18,0.02,0.17), 0.5);
+       lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.14,0.02,0.17), 0.5);
        rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(-0.01,0.0,0.06), 0.5);
        lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(-0.01,0.0, 0.0), 0.5);
        rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(-0.01,0.0, 0.06), 0.5);
@@ -402,7 +402,7 @@ std::string JumpStepState::update(Robot* robot)
             auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
             rf_leg_step.update_flight_trajectory(rf_current_pos , {0,0,0},
-                {0.20, -0.05,0.20}, {0,0}, 0.5, 0.20);
+                {0.19, -0.05,0.20}, {0,0}, 0.5, 0.20);
             lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.18,0.02,0.15), 0.5);
             lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.01, 0.01, 0.06), 0.5);
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(0.01, -0.01, 0.06), 0.5);
@@ -435,12 +435,7 @@ std::string JumpStepState::update(Robot* robot)
             rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.01, -0.01, 0.07), 1.0);
             lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.00, -0.01, -0.05), 1.0);
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(0.00, 0.01, -0.05), 1.0);
-             
-            // lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.0,0.0,0.06), 0.5);
-            // rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.03,-0.0,0.12), 0.5);
-            // lb_leg_step.update_flight_trajectory(lb_current_pos, {0,0,0},
-            //      {0.02, 0.03, -0.09}, {0,0}, 0.5, -0.09);
-            // rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(-0.07,0.05,-0.09), 0.5);
+
             jump_stage = 11;
             jump_stage_time = robot->node_->get_clock()->now();
         }
@@ -467,12 +462,10 @@ std::string JumpStepState::update(Robot* robot)
             auto rf_current_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
             auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
             auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
-            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.0,0.0,0.06), 0.5);
-            rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.03,-0.0,0.12), 0.5);
-            lb_leg_step.update_flight_trajectory(lb_current_pos, {0,0,0},
-                 {0.02, 0.03, -0.08}, {0,0}, 0.5, -0.09);
-            rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(-0.07,0.05,-0.09), 0.5);
-           
+            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(lf_current_pos.x(), lf_current_pos.y()+0.04, lf_current_pos.z()), 0.5);
+            rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(rf_current_pos.x(), rf_current_pos.y()+0.04, rf_current_pos.z()), 0.5);
+            lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(lb_current_pos.x(), lb_current_pos.y()+0.04, lb_current_pos.z()-0.04), 0.5);
+            rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(rb_current_pos.x(), rb_current_pos.y()+0.04, rb_current_pos.z()), 0.5);
             jump_stage = 12;
             jump_stage_time = robot->node_->get_clock()->now();
         }
@@ -498,52 +491,88 @@ std::string JumpStepState::update(Robot* robot)
             auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
             auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
-            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.0,0.0,0.06), 0.5);
-            rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.03,-0.0,0.12), 0.5);
+            lf_leg_step.update_support_trajectory(lf_current_pos, lf_current_pos, 0.5);
+            rf_leg_step.update_support_trajectory(rf_current_pos, rf_current_pos, 0.5);
             lb_leg_step.update_flight_trajectory(lb_current_pos, {0,0,0},
-                 {0.03, 0.06, 0.05}, {0,0}, 0.5, 0.07);
-            rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(-0.07,0.05,-0.09), 0.5);
+                 {lb_current_pos.x()+0.15, lb_current_pos.y()+0.03, lb_current_pos.z()+0.10}, {0,0}, 0.5, 0.02);
+            rb_leg_step.update_support_trajectory(rb_current_pos, rb_current_pos, 0.5);
             
             jump_stage = 13;
             jump_stage_time = robot->node_->get_clock()->now();
         }
     }
-    // ========================== 阶段 12：左后腿落在第一节台阶 ==========================
+    // ========================== 阶段 13：左后腿落在第一节台阶 ==========================
     else if (jump_stage == 13)
     {
         bool success = false;
         double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
-        RCLCPP_INFO(robot->node_->get_logger(), "阶段 12：左后腿落在第一节台阶 ");
-
+        RCLCPP_INFO(robot->node_->get_logger(), "阶段 13：左后腿落在第一节台阶 ");
+    //   lf_wheel_vel = 0; rf_wheel_vel = -0; lb_wheel_vel = 0; rb_wheel_vel = -0;
         std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
         std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
         std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
         std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
-
+        computeFootForces(&F, robot, mass, mass_center_pos,
+            lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos,
+            true, true, false, true);
+       
         if (success==false ) {
             auto lf_current_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
             auto rf_current_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
             auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
             auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
-            rb_leg_step.update_flight_trajectory(rb_current_pos, {0,0,0}, 
-                {0.00, 0.03, 0.03}, {0,0}, 0.5, 0.07);
-            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(-0.05,0.08,0.15), 0.5);
-            rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.02,0.01,0.14), 0.5);
-            lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.04, 0.08, 0.03), 0.5);
+            // rb_leg_step.update_flight_trajectory(rb_current_pos, {0,0,0}, 
+            //     {0.00, 0.03, 0.03}, {0,0}, 0.5, 0.07);
+            rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(0.01, -0.04, -0.07), 0.5);
+            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(-0.0,-0.04,0.14), 0.5);
+            rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.0,-0.04,0.14), 0.5);
+            lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.04, -0.04, 0.03), 0.5);
             
             jump_stage = 14; 
             jump_stage_time = robot->node_->get_clock()->now();
         }
     }
 
-    // ========================== 阶段 13：抬起右后腿（质心偏移） ==========================
+    
+    // ========================== 阶段 14：抬起右后腿（质心偏移） ==========================
     else if (jump_stage == 14)
     {
 
         bool success = false;
         double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
-        RCLCPP_INFO(robot->node_->get_logger(), "阶段13：抬起右后腿（质心偏移）");
+        RCLCPP_INFO(robot->node_->get_logger(), "阶段14：抬起右后腿（质心偏移）");
+
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+        computeFootForces(&F, robot, mass, mass_center_pos,
+            lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos,
+            true, true, true, false);
+
+        if (!success ) {
+            auto lf_current_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+            auto rf_current_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+            auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+            auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
+            rb_leg_step.update_flight_trajectory(rb_current_pos, {0,0,0}, 
+                {rb_current_pos.x()+0.1, rb_current_pos.y(), rb_current_pos.z()+0.10}, {0,0}, 0.5, 0.07);
+            lf_leg_step.update_support_trajectory(lf_current_pos, lf_current_pos, 0.5);
+            rf_leg_step.update_support_trajectory(rf_current_pos, rf_current_pos, 0.5);
+            lb_leg_step.update_support_trajectory(lb_current_pos, lb_current_pos, 0.5);
+            jump_stage = 15;
+            jump_stage_time = robot->node_->get_clock()->now();
+        }
+    }
+
+    else if (jump_stage == 15)
+    {
+
+        bool success = false;
+        double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
+        RCLCPP_INFO(robot->node_->get_logger(), "阶段15：右后腿落到第一节台阶");
 
         std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
         std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
@@ -562,16 +591,16 @@ std::string JumpStepState::update(Robot* robot)
             rf_leg_step.update_support_trajectory(rf_current_pos,Vector3D(0.01, -0.00, 0.01), 1);
             lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.03, 0.02, 0.03), 1);
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(0.00, -0.02, 0.03), 1);
-            jump_stage = 15;
+            jump_stage = 16;
             jump_stage_time = robot->node_->get_clock()->now();
         }
     }
 
-    else if (jump_stage == 15)
+    else if (jump_stage == 16)
     {
         bool success = false;
         double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
-        RCLCPP_INFO(robot->node_->get_logger(), "阶段14：回正姿态");
+        RCLCPP_INFO(robot->node_->get_logger(), "阶段16：回正姿态");
 
         std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
         std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
@@ -590,12 +619,12 @@ std::string JumpStepState::update(Robot* robot)
             lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.02, 0.022, 0.03), 0.5);
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(0,0,0.06), 0.5);
 
-            jump_stage = 16;
+            jump_stage = 17;
             jump_stage_time = robot->node_->get_clock()->now();
         }
     }
 
-    else if (jump_stage == 16)
+    else if (jump_stage == 17)
     {
         bool success = false;
         double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
@@ -619,12 +648,12 @@ std::string JumpStepState::update(Robot* robot)
        lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(-0.01,0.0, 0.0), 0.5);
        rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(-0.01,0.0, 0.06), 0.5);
             
-            jump_stage = 17;
+            jump_stage = 180;
             jump_stage_time = robot->node_->get_clock()->now();
         }
     }
 
-    else if (jump_stage == 17)
+    else if (jump_stage == 18)
     {
         bool success = false;
         double t = (robot->node_->get_clock()->now() - jump_stage_time).seconds();
@@ -673,8 +702,8 @@ std::string JumpStepState::update(Robot* robot)
             auto lb_current_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
             auto rb_current_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
             rf_leg_step.update_flight_trajectory(rf_current_pos , {0,0,0},
-                {0.20, -0.05,0.20}, {0,0}, 0.5, 0.20);
-            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.18,0.02,0.15), 0.5);
+                {0.19, -0.05,0.20}, {0,0}, 0.5, 0.20);
+            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.14,0.02,0.15), 0.5);
             lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.01, 0.01, 0.06), 0.5);
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(0.01, -0.01, 0.06), 0.5);
            
@@ -1086,7 +1115,10 @@ std::string JumpStepState::update(Robot* robot)
         std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
         std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
         std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
-
+        computeFootForces(&F, robot, mass, mass_center_pos,
+            lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos,
+            true, true, false, true);
+        
         if (success==false ) {
             auto lf_current_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
             auto rf_current_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
@@ -1155,7 +1187,7 @@ std::string JumpStepState::update(Robot* robot)
             lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.0,0.0,0.04), 0.5);
             rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.03,-0.0,0.08), 0.5);
             lb_leg_step.update_flight_trajectory(lb_current_pos, {0,0,0},
-                 {0.02, 0.06, -0.06}, {0,0}, 0.5, -0.06);
+                 {0.02, 0.06, -0.03}, {0,0}, 0.5, -0.05);
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(-0.07,0.07,-0.05), 0.5);
            
             jump_stage = 36;
@@ -1189,7 +1221,7 @@ std::string JumpStepState::update(Robot* robot)
             lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(0.03,0.0,0.04), 0.5);
             rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(0.03,-0.0,0.08), 0.5);
             lb_leg_step.update_flight_trajectory(lb_current_pos, {0,0,0},
-                 {0.07, 0.04, 0.01}, {0,0}, 0.5, 0.02);
+                 {0.07, 0.04, 0.01}, {0,0}, 0.5, 0.01);
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(-0.06,-0.02,-0.05), 0.5);
            
             jump_stage = 37;
@@ -1296,7 +1328,10 @@ std::string JumpStepState::update(Robot* robot)
         std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
         std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
         std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
-
+        computeFootForces(&F, robot, mass, mass_center_pos,
+            lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos,
+            true, true, true, true);
+        
         if ( success == false) {
             RCLCPP_INFO(robot->node_->get_logger(), "双台阶攀爬完成！");
             return "idel";
