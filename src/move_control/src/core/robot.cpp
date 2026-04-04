@@ -74,6 +74,16 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("rb_dx", 0.0);
     node_->declare_parameter("body_height", 0.25);
 
+    node_->declare_parameter<std::vector<double>>("joint_kp", {3.0, 2.8, 2.8});
+    node_->declare_parameter<std::vector<double>>("joint_kd", {0.17, 0.14, 0.11});
+    node_->declare_parameter<double>("wheel_kd", 0.5);
+
+
+
+    node_->get_parameter("joint_kp", kp);
+    node_->get_parameter("joint_kd", kd);
+    node_->get_parameter("wheel_kd", wheel_kd);
+
 
     param_server_ = node_->add_on_set_parameters_callback([this](const std::vector<rclcpp::Parameter>& params) {
         rcl_interfaces::msg::SetParametersResult result;
@@ -248,10 +258,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     tree.getChain("body_link", "rb_link4", rb_leg_chain);
 
     // 初始化狗腿解算器，定义足端中性点位置
-    lf_leg_calc             = std::make_shared<LegCalc>(lf_leg_chain);
-    rf_leg_calc             = std::make_shared<LegCalc>(rf_leg_chain);
-    lb_leg_calc             = std::make_shared<LegCalc>(lb_leg_chain);
-    rb_leg_calc             = std::make_shared<LegCalc>(rb_leg_chain);
+    lf_leg_calc             = std::make_shared<LegCalc>(lf_leg_chain,kp,kd,wheel_kd);
+    rf_leg_calc             = std::make_shared<LegCalc>(rf_leg_chain,kp,kd,wheel_kd);
+    lb_leg_calc             = std::make_shared<LegCalc>(lb_leg_chain,kp,kd,wheel_kd);
+    rb_leg_calc             = std::make_shared<LegCalc>(rb_leg_chain,kp,kd,wheel_kd);
     lf_leg_calc->pos_offset = lf_base_offset;
     rf_leg_calc->pos_offset = rf_base_offset;
     lb_leg_calc->pos_offset = lb_base_offset;
@@ -673,6 +683,12 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
         return true;
     } else if (name == "rb_dx") {
         rb_base_offset[0] = -0.23 + param.as_double();
+        return true;
+    } else if (name == "body_height") {
+        lf_base_offset[2] = param.as_double();
+        rf_base_offset[2] = param.as_double();
+        lb_base_offset[2] = param.as_double();
+        rb_base_offset[2] = param.as_double();
         return true;
     }
 

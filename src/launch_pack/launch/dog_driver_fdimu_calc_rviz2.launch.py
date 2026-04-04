@@ -20,7 +20,14 @@ def generate_launch_description():
 
     leg_calc = Node(
         package="move_control",
-        executable="move_control"
+        executable="move_control",
+        parameters=[
+        {
+            "joint_kp": [3.0, 2.8, 2.8],
+            "joint_kd": [0.17, 0.14, 0.11],
+            "wheel_kd": 0.5
+        }
+    ]
     )
 
     # leg_driver节点 - 禁用IMU数据发布，因为我们使用独立的imu_driver

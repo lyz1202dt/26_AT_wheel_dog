@@ -8,7 +8,9 @@
 
 using namespace std::chrono_literals;
 
-LegCalc::LegCalc(KDL::Chain& chain)
+LegCalc::LegCalc(KDL::Chain& chain,const std::vector<double>& kp_list ={3.0,2.8,2.8},
+                    const std::vector<double>& kd_list = {0.17,0.14,0.11},
+                    double wheel_kd_param = 0.5)
     : chain(chain)
     , fk_solver(chain)
     , jacobain_solver(chain)
@@ -34,11 +36,26 @@ LegCalc::LegCalc(KDL::Chain& chain)
     // set_joint_pd(1,2.8,0.14);
     // set_joint_pd(2,2.8,0.11);
 
-    set_joint_pd(0,50.0,3.0);   //设置仿真参数
-    set_joint_pd(1,50.0,3.0);
-    set_joint_pd(2,50.0,3.0);
+    // set_joint_pd(0,50.0,3.0);   //设置仿真参数
+    // set_joint_pd(1,50.0,3.0);
+    // set_joint_pd(2,50.0,3.0);
 
-    set_joint_pd(3,0.0,0.5);
+    // set_joint_pd(3,0.0,0.5);
+
+    if(kp_list.size() != 3 || kd_list.size() != 3)
+    {
+        throw std::runtime_error("PD param size must be 3");
+    }
+
+
+    for(int i = 0; i < 3; i++)
+    {
+        this->kp[i] = kp_list[i];
+        this->kd[i] = kd_list[i];
+    }
+
+        this->wheel_kd = wheel_kd_param;
+
 }
 
 LegCalc::~LegCalc() {

@@ -146,4 +146,8 @@ public:
     double robot_rf_grivate{0.0};
     double robot_lb_grivate{0.0};
     double robot_rb_grivate{0.0};
+
+        // 腿部参数
+    std::vector<double> kp, kd;
+    double wheel_kd;
 };
