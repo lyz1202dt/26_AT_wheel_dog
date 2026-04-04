@@ -70,10 +70,7 @@ std::string Cross_WallState::update(Robot* robot){
                         change_flag, cross_wall_stage);
         }
 
-        auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
-        auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
-        auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
-        auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+
 
         lf_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_lf_grivate);
         rf_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_rf_grivate);
@@ -911,6 +908,15 @@ std::string Cross_WallState::update(Robot* robot){
               
                 //cross_wall_stage=21;
                 change_flag=false;
+                auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+                auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+                auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+                auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+                robot->lf_z_vmc->reset(lf_cart_pos.z(), 0.0);
+                robot->rf_z_vmc->reset(rf_cart_pos.z(), 0.0);
+                robot->lb_z_vmc->reset(lb_cart_pos.z(), 0.0);
+                robot->rb_z_vmc->reset(rb_cart_pos.z(), 0.0);
+
                 return "stop";
             }
         }
