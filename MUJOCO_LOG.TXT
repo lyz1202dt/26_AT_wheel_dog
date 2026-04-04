@@ -70,3 +70,15 @@ WARNING: Nan, Inf or huge value in CTRL at ACTUATOR 4. The simulation is unstabl
 Sun Mar 29 17:01:41 2026
 WARNING: Nan, Inf or huge value in CTRL at ACTUATOR 4. The simulation is unstable. Time = 29.1740.
 
+Tue Mar 31 20:34:16 2026
+ERROR: could not initialize GLFW
+
+Tue Mar 31 20:34:53 2026
+ERROR: could not initialize GLFW
+
+Tue Mar 31 20:35:11 2026
+ERROR: could not initialize GLFW
+
+Tue Mar 31 20:35:31 2026
+ERROR: could not initialize GLFW
+
