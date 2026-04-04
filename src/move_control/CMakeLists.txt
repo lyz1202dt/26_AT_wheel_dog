@@ -65,6 +65,7 @@ src/states/amble.cpp
 src/states/force.cpp
 src/states/forcewalk.cpp
 src/states/cross_wall.cpp
+src/states/heightlimit.cpp
 )
 
 add_executable(test_move_node

@@ -12,6 +12,7 @@
 #include "states/jump.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
+#include "states/heightlimit.hpp"
 // #include "states/mpc2.hpp"
 #include "states/amble.hpp"
 #include "states/climb_steps.hpp"
@@ -273,6 +274,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     //fsm.register_state(std::make_unique<ForceState>(this));
     //fsm.register_state(std::make_unique<ForcewalkState>(this));
     fsm.register_state(std::make_unique<Cross_WallState>(this));
+    fsm.register_state(std::make_unique<HeightlimitState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
         lf_leg_calc->pos_offset=lf_base_offset;
