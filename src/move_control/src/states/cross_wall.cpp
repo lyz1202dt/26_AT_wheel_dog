@@ -10,10 +10,10 @@
         bool use_limit_rf = false;
         bool use_limit_lb = false;
         bool use_limit_rb = false;
-
+        bool need_smooth = true;
 Cross_WallState::Cross_WallState(Robot* robot)
     : BaseState<Robot>("cross_wall") {
-        robot->node_->declare_parameter<int>("cross_wall_stage",-1);
+        robot->node_->declare_parameter<int>("cross_wall_stage",0);
         robot->node_->declare_parameter("cross_k_F",1.0);
 
 
@@ -24,7 +24,7 @@ Cross_WallState::Cross_WallState(Robot* robot)
                 cross_wall_stage=param.as_int();
                 change_flag = true;
             }
-            else if(name=="cross_k_F")
+            if(name=="cross_k_F")
             {
                 k_F=(float)param.as_double();
             }
@@ -46,6 +46,8 @@ bool Cross_WallState::enter(Robot* robot, const std::string& last_status) {
     (void)robot;
     (void)last_status;
     cross_wall_stage=-1;
+    //change_flag = true;
+    cross_wall_stage_time = robot->node_->get_clock()->now();
     return true;
 }
 
@@ -55,10 +57,15 @@ std::string Cross_WallState::update(Robot* robot){
 
  
         lf_wheel_force = 0.0f;
-        static int last_stage = 1;
-
+        static int last_stage = -1;
+        
         if (cross_wall_stage == -1)
+        {
             last_stage = -1;
+            double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
+            if(time > 0.5)
+                cross_wall_stage = 0;
+        }
 
         static int cnt = 0;
         cnt++;
@@ -71,6 +78,7 @@ std::string Cross_WallState::update(Robot* robot){
         }
 
 
+        
 
         lf_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_lf_grivate);
         rf_foot_exp_force=Vector3D(0.0,0.0,-robot->robot_rf_grivate);
@@ -82,7 +90,7 @@ std::string Cross_WallState::update(Robot* robot){
                 use_limit_lb = false;
                 use_limit_rb = false;
                 use_limit_rf = false;
-
+                
              if(allow_vel == true)
              {
                 lf_wheel_vel= 0.3;
@@ -202,10 +210,10 @@ std::string Cross_WallState::update(Robot* robot){
                     wall_lb_foot_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
                     wall_rb_foot_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
 
-                    lf_leg_step.update_support_trajectory(wall_lf_foot_pos, Vector3D(0.0,0.08,0.0), 2.0);
-                    rf_leg_step.update_support_trajectory(wall_rf_foot_pos, Vector3D(0.0,0.08,0.0), 2.0);
-                    lb_leg_step.update_support_trajectory(wall_lb_foot_pos, Vector3D(0.0,0.08,0.0), 2.0);
-                    rb_leg_step.update_support_trajectory(wall_rb_foot_pos, Vector3D(0.0,0.08,0.0), 2.0);
+                    lf_leg_step.update_support_trajectory(wall_lf_foot_pos, Vector3D(0.0,0.08,0.0), 1.0);
+                    rf_leg_step.update_support_trajectory(wall_rf_foot_pos, Vector3D(0.0,0.08,0.0), 1.0);
+                    lb_leg_step.update_support_trajectory(wall_lb_foot_pos, Vector3D(0.0,0.08,0.0), 1.0);
+                    rb_leg_step.update_support_trajectory(wall_rb_foot_pos, Vector3D(0.0,0.08,0.0), 1.0);
                     //change_flag=false;
                     cross_wall_stage = 1;
                 }
@@ -291,10 +299,10 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                lf_leg_step.update_support_trajectory(wall_lf_foot_pos,wall_lf_foot_pos,2.0);
-                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,2.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,2.0);
-                lb_leg_step.update_flight_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0), Vector3D(0.12,0.08,0.0), Vector2D(0.0,0.0), 2.0,0.06);
+                lf_leg_step.update_support_trajectory(wall_lf_foot_pos,wall_lf_foot_pos,1.0);
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,1.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,1.0);
+                lb_leg_step.update_flight_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0), Vector3D(0.12,0.08,0.0), Vector2D(0.0,0.0), 1.0,0.06);
                 //change_flag=false;
                 cross_wall_stage=2;     
             }
@@ -358,7 +366,7 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                lf_leg_step.update_support_trajectory(robot->lf_joint_pos,Vector3D(1.44,0.822,-0.165),4.0);
+                lf_leg_step.update_support_trajectory(robot->lf_joint_pos,Vector3D(1.44,0.822,-0.165),2.0,need_smooth);
                 
                 //change_flag=false;
                 cross_wall_stage=3;    
@@ -408,7 +416,7 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                lf_leg_step.update_support_trajectory(Vector3D(1.44,0.822,-0.165),Vector3D(1.44,-0.92,0.48),4.0);
+                lf_leg_step.update_support_trajectory(Vector3D(1.44,0.822,-0.165),Vector3D(1.44,-0.92,0.48),2.0,need_smooth);
                 
                    
                 //change_flag=false;
@@ -459,9 +467,9 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
                 
-                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,Vector3D(0.0,0.0,0.0),4.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),4.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),4.0);
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,Vector3D(0.0,0.0,0.0),1.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),1.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),1.0);
 
                 //change_flag=false;
                 cross_wall_stage=5;
@@ -512,10 +520,10 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                lf_leg_step.update_support_trajectory(Vector3D(1.44,-0.92,0.48),Vector3D(-0.12,-1.00,0.96),2.0);
-                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,wall_lb_foot_pos,2.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,2.0);
+                lf_leg_step.update_support_trajectory(Vector3D(1.44,-0.92,0.48),Vector3D(-0.12,-1.00,0.96),1.0,need_smooth);
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,1.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,wall_lb_foot_pos,1.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,1.0);
                 //change_flag=false;
                 cross_wall_stage=6;
             }
@@ -567,9 +575,9 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
                 // lf_leg_step.update_support_trajectory(Vector3D(0.12,-1.10,0.48),Vector3D(0.12,-0.80,0.48),2.0);
-                rf_leg_step.update_support_trajectory(rf_joint_exp_pos_,Vector3D(-1.35,-0.827,-0.531),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),2.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.07),2.0);
+                rf_leg_step.update_support_trajectory(rf_joint_exp_pos_,Vector3D(-1.35,-0.827,-0.531),1.0,need_smooth);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),1.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.07),1.0);
                 //change_flag=false;
                 cross_wall_stage=7;
             }
@@ -598,7 +606,7 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rf_leg_step.update_support_trajectory(Vector3D(-1.35,-0.827,-0.531),Vector3D(-1.5,1.08,-0.531),3.0);
+                rf_leg_step.update_support_trajectory(Vector3D(-1.35,-0.827,-0.531),Vector3D(-1.5,1.08,-0.531),2.0,need_smooth);
 
                 //change_flag=false;
                 cross_wall_stage=8;
@@ -628,9 +636,9 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rf_leg_step.update_support_trajectory(Vector3D(-1.5,1.08,-0.531),Vector3D(-0.60,1.25,-0.531),3.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),3.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.03),3.0);
+                rf_leg_step.update_support_trajectory(Vector3D(-1.5,1.08,-0.531),Vector3D(-0.60,1.25,-0.531),2.0,need_smooth);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.03),2.0);
                 
                 //change_flag=false;
                 cross_wall_stage=9;
@@ -661,8 +669,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos = lb_foot_exp_pos;
                 wall_rb_foot_pos = rb_foot_exp_pos;
 
-                rf_leg_step.update_support_trajectory(Vector3D(-0.60,1.25,-0.531),Vector3D(-0.0267,-0.822,0.165),2.0); 
-                lf_leg_step.update_support_trajectory(Vector3D(0.219,-1.19,0.488),Vector3D(0.0267,0.822,-0.165),2.0); 
+                rf_leg_step.update_support_trajectory(Vector3D(-0.60,1.25,-0.531),Vector3D(-0.0267,-0.822,0.165),2.0,need_smooth); 
+                lf_leg_step.update_support_trajectory(Vector3D(0.219,-1.19,0.488),Vector3D(0.0267,0.822,-0.165),2.0,need_smooth); 
                
                 //change_flag=false;               
                 cross_wall_stage=10;     
@@ -707,7 +715,7 @@ std::string Cross_WallState::update(Robot* robot){
             use_limit_rb = false;
             use_limit_rf = true;
             bool success=false;
-            double s = 2.0f;
+            double s = 1.0f;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
 
             lb_foot_exp_pos=wall_lb_foot_pos;
@@ -736,8 +744,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.10,-0.21,0.40),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.10,0.21,0.40),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.10,-0.21,0.40),1.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.10,0.21,0.40),1.0);
 
                 //change_flag=false;
                 cross_wall_stage=12;
@@ -792,8 +800,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.18,-0.08,0.39),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.18, 0.08,0.39),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.18,-0.08,0.4),1.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.18, 0.08,0.4),1.0);
 
                 //change_flag=false;
                 cross_wall_stage=13;
@@ -845,8 +853,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
 
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.22,0.0,-0.05),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.22,0.0,-0.05),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.2,0.0,-0.05),1.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.2,0.0,-0.05),1.0);
 
                 //change_flag=false;
                 cross_wall_stage=14;
@@ -873,8 +881,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),1.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),1.0);
               
                 //change_flag=false;
                 cross_wall_stage=15;
@@ -902,8 +910,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
                 
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),0.5);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),0.5);
 
               
                 //cross_wall_stage=21;
@@ -920,89 +928,7 @@ std::string Cross_WallState::update(Robot* robot){
                 return "stop";
             }
         }
-        // if(cross_wall_stage == 3 || cross_wall_stage == 4 || cross_wall_stage == 5 || cross_wall_stage == 6)
-        // {
-        //     lf_joint_omega  = robot->lf_leg_calc->joint_vel(lf_joint_exp_pos_, Vector3D{0,0,0});
-        //     lf_joint_torque = robot->lf_leg_calc->joint_torque_foot_force(lf_joint_exp_pos_, Vector3D{0,0,0});
-        //     lf_joint_torque +=robot->lf_leg_calc->joint_torque_dynamic(lf_joint_exp_pos_, lf_joint_omega, Vector3D{0,0,0});
 
-        //     for (int i = 0; i < 3; i++) {
-        //     joints_target.legs[0].joints[i].rad    = static_cast<float>(lf_joint_exp_pos_[i]);
-        //     joints_target.legs[0].joints[i].omega  = static_cast<float>(lf_joint_omega[i]);
-        //     joints_target.legs[0].joints[i].torque = static_cast<float>(lf_joint_torque[i]);
-        //     }
-        //     joints_target.legs[1] =
-        //         robot->rf_leg_calc->signal_leg_calc(rf_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0), &rf_forward_torque,rf_wheel_vel,rf_wheel_force);
-        //     joints_target.legs[2] =
-        //         robot->lb_leg_calc->signal_leg_calc(lb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0), &lb_forward_torque,lb_wheel_vel,lb_wheel_force);
-        //     joints_target.legs[3] =
-        //          robot->rb_leg_calc->signal_leg_calc(rb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),&rb_forward_torque,rb_wheel_vel,rb_wheel_force);
-        // }
-        // else if(cross_wall_stage == 7 || cross_wall_stage == 8 || cross_wall_stage == 9 || cross_wall_stage == 10 || cross_wall_stage == 11)
-        // {
-        //     lf_joint_omega  = robot->lf_leg_calc->joint_vel(lf_joint_exp_pos_, Vector3D{0,0,0});
-        //     lf_joint_torque = robot->lf_leg_calc->joint_torque_foot_force(lf_joint_exp_pos_, Vector3D{0,0,0});
-        //     lf_joint_torque +=robot->lf_leg_calc->joint_torque_dynamic(lf_joint_exp_pos_, lf_joint_omega, Vector3D{0,0,0});
-
-        //     rf_joint_omega  = robot->rf_leg_calc->joint_vel(rf_joint_exp_pos_, Vector3D{0,0,0});
-        //     rf_joint_torque = robot->rf_leg_calc->joint_torque_foot_force(rf_joint_exp_pos_, Vector3D{0,0,0});
-        //     rf_joint_torque +=robot->rf_leg_calc->joint_torque_dynamic(rf_joint_exp_pos_, rf_joint_omega, Vector3D{0,0,0});
-
-        //     for (int i = 0; i < 3; i++) {
-        //     joints_target.legs[0].joints[i].rad    = static_cast<float>(lf_joint_exp_pos_[i]);
-        //     joints_target.legs[0].joints[i].omega  = static_cast<float>(lf_joint_omega[i]);
-        //     joints_target.legs[0].joints[i].torque = static_cast<float>(lf_joint_torque[i]);
-        //     }
-
-        //     for (int i = 0; i < 3; i++) {
-        //     joints_target.legs[1].joints[i].rad    = static_cast<float>(rf_joint_exp_pos_[i]);
-        //     joints_target.legs[1].joints[i].omega  = static_cast<float>(rf_joint_omega[i]);
-        //     joints_target.legs[1].joints[i].torque = static_cast<float>(rf_joint_torque[i]);
-        //     }
-
-        //     joints_target.legs[2] =
-        //         robot->lb_leg_calc->signal_leg_calc(lb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),  &lb_forward_torque,lb_wheel_vel,lb_wheel_force);
-        //     joints_target.legs[3] =
-        //         robot->rb_leg_calc->signal_leg_calc(rb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0), &rb_forward_torque,rb_wheel_vel,rb_wheel_force);
-        // }
-        // else if(cross_wall_stage == 12 || cross_wall_stage == 13 || cross_wall_stage == 14 || cross_wall_stage == 15)
-        // {
-        //     lf_joint_omega  = robot->lf_leg_calc->joint_vel(lf_joint_exp_pos_, Vector3D{0,0,0});
-        //     lf_joint_torque = robot->lf_leg_calc->joint_torque_foot_force(lf_joint_exp_pos_, Vector3D{0,0,0});
-        //     lf_joint_torque +=robot->lf_leg_calc->joint_torque_dynamic(lf_joint_exp_pos_, lf_joint_omega, Vector3D{0,0,0});
-
-        //     rf_joint_omega  = robot->rf_leg_calc->joint_vel(rf_joint_exp_pos_, Vector3D{0,0,0});
-        //     rf_joint_torque = robot->rf_leg_calc->joint_torque_foot_force(rf_joint_exp_pos_, Vector3D{0,0,0});
-        //     rf_joint_torque +=robot->rf_leg_calc->joint_torque_dynamic(rf_joint_exp_pos_, rf_joint_omega, Vector3D{0,0,0});
-
-        //     for (int i = 0; i < 3; i++) {
-        //     joints_target.legs[0].joints[i].rad    = static_cast<float>(lf_joint_exp_pos_[i]);
-        //     joints_target.legs[0].joints[i].omega  = static_cast<float>(lf_joint_omega[i]);
-        //     joints_target.legs[0].joints[i].torque = static_cast<float>(lf_joint_torque[i]);
-        //     }
-
-        //     for (int i = 0; i < 3; i++) {
-        //     joints_target.legs[1].joints[i].rad    = static_cast<float>(rf_joint_exp_pos_[i]);
-        //     joints_target.legs[1].joints[i].omega  = static_cast<float>(rf_joint_omega[i]);
-        //     joints_target.legs[1].joints[i].torque = static_cast<float>(rf_joint_torque[i]);
-        //     }
-
-        //     joints_target.legs[2] =
-        //         robot->lb_leg_calc->signal_leg_calc(lb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),  &lb_forward_torque,lb_wheel_vel,lb_wheel_force);
-        //     joints_target.legs[3] =
-        //         robot->rb_leg_calc->signal_leg_calc(rb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),  &rb_forward_torque,rb_wheel_vel,rb_wheel_force);
-        // }
-        // else
-        // {
-        //     joints_target.legs[0] =
-        //         robot->lf_leg_calc->signal_leg_calc(lf_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),  &lf_forward_torque,lf_wheel_vel,lf_wheel_force);
-        //     joints_target.legs[1] =
-        //         robot->rf_leg_calc->signal_leg_calc(rf_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),  &rf_forward_torque,rf_wheel_vel,rf_wheel_force);
-        //     joints_target.legs[2] =
-        //         robot->lb_leg_calc->signal_leg_calc(lb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),  &lb_forward_torque,lb_wheel_vel,lb_wheel_force);
-        //     joints_target.legs[3] =
-        //         robot->rb_leg_calc->signal_leg_calc(rb_foot_exp_pos, Vector3D(0,0,0), Vector3D(0,0,0), Vector3D(0,0,0),  &rb_forward_torque,rb_wheel_vel,rb_wheel_force);
-        // }
 
 
 /*******************************lf**********************************/

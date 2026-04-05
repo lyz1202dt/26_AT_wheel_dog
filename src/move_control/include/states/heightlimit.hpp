@@ -22,7 +22,7 @@ private:
     double up_time    = 1.5;
     double drive_time = 2.0;
     double wheel_vel  = 5.0;
-    double target_distance = 0.55;
+    double target_distance = 1.0;
 
     Eigen::Vector3d lf_init, rf_init, lb_init, rb_init;
     LegStep lf_leg_step, rf_leg_step, lb_leg_step, rb_leg_step;

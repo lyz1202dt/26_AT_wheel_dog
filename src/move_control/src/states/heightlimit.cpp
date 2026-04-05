@@ -63,6 +63,26 @@ double HeightlimitState::low_pass_filter(double input, int wheel_idx)
 std::string HeightlimitState::update(Robot* robot)
 {
 
+    robot_interfaces::msg::RobotTarget msg{};
+    for(int i=0;i<3;i++)
+    {
+        msg.legs[0].joints[i].kp = robot->kp[i];
+        msg.legs[0].joints[i].kd = robot->kd[i];
+        msg.legs[0].wheel.kd = robot->wheel_kd;
+
+        msg.legs[1].joints[i].kp = robot->kp[i];
+        msg.legs[1].joints[i].kd = robot->kd[i];
+        msg.legs[1].wheel.kd = robot->wheel_kd;
+
+        msg.legs[2].joints[i].kp = robot->kp[i];
+        msg.legs[2].joints[i].kd = robot->kd[i];
+        msg.legs[2].wheel.kd = robot->wheel_kd;
+
+        msg.legs[3].joints[i].kp = robot->kp[i];
+        msg.legs[3].joints[i].kd = robot->kd[i];
+        msg.legs[3].wheel.kd = robot->wheel_kd;
+    }
+
     auto current_time = robot->node_->get_clock()->now();
     double dt = (current_time - last_time).seconds();
     last_time = current_time;
@@ -123,7 +143,7 @@ std::string HeightlimitState::update(Robot* robot)
         auto lb = lb_leg_step.get_target(t, ok);
         auto rb = rb_leg_step.get_target(t, ok);
 
-        robot_interfaces::msg::RobotTarget msg;
+        //robot_interfaces::msg::RobotTarget msg;
         for(int i=0;i<3;i++){
             msg.legs[0].joints[i].rad = (float)std::get<0>(lf)[i];
             msg.legs[1].joints[i].rad = (float)std::get<0>(rf)[i];
@@ -143,7 +163,7 @@ std::string HeightlimitState::update(Robot* robot)
     // 阶段 2：蹲下 + 轮子转动
     // ==============================
     else if (stage == 2) {
-        robot_interfaces::msg::RobotTarget msg;
+        // robot_interfaces::msg::RobotTarget msg;
         for(int i=0;i<3;i++){
             bool dummy;
             msg.legs[0].joints[i].rad = (float)std::get<0>(lf_leg_step.get_target(fall_time, dummy))[i];
@@ -199,7 +219,7 @@ std::string HeightlimitState::update(Robot* robot)
         auto lb = lb_leg_step.get_target(t, ok);
         auto rb = rb_leg_step.get_target(t, ok);
 
-        robot_interfaces::msg::RobotTarget msg;
+        //robot_interfaces::msg::RobotTarget msg;
         for(int i=0;i<3;i++){
             msg.legs[0].joints[i].rad = (float)std::get<0>(lf)[i];
             msg.legs[1].joints[i].rad = (float)std::get<0>(rf)[i];

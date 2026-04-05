@@ -8,7 +8,7 @@
 #include <tuple>
 
 class Robot;
-
+class Cross_Step;
 class Cross_WallState : public BaseState<Robot> {
 public:
     Cross_WallState(Robot* robot);
@@ -40,7 +40,7 @@ private:
 
     bool stopping = false;
     double stop_t = 0.0;
-    double stop_T = 0.6;   // 建议 0.3~0.6
+    double stop_T = 0.3;   // 建议 0.3~0.6
 
     double lf_vel_start, rf_vel_start, lb_vel_start, rb_vel_start;
     double lf_force_start, rf_force_start, lb_force_start, rb_force_start;
@@ -53,7 +53,7 @@ private:
     double cross_x_lb{0.0},cross_y_lb{0.0},cross_z_lb{0.0};
     double cross_x_rb{0.0},cross_y_rb{0.0},cross_z_rb{0.0};
     double time_s{1.0};
-    bool change_flag{false};
+    bool change_flag{true};
     bool allow_vel{true};
 
     float k_F{1.0f};
@@ -61,5 +61,36 @@ private:
     //力变量
     Vector2D mass_center_pos;
     double mass;
+
+};
+
+    typedef struct {
+        double a;
+        double b;
+        double c;
+        double d;
+        double e;
+        double f;
+    } QuinticLineParam_t;
+    
+    typedef struct {
+        QuinticLineParam_t lx;
+        QuinticLineParam_t ly;
+        QuinticLineParam_t l1_z;
+        QuinticLineParam_t l2_z;
+        double time;       // 摆动相全程时间
+    } StepTrajectory_t;
+
+
+
+class Cross_Step {
+
+public:
+
+
+
+private:
+
+
 
 };
