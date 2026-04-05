@@ -472,8 +472,8 @@ std::string JumpStepState::update(Robot* robot)
 
 
             rb_leg_step.update_support_trajectory(rb_current_pos, Vector3D(rb_current_pos.x(), -0.04, -0.08), 0.5);
-            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(lf_current_pos.x(),-0.04,0.055), 0.5);
-            rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(rf_current_pos.x(),-0.04,0.055), 0.5);
+            lf_leg_step.update_support_trajectory(lf_current_pos, Vector3D(lf_current_pos.x(),-0.04,lf_current_pos.z()), 0.5);
+            rf_leg_step.update_support_trajectory(rf_current_pos, Vector3D(rf_current_pos.x(),-0.04,rf_current_pos.z()), 0.5);
             lb_leg_step.update_support_trajectory(lb_current_pos, Vector3D(0.05, -0.04, 0.03), 0.5);
             
             jump_stage = 14; 
