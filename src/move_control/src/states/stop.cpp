@@ -92,12 +92,13 @@ std::string StopState::update(Robot* robot) {
         return "amble";
     else if(step_mode==0)
         return "idel";
-    else if(step_mode==8)
-        return "climb_steps2";
+    else if (step_mode==8)
+    return "heightlimit";
     else if(robot->move_cmd.step_mode == 11)
         return "idle_inward";
     else if(robot->move_cmd.step_mode == 12)
         return "idle_normal";
+
     return "stop";
 }
 

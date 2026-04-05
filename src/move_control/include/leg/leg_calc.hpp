@@ -35,7 +35,6 @@ class LegCalc{
 public:
     LegCalc(KDL::Chain &chain,const std::vector<double>& kp_list,const std::vector<double>& kd_list,double wheel_kd_param);
     ~LegCalc();
-    Eigen::Vector3d joint_pos(const Eigen::Vector3d &foot_pos,int *result,const Eigen::Vector3d init_joint_pos);
 
     void set_init_joint_pos(const Eigen::Vector3d init_joint_pos);
     Eigen::Vector3d joint_pos_setarray(const Eigen::Vector3d init_joint_pos);

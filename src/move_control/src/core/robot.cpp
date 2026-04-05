@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <rclcpp/create_timer.hpp>
+#include <rclcpp/logging.hpp>
 
 #include "states/climb_steps2.hpp"
 #include "states/forcewalk.hpp"
@@ -14,6 +15,7 @@
 #include "states/setup.hpp"
 #include "states/stop.hpp"
 #include "states/idle_inward.hpp"
+#include "states/heightlimit.hpp"
 // #include "states/mpc2.hpp"
 #include "states/amble.hpp"
 #include "states/climb_steps.hpp"
@@ -287,16 +289,17 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     fsm.register_state(std::make_unique<ClimbStepstate>(this));
     fsm.register_state(std::make_unique<JumpState>(this));
     fsm.register_state(std::make_unique<AmbleState>(this));
-    fsm.register_state(std::make_unique<ForceState>(this));
-    fsm.register_state(std::make_unique<ForcewalkState>(this));
+    //fsm.register_state(std::make_unique<ForceState>(this));
+    //fsm.register_state(std::make_unique<ForcewalkState>(this));
     fsm.register_state(std::make_unique<Cross_WallState>(this));
+    fsm.register_state(std::make_unique<HeightlimitState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
         lf_leg_calc->pos_offset=lf_base_offset;
         rf_leg_calc->pos_offset=rf_base_offset;
         lb_leg_calc->pos_offset=lb_base_offset;
         rb_leg_calc->pos_offset=rb_base_offset;
-        
+        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(),100,"(%lf,%lf,%lf)",rb_leg_calc->pos_offset[0],rb_leg_calc->pos_offset[1],rb_leg_calc->pos_offset[2]);
         if (legs_data_updated) {
             fsm.run();
         }
@@ -690,12 +693,12 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
         rb_base_offset[0] = -0.23 + param.as_double();
         return true;
     } else if (name == "body_height") {
-        lf_base_offset[2] = param.as_double();
-        rf_base_offset[2] = param.as_double();
-        lb_base_offset[2] = param.as_double();
-        rb_base_offset[2] = param.as_double();
+        lf_base_offset[2] = -param.as_double();
+        rf_base_offset[2] = -param.as_double();
+        lb_base_offset[2] = -param.as_double();
+        rb_base_offset[2] = -param.as_double();
         return true;
-    } 
+    }
 
     // 未识别的参数
     return false;

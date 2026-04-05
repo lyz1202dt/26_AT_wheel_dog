@@ -9,6 +9,70 @@
 
 class Robot;
 
+
+    typedef struct {
+        double a;
+        double b;
+        double c;
+        double d;
+    } CubicLineParam_t;
+
+    typedef struct {
+        CubicLineParam_t lx;
+        CubicLineParam_t ly;
+        CubicLineParam_t lz;
+        double time;      
+    } StepTrajectory_t;
+
+class Cross_Step {
+
+public:
+
+    void update_support_trajectory(const Vector3D& cur_pos, const Vector3D final_pos, double time);
+    std::tuple<Vector3D, Vector3D, Vector3D> get_target(double time,bool &success);
+
+private:
+    StepTrajectory_t lx,ly,lz;
+    double T; 
+    static void set_cubic(CubicLineParam_t& seg,
+                double p0, double v0,
+                double pT, double vT,
+                double T)
+    {
+        double T2 = T * T;
+        double T3 = T2 * T;
+
+        seg.a = p0;
+        seg.b = v0;
+
+        seg.c = (3*(pT - p0) - (2*v0 + vT)*T) / T2;
+        seg.d = (2*(p0 - pT) + (v0 + vT)*T) / T3;
+    }
+
+    static inline double get_cubic_value(const CubicLineParam_t& line, double t)
+    {
+        return line.a
+            + line.b * t
+            + line.c * t * t
+            + line.d * t * t * t;
+    }
+
+    static inline double get_cubic_dt(const CubicLineParam_t& line, double t)
+    {
+        return line.b
+            + 2.0 * line.c * t
+            + 3.0 * line.d * t * t;
+    }
+
+    static inline double get_cubic_dtdt(const CubicLineParam_t& line, double t)
+    {
+        return 2.0 * line.c
+            + 6.0 * line.d * t;
+    }
+
+};
+
+
 class Cross_WallState : public BaseState<Robot> {
 public:
     Cross_WallState(Robot* robot);
@@ -40,7 +104,7 @@ private:
 
     bool stopping = false;
     double stop_t = 0.0;
-    double stop_T = 0.6;   // 建议 0.3~0.6
+    double stop_T = 0.3;   // 建议 0.3~0.6
 
     double lf_vel_start, rf_vel_start, lb_vel_start, rb_vel_start;
     double lf_force_start, rf_force_start, lb_force_start, rb_force_start;
@@ -48,12 +112,13 @@ private:
     bool enable_posture_safe{true};
     
     LegStep lf_leg_step, rf_leg_step, lb_leg_step, rb_leg_step;
+    Cross_Step lf_step, rf_step, lb_step, rb_step;
     double cross_x_lf{0.0},cross_y_lf{0.0},cross_z_lf{0.0};
     double cross_x_rf{0.0},cross_y_rf{0.0},cross_z_rf{0.0};
     double cross_x_lb{0.0},cross_y_lb{0.0},cross_z_lb{0.0};
     double cross_x_rb{0.0},cross_y_rb{0.0},cross_z_rb{0.0};
     double time_s{1.0};
-    bool change_flag{false};
+    bool change_flag{true};
     bool allow_vel{true};
 
     float k_F{1.0f};
@@ -63,3 +128,8 @@ private:
     double mass;
 
 };
+
+
+
+
+
