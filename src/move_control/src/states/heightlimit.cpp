@@ -11,7 +11,7 @@ HeightlimitState::HeightlimitState(Robot* robot)
     robot->node_->declare_parameter("up_time",      1.5);
     robot->node_->declare_parameter("drive_time",   2.0);
     robot->node_->declare_parameter("wheel_vel",    30.0);
-    robot->node_->declare_parameter("target_distance", 0.6);  // 目标距离 0.6m
+    robot->node_->declare_parameter("target_distance", 1.0);  // 目标距离 1.0m
 
     // 参数回调
     robot->add_param_cb([this](const rclcpp::Parameter& param) {
@@ -113,16 +113,16 @@ std::string HeightlimitState::update(Robot* robot)
     double delta_distance = avg_vel * dt;
     total_distance += delta_distance;
 
-    // ==============================
+
     // 阶段 0：开始蹲下
     // ==============================
     if (stage == 0) {
         start_time = robot->node_->get_clock()->now();
 
-        Eigen::Vector3d lf_tar(0.1, 1.1, -0.9);
-        Eigen::Vector3d rf_tar(-0.1,-1.1, 0.9);
-        Eigen::Vector3d lb_tar(-0.1,1.1, -0.9);
-        Eigen::Vector3d rb_tar(0.1, -1.1, 0.9);
+        Eigen::Vector3d lf_tar(0.1, 1.1, -0.7);
+        Eigen::Vector3d rf_tar(-0.1,-1.1, 0.7);
+        Eigen::Vector3d lb_tar(-0.1,1.1, -0.7);
+        Eigen::Vector3d rb_tar(0.1, -1.1, 0.7);
 
         lf_leg_step.update_support_trajectory(lf_init, lf_tar, fall_time);
         rf_leg_step.update_support_trajectory(rf_init, rf_tar, fall_time);
@@ -195,10 +195,10 @@ std::string HeightlimitState::update(Robot* robot)
     else if (stage == 3) {
         start_time = robot->node_->get_clock()->now();
 
-        Eigen::Vector3d lf_down(0.1, 1.1, -0.9);
-        Eigen::Vector3d rf_down(-0.1,-1.1, 0.9);
-        Eigen::Vector3d lb_down(-0.1,1.1, -0.9);
-        Eigen::Vector3d rb_down(0.1, -1.1, 0.9);
+        Eigen::Vector3d lf_down(0.1, 1.1, -0.7);
+        Eigen::Vector3d rf_down(-0.1,-1.1, 0.7);
+        Eigen::Vector3d lb_down(-0.1,1.1, -0.7);
+        Eigen::Vector3d rb_down(0.1, -1.1, 0.7);
 
         lf_leg_step.update_support_trajectory(lf_down, lf_init, up_time);
         rf_leg_step.update_support_trajectory(rf_down, rf_init, up_time);
