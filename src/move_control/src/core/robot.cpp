@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <rclcpp/create_timer.hpp>
+#include <rclcpp/logging.hpp>
 
 #include "states/climb_steps2.hpp"
 #include "states/forcewalk.hpp"
@@ -291,7 +292,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
         rf_leg_calc->pos_offset=rf_base_offset;
         lb_leg_calc->pos_offset=lb_base_offset;
         rb_leg_calc->pos_offset=rb_base_offset;
-        
+        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(),100,"(%lf,%lf,%lf)",rb_leg_calc->pos_offset[0],rb_leg_calc->pos_offset[1],rb_leg_calc->pos_offset[2]);
         if (legs_data_updated) {
             fsm.run();
         }
@@ -685,10 +686,10 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
         rb_base_offset[0] = -0.23 + param.as_double();
         return true;
     } else if (name == "body_height") {
-        lf_base_offset[2] = param.as_double();
-        rf_base_offset[2] = param.as_double();
-        lb_base_offset[2] = param.as_double();
-        rb_base_offset[2] = param.as_double();
+        lf_base_offset[2] = -param.as_double();
+        rf_base_offset[2] = -param.as_double();
+        lb_base_offset[2] = -param.as_double();
+        rb_base_offset[2] = -param.as_double();
         return true;
     }
 
