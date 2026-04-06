@@ -1,5 +1,6 @@
 #include "states/amble.hpp"
 #include "core/robot.hpp"
+#include <rclcpp/logging.hpp>
 
 
 AmbleState::AmbleState(Robot* robot)
@@ -137,7 +138,7 @@ std::string AmbleState::update(Robot* robot) {
     }
     if (step_state == 3) {
         RCLCPP_INFO(robot->node_->get_logger(), "左后腿向前摆动");
-        Vector3D next_available_pos = get_next_available_pos(robot->lb_leg_calc->pos_offset, lb_cart_pos);
+        Vector3D next_available_pos = get_next_available_pos(robot, robot->lb_leg_calc->pos_offset, lb_cart_pos);
         last_pos_1                  = next_available_pos;
         lb_leg_step.update_flight_trajectory(lb_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
         start_time = robot->node_->get_clock()->now();
@@ -190,7 +191,7 @@ std::string AmbleState::update(Robot* robot) {
     }
     if (step_state == 5) {
         RCLCPP_INFO(robot->node_->get_logger(), "左后腿向前摆动");
-        Vector3D next_available_pos = get_next_available_pos(robot->lf_leg_calc->pos_offset, lf_cart_pos);
+        Vector3D next_available_pos = get_next_available_pos(robot, robot->lf_leg_calc->pos_offset, lf_cart_pos);
         last_pos_2                  = next_available_pos;
         lf_leg_step.update_flight_trajectory(lf_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
         start_time = robot->node_->get_clock()->now();
@@ -306,7 +307,7 @@ std::string AmbleState::update(Robot* robot) {
     }
     if (step_state == 9) {
         RCLCPP_INFO(robot->node_->get_logger(), "右后腿向前摆动");
-        Vector3D next_available_pos = get_next_available_pos(robot->rb_leg_calc->pos_offset, rb_cart_pos);
+        Vector3D next_available_pos = get_next_available_pos(robot, robot->rb_leg_calc->pos_offset, rb_cart_pos);
         last_pos_1                  = next_available_pos;
         rb_leg_step.update_flight_trajectory(rb_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
         start_time = robot->node_->get_clock()->now();
@@ -357,7 +358,7 @@ std::string AmbleState::update(Robot* robot) {
     }
     if (step_state == 11) {
         RCLCPP_INFO(robot->node_->get_logger(), "右前腿向前摆动");
-        Vector3D next_available_pos = get_next_available_pos(robot->rf_leg_calc->pos_offset, rf_cart_pos);
+        Vector3D next_available_pos = get_next_available_pos(robot, robot->rf_leg_calc->pos_offset, rf_cart_pos);
         last_pos_2                  = next_available_pos;
         rf_leg_step.update_flight_trajectory(rf_cart_pos, Vector3D(0.0, 0.0, 0.0), next_available_pos, Vector2D(0.0, 0.0), 2.0, 0.12);
         start_time = robot->node_->get_clock()->now();
@@ -424,8 +425,24 @@ std::string AmbleState::update(Robot* robot) {
     return "amble";
 }
 
-Vector3D AmbleState::get_next_available_pos(Vector3D leg_offset, Vector3D current_pos) {
+Vector3D AmbleState::get_next_available_pos(Robot* robot,Vector3D leg_offset, Vector3D current_pos) {
     (void)leg_offset;
     (void)current_pos;
-    return {0.12, current_pos[1], 0.0};
+    // RCLCPP_INFO_THROTTLE(
+    //     robot->node_->get_logger(),
+    //     *robot->node_->get_clock(),
+    //     100,
+    //     "\033[31mstep_state = %d, current_pos[1] = %.2f\033[0m",
+    //     step_state,
+    //     current_pos[1]
+    // );    
+//return {0.12, current_pos[1], 0.0};
+    if(step_state == 3 || step_state == 5)
+    {
+        return {0.12, 0.08, 0.0};
+    }else if (step_state ==9) {
+        return {0.12, -0.08, 0.0};
+    }else if (step_state == 11) {
+        return {0.12, -0.09, 0.0};
+    }
 }

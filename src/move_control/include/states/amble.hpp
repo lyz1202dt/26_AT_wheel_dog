@@ -16,7 +16,7 @@ public:
     std::string update(Robot* robot) override;
 
 private:
-    Vector3D get_next_available_pos(Vector3D leg_offset,Vector3D current_pos);
+    Vector3D get_next_available_pos(Robot*robot, Vector3D leg_offset,Vector3D current_pos);
 
     Vector2D mass_center_pos;
     double mass;
