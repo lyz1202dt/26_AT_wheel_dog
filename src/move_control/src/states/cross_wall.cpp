@@ -668,9 +668,10 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos = lb_foot_exp_pos;
                 wall_rb_foot_pos = rb_foot_exp_pos;
 
-                rf_step.update_support_trajectory(Vector3D(-0.60,1.25,-0.531),Vector3D(-0.0267,-0.822,0.165),2.0); 
-                lf_step.update_support_trajectory(Vector3D(0.219,-1.19,0.488),Vector3D(0.0267,0.822,-0.165),2.0); 
-               
+                // rf_step.update_support_trajectory(Vector3D(-0.60,1.25,-0.531),Vector3D(-0.0267,-0.822,0.165),2.0); 
+                // lf_step.update_support_trajectory(Vector3D(0.219,-1.19,0.488),Vector3D(0.0267,0.822,-0.165),2.0); 
+                rf_step.update_support_trajectory(robot->rf_joint_pos,Vector3D(-0.0267,-0.822,0.165),2.0); 
+                lf_step.update_support_trajectory(robot->lf_joint_pos,Vector3D(0.0267,0.822,-0.165),2.0); 
                 //change_flag=false;               
                 cross_wall_stage=10;     
             }       
@@ -799,8 +800,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rb_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.18,-0.08,0.4),1.0);
-                lb_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.18, 0.08,0.4),1.0);
+                rb_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.25,-0.08,0.4),1.0);
+                lb_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.25, 0.08,0.4),1.0);
 
                 //change_flag=false;
                 cross_wall_stage=13;
@@ -852,8 +853,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
 
-                rb_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.2,0.0,-0.05),1.0);
-                lb_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.2,0.0,-0.05),1.0);
+                rb_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.2,0.0,-0.05),5.0);
+                lb_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.2,0.0,-0.05),5.0);
 
                 //change_flag=false;
                 cross_wall_stage=14;
