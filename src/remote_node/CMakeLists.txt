@@ -24,6 +24,16 @@ add_executable(remote_node
   src/remote_comm.cpp
 )
 
+add_executable(keys
+  src/keys_control.cpp
+)
+
+target_include_directories(keys
+PUBLIC
+$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+$<INSTALL_INTERFACE:include>
+)
+
 # Include directories
 target_include_directories(remote_node
   PUBLIC
@@ -41,6 +51,10 @@ ament_target_dependencies(remote_node
   tf2
 )
 
+ament_target_dependencies(keys
+    rclcpp
+    robot_interfaces
+)
 # Link system libraries
 target_link_libraries(remote_node
   Threads::Threads
@@ -49,6 +63,7 @@ target_link_libraries(remote_node
 # Install targets
 install(TARGETS
   remote_node
+  keys
   DESTINATION lib/${PROJECT_NAME}
 )
 
