@@ -74,10 +74,10 @@ std::string AmbleState::update(Robot* robot) {
     if (step_state == 1) {
         RCLCPP_INFO(robot->node_->get_logger(), "狗身向右平移");
         double x_target = -(0.5 * (last_pos_1[0] + last_pos_2[0])), y_target = step_dy;
-        lf_leg_step.update_support_trajectory(lf_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
-        rf_leg_step.update_support_trajectory(rf_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
-        lb_leg_step.update_support_trajectory(lb_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
-        rb_leg_step.update_support_trajectory(rb_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+        lf_step.update_support_trajectory(lf_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
+        rf_step.update_support_trajectory(rf_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+        lb_step.update_support_trajectory(lb_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
+        rb_step.update_support_trajectory(rb_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
         start_time = robot->node_->get_clock()->now();
         step_state = 2;
     }
@@ -85,10 +85,10 @@ std::string AmbleState::update(Robot* robot) {
         bool success;
         double t = (robot->node_->get_clock()->now() - start_time).seconds();
 
-        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
-        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
-        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
-        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_step.get_target(t, success);
         auto lf_pos=(lf_foot_exp_pos+robot->lf_leg_calc->pos_offset).head(2);   //在简化的二维平面模型中，提供支撑力的位置
         auto rf_pos=(rf_foot_exp_pos+robot->rf_leg_calc->pos_offset).head(2);
         auto lb_pos=(lb_foot_exp_pos+robot->lb_leg_calc->pos_offset).head(2);
@@ -244,10 +244,10 @@ std::string AmbleState::update(Robot* robot) {
     if (step_state == 7) {
         RCLCPP_INFO(robot->node_->get_logger(), "狗身向左平移");
         double x_target = -(0.5 * (last_pos_1[0] + last_pos_2[0])), y_target = -step_dy;
-        lf_leg_step.update_support_trajectory(lf_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
-        rf_leg_step.update_support_trajectory(rf_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
-        lb_leg_step.update_support_trajectory(lb_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
-        rb_leg_step.update_support_trajectory(rb_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
+        lf_step.update_support_trajectory(lf_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+        rf_step.update_support_trajectory(rf_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
+        lb_step.update_support_trajectory(lb_cart_pos, Vector3D(0.0, y_target, 0.0), 2.0);
+        rb_step.update_support_trajectory(rb_cart_pos, Vector3D(x_target, y_target, 0.0), 2.0);
         start_time = robot->node_->get_clock()->now();
         step_state = 8;
     }
@@ -256,10 +256,10 @@ std::string AmbleState::update(Robot* robot) {
         bool success;
         double t = (robot->node_->get_clock()->now() - start_time).seconds();
 
-        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_leg_step.get_target(t, success);
-        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_leg_step.get_target(t, success);
-        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_leg_step.get_target(t, success);
-        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_leg_step.get_target(t, success);
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_step.get_target(t, success);
         
         // 计算每个腿要承担的垂直力
         auto lf_pos=(lf_foot_exp_pos+robot->lf_leg_calc->pos_offset).head(2);
@@ -407,7 +407,40 @@ std::string AmbleState::update(Robot* robot) {
         if (!success) {
             step_state = 0;
             if (robot->move_cmd.step_mode == 1)
-                return "stop";
+            {
+                step_state = 13;
+            }
+                
+        }
+    }
+
+    if(step_state == 13)
+    {
+        RCLCPP_INFO(robot->node_->get_logger(), "准备停止stop");
+        lf_step.update_support_trajectory(lf_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        rf_step.update_support_trajectory(rf_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        lb_step.update_support_trajectory(lb_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        rb_step.update_support_trajectory(rb_cart_pos, Vector3D(0.0, 0.0, 0.0), 1.0);
+        start_time = robot->node_->get_clock()->now();
+        step_state = 14;
+    }
+
+    if (step_state == 14) 
+    { 
+        bool success;
+        double t = (robot->node_->get_clock()->now() - start_time).seconds();
+        std::tie(lf_foot_exp_pos, lf_foot_exp_vel, lf_foot_exp_acc) = lf_step.get_target(t, success);
+        std::tie(rf_foot_exp_pos, rf_foot_exp_vel, rf_foot_exp_acc) = rf_step.get_target(t, success);
+        std::tie(lb_foot_exp_pos, lb_foot_exp_vel, lb_foot_exp_acc) = lb_step.get_target(t, success);
+        std::tie(rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc) = rb_step.get_target(t, success);
+        if(!success)
+        {
+            robot->lf_z_vmc->reset(lf_cart_pos.z(), 0.0);
+            robot->rf_z_vmc->reset(rf_cart_pos.z(), 0.0);
+            robot->lb_z_vmc->reset(lb_cart_pos.z(), 0.0);
+            robot->rb_z_vmc->reset(rb_cart_pos.z(), 0.0);
+            step_state = 0;
+            return "stop";
         }
     }
 
@@ -445,4 +478,63 @@ Vector3D AmbleState::get_next_available_pos(Robot* robot,Vector3D leg_offset, Ve
     }else if (step_state == 11) {
         return {0.12, -0.09, 0.0};
     }
+}
+
+
+
+void Amble_Step::update_support_trajectory(const Vector3D& cur_pos,
+                                           const Vector3D final_pos,
+                                           double time)
+{
+    traj.time = time;
+    T = time;
+
+    for (int i = 0; i < 3; i++)
+    {
+        double p0 = cur_pos[i];
+        double pT = final_pos[i];
+
+        // ⭐ Quintic：直接保证平滑
+        double v0 = 0.0;
+        double vT = 0.0;
+        double a0 = 0.0;
+        double aT = 0.0;
+
+        if (i == 0)
+            set_quintic(traj.x, p0, v0, a0, pT, vT, aT, time);
+        else if (i == 1)
+            set_quintic(traj.y, p0, v0, a0, pT, vT, aT, time);
+        else
+            set_quintic(traj.z, p0, v0, a0, pT, vT, aT, time);
+    }
+}
+
+std::tuple<Vector3D, Vector3D, Vector3D>
+Amble_Step::get_target(double time, bool &success)
+{
+    Vector3D pos, vel, acc;
+
+    if (time >= T)
+    {
+        time = T;
+        success = false;
+    }
+    else
+    {
+        success = true;
+    }
+
+    pos[0] = get_quintic_value(traj.x, time);
+    vel[0] = get_quintic_dt(traj.x, time);
+    acc[0] = get_quintic_dtdt(traj.x, time);
+
+    pos[1] = get_quintic_value(traj.y, time);
+    vel[1] = get_quintic_dt(traj.y, time);
+    acc[1] = get_quintic_dtdt(traj.y, time);
+
+    pos[2] = get_quintic_value(traj.z, time);
+    vel[2] = get_quintic_dt(traj.z, time);
+    acc[2] = get_quintic_dtdt(traj.z, time);
+
+    return {pos, vel, acc};
 }
