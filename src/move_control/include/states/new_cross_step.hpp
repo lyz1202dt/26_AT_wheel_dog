@@ -26,6 +26,7 @@ private:
 
     foot_f F;
     int jump_stage = 0;
+    int cycle_count;
     rclcpp::Time jump_stage_time;
 
     LegStep lf_leg_step;
