@@ -23,13 +23,21 @@ std::string idle_inward::update(Robot* robot) {
 
     robot_interfaces::msg::RobotTarget joints_target;
     if ((!trajectory_calced)) {
-
-        robot->node_->set_parameters({
-            rclcpp::Parameter("lf_grivate", 34.0),
-            rclcpp::Parameter("rf_grivate", 34.0),
-            rclcpp::Parameter("lb_grivate", 33.0),
-            rclcpp::Parameter("rb_grivate", 33.0)
-        });
+        if(robot->driver_or_sim == driver)
+            robot->node_->set_parameters({
+                rclcpp::Parameter("lf_grivate", 34.0),
+                rclcpp::Parameter("rf_grivate", 34.0),
+                rclcpp::Parameter("lb_grivate", 33.0),
+                rclcpp::Parameter("rb_grivate", 33.0)
+            });
+        else 
+            robot->node_->set_parameters({
+                    rclcpp::Parameter("lf_grivate", 25.0),
+                    rclcpp::Parameter("rf_grivate", 25.0),
+                    rclcpp::Parameter("lb_grivate", 24.0),
+                    rclcpp::Parameter("rb_grivate", 24.0)
+        
+                });
 
         RCLCPP_INFO(robot->node_->get_logger(), "开始执行内八脚运动");
 

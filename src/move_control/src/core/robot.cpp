@@ -24,6 +24,7 @@
 #include "states/walk.hpp"
 #include "states/cross_wall.hpp"
 
+
 using namespace std::chrono_literals;
 
 Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
@@ -87,7 +88,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->get_parameter("joint_kd", kd);
     node_->get_parameter("wheel_kd", wheel_kd);
 
-
+    node_->declare_parameter<bool>("driver_or_sim", driver);
+    node_->get_parameter<bool>("driver_or_sim", driver_or_sim);
 
     param_server_ = node_->add_on_set_parameters_callback([this](const std::vector<rclcpp::Parameter>& params) {
         rcl_interfaces::msg::SetParametersResult result;
@@ -299,7 +301,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
         rf_leg_calc->pos_offset=rf_base_offset;
         lb_leg_calc->pos_offset=lb_base_offset;
         rb_leg_calc->pos_offset=rb_base_offset;
-        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(),100,"(%lf,%lf,%lf)",rb_leg_calc->pos_offset[0],rb_leg_calc->pos_offset[1],rb_leg_calc->pos_offset[2]);
+       // RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(),100,"(%lf,%lf,%lf)",rb_leg_calc->pos_offset[0],rb_leg_calc->pos_offset[1],rb_leg_calc->pos_offset[2]);
         if (legs_data_updated) {
             fsm.run();
         }
@@ -697,6 +699,9 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
         rf_base_offset[2] = -param.as_double();
         lb_base_offset[2] = -param.as_double();
         rb_base_offset[2] = -param.as_double();
+        return true;
+    }else if (name == "driver_or_sim") {
+        driver_or_sim = param.as_bool();
         return true;
     }
 

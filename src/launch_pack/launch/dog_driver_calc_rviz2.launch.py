@@ -33,7 +33,8 @@ def generate_launch_description():
             "lf_grivate": 32.0,
             "rf_grivate": 32.0,
             "lb_grivate": 40.0,
-            "rb_grivate": 40.0
+            "rb_grivate": 40.0,
+            "driver_or_sim": True
         }
     ]
     )
