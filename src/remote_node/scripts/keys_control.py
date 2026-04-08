@@ -120,14 +120,16 @@ class ProKeyboardTeleop(Node):
         if 'e' in self.pressed_keys:
             dz += 1.0
 
-        length = (dx*dx + dy*dy + dz*dz) ** 0.5
-        if length > 1e-6:
-            dx /= length
-            dy /= length
-            dz /= length
+        # length = (dx*dx + dy*dy + dz*dz) ** 0.5
+        # if length > 1e-6:
+        #     dx /= length
+        #     dy /= length
+        #     dz /= length
+
+        lateral_gain = 0.7   # 用户可根据手感调整
 
         self.target_vx = dy * cur_max
-        self.target_vy = dx * cur_max
+        self.target_vy = dx * cur_max * lateral_gain   # 横向乘以增益
         self.target_vz = dz * cur_max
 
     def update(self):
