@@ -10,7 +10,7 @@ SetupState::SetupState(Robot* robot)
 bool SetupState::enter(Robot* robot, const std::string& last_status) {
     (void)last_status;
     if(robot->arm_enable) {
-        leg_exp_pos_arm_OC = 0.16;
+        leg_exp_pos_arm_OC = 0.2;
         setup_stage = -1;
     }else {
         leg_exp_pos_arm_OC = 0.0;
@@ -45,6 +45,17 @@ std::string SetupState::update(Robot* robot) {
         rb_leg_step.update_support_trajectory(robot->rb_joint_pos, Vector3D(0.0, -3.14, robot->rb_joint_pos[2]), 4.0);
     } // 需要规划轨迹1（戳地站起来）
     else if ((setup_stage == 1) && (!trajectory_calced)) {
+        RCLCPP_INFO(robot->node_->get_logger(), "开始执行上电序列2");
+        RCLCPP_INFO(robot->node_->get_logger(), "arm_enable = %d", robot->arm_enable);
+        RCLCPP_INFO(robot->node_->get_logger(), "leg_exp_pos_arm_OC = %f", leg_exp_pos_arm_OC);
+        trajectory_calced = true;
+        setup_time        = robot->node_->get_clock()->now();
+        lf_leg_step.update_support_trajectory(robot->lf_joint_pos, Vector3D(-0.2, 0.785, 0.0), 4.0);
+        rf_leg_step.update_support_trajectory(robot->rf_joint_pos, Vector3D(0.2, -0.785, 0.0), 4.0);
+        lb_leg_step.update_support_trajectory(robot->lb_joint_pos, Vector3D(0.0, 0.785, 0.0), 4.0);
+        rb_leg_step.update_support_trajectory(robot->rb_joint_pos, Vector3D(0.0, -0.785, 0.0), 4.0);
+    }
+    else if ((setup_stage == 2) && (!trajectory_calced)) {
         RCLCPP_INFO(robot->node_->get_logger(), "开始执行上电序列2");
         RCLCPP_INFO(robot->node_->get_logger(), "arm_enable = %d", robot->arm_enable);
         RCLCPP_INFO(robot->node_->get_logger(), "leg_exp_pos_arm_OC = %f", leg_exp_pos_arm_OC);
@@ -94,7 +105,7 @@ std::string SetupState::update(Robot* robot) {
 
     if ((now - setup_time).seconds() > 4.0) {
         trajectory_calced = false;
-        if (setup_stage == 1) {
+        if (setup_stage == 2) {
             RCLCPP_INFO(robot->node_->get_logger(), "上电完成,进入IDEL模式");
             return "idel";
         }

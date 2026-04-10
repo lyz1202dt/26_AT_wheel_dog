@@ -29,7 +29,7 @@ class ProKeyboardTeleop(Node):
         # 参数
         self.accel = 3.5
         self.fast_accel = 4.0
-        self.max_v = 0.5
+        self.max_v = 0.7
         self.fast_max_v = 1.0
         self.decay = 3.0
 
