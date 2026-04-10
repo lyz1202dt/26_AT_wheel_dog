@@ -16,8 +16,9 @@ public:
     std::string update(Robot* robot) override;
     
 private:
-    int setup_stage{0};
+    int setup_stage{-1};
     bool trajectory_calced{false};
     rclcpp::Time setup_time;
     LegStep lf_leg_step, rf_leg_step, lb_leg_step, rb_leg_step;
+    double leg_exp_pos_arm_OC{0.0};
 };

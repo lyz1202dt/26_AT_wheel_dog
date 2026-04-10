@@ -38,7 +38,8 @@ def generate_launch_description():
             "lf_grivate": 24.0,
             "rf_grivate": 24.0,
             "lb_grivate": 28.0,
-            "rb_grivate": 28.0
+            "rb_grivate": 28.0,
+            "arm_enable": False
         }
     ]
     )

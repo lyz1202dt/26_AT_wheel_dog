@@ -461,22 +461,20 @@ std::string AmbleState::update(Robot* robot) {
 Vector3D AmbleState::get_next_available_pos(Robot* robot,Vector3D leg_offset, Vector3D current_pos) {
     (void)leg_offset;
     (void)current_pos;
-    // RCLCPP_INFO_THROTTLE(
-    //     robot->node_->get_logger(),
-    //     *robot->node_->get_clock(),
-    //     100,
-    //     "\033[31mstep_state = %d, current_pos[1] = %.2f\033[0m",
-    //     step_state,
-    //     current_pos[1]
-    // );    
-//return {0.12, current_pos[1], 0.0};
+//     RCLCPP_INFO_THROTTLE(
+//         robot->node_->get_logger(),
+//         *robot->node_->get_clock(),
+//         100,
+//         "\033[31mstep_state = %d, current_pos[1] = %.2f\033[0m",
+//         step_state,
+//         current_pos[1]
+//     );    
+// return {0.12, current_pos[1], 0.0};
     if(step_state == 3 || step_state == 5)
     {
         return {0.12, 0.08, 0.0};
-    }else if (step_state ==9) {
+    }else if (step_state ==9 || step_state == 11) {
         return {0.12, -0.08, 0.0};
-    }else if (step_state == 11) {
-        return {0.12, -0.09, 0.0};
     }
 }
 

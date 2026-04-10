@@ -30,11 +30,11 @@ def generate_launch_description():
             "roll_vmc_kd": -20.0,
             "pitch_vmc_kp": 500.0,
             "pitch_vmc_kd": 20.0,
-            "lf_grivate": 34.0,
-            "rf_grivate": 34.0,
-            "lb_grivate": 38.0,
-            "rb_grivate": 38.0,
-            "arm_enable": False
+            "lf_grivate": 44.0,
+            "rf_grivate": 44.0,
+            "lb_grivate": 50.0,
+            "rb_grivate": 50.0,
+            "arm_enable": True
         }
     ]
     )

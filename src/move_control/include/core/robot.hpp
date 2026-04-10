@@ -150,4 +150,5 @@ public:
         // 腿部参数
     std::vector<double> kp, kd;
     double wheel_kd;
+    bool arm_enable{false};
 };
