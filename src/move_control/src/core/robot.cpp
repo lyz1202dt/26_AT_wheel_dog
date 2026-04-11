@@ -57,7 +57,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("direction_filter_gate", 0.6);
     node_->declare_parameter("vmc_kp", 80.0);
     node_->declare_parameter("vmc_kd", 50.0);
-    node_->declare_parameter("vmc_mass", 0.5);
+    node_->declare_parameter("vmc_mass", 0.3);
 
     node_->declare_parameter("horizontal_vmc_kp", 500.0);
     node_->declare_parameter("horizontal_vmc_kd", 150.0);
