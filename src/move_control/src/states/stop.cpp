@@ -98,6 +98,8 @@ std::string StopState::update(Robot* robot) {
         return "idle_inward";
     else if(robot->move_cmd.step_mode == 12)
         return "idle_normal";
+    else if(robot->move_cmd.step_mode == 9)
+        return "sand";
 
     return "stop";
 }

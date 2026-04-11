@@ -1,7 +1,7 @@
 #include "core/robot.hpp"
 #include "fsm/fsm.hpp"
 #include "leg/step.hpp"
-
+#include "states/sand.hpp"
 #include <chrono>
 #include <memory>
 #include <rclcpp/create_timer.hpp>
@@ -12,6 +12,7 @@
 #include "states/idel.hpp"
 #include "states/idle_normal.hpp"
 #include "states/jump.hpp"
+#include "states/sand.hpp"
 #include "states/setup.hpp"
 #include "states/stop.hpp"
 #include "states/idle_inward.hpp"
@@ -57,7 +58,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("direction_filter_gate", 0.6);
     node_->declare_parameter("vmc_kp", 80.0);
     node_->declare_parameter("vmc_kd", 50.0);
-    node_->declare_parameter("vmc_mass", 0.5);
+    node_->declare_parameter("vmc_mass", 0.3);
 
     node_->declare_parameter("horizontal_vmc_kp", 500.0);
     node_->declare_parameter("horizontal_vmc_kd", 150.0);
@@ -295,6 +296,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     //fsm.register_state(std::make_unique<ForcewalkState>(this));
     fsm.register_state(std::make_unique<Cross_WallState>(this));
     fsm.register_state(std::make_unique<HeightlimitState>(this));
+    fsm.register_state(std::make_unique<SandState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {
         lf_leg_calc->pos_offset=lf_base_offset;

@@ -126,6 +126,18 @@ SerialNode::SerialNode()
             if (size == sizeof(DogStatePack1_t)) {
                 const DogStatePack1_t* pack = reinterpret_cast<const DogStatePack1_t*>(data);
                 publishLegState(pack);
+                    static auto last_rx_time = std::chrono::steady_clock::now();
+
+                auto now = std::chrono::steady_clock::now();
+                double dt = std::chrono::duration<double>(now - last_rx_time).count();
+
+                // 超时判断（10ms）
+                if (dt > 0.01) {
+                    RCLCPP_WARN(rclcpp::get_logger("usb"),
+                                "USB Pack1 timeout: %.3f s", dt);
+                    exit(-1);
+                }
+                last_rx_time = now;
             }
         } else {
             RCLCPP_ERROR(this->get_logger(), "接收到错误的数据包类型%d", pack_type);

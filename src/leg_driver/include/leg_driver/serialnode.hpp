@@ -61,6 +61,8 @@ private:
     float filtered_omega[4][3];
     bool filter_initialized = false;
     float alpha = 0.25f;   // 滤波系数
+    double last_Usb_time;
+    
 };
 
 #endif

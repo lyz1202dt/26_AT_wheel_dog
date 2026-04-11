@@ -48,11 +48,11 @@ def generate_launch_description():
         ]
     )
 
-    # imu_driver节点 - 使用独立的IMU设备通过串口提供IMU数据
-    imu_driver = Node(
-        package="imu_driver",
-        executable="imu_driver"
-    )
+    # # imu_driver节点 - 使用独立的IMU设备通过串口提供IMU数据
+    # imu_driver = Node(
+    #     package="imu_driver",
+    #     executable="imu_driver"
+    # )
 
     rviz2_config_path = os.path.join(
         get_package_share_directory("launch_pack"),
@@ -65,12 +65,12 @@ def generate_launch_description():
         arguments=["-d", rviz2_config_path]  # 可选，指定rviz配置文件
     )
 
-    remote_node = Node(
-        package="remote_node",
-        executable="remote_node",
-        name="remote_node",
-        output="screen"
-    )
+    # remote_node = Node(
+    #     package="remote_node",
+    #     executable="remote_node",
+    #     name="remote_node",
+    #     output="screen"
+    # )
     
     
-    return LaunchDescription([leg_driver, imu_driver, robot_state_pub, leg_calc, rviz2, remote_node])
+    return LaunchDescription([leg_driver,robot_state_pub, leg_calc, rviz2])
