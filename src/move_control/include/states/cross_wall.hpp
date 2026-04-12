@@ -96,8 +96,12 @@ private:
              lb_joint_exp_pos_{0,0,0},rb_joint_exp_pos_{0,0,0};
     Vector3D lf_joint_omega{0,0,0}, rf_joint_omega{0,0,0},
              lb_joint_omega{0,0,0},rb_joint_omega{0,0,0};
+    Vector3D lf_joint_acc{0,0,0}, rf_joint_acc{0,0,0},
+             lb_joint_acc{0,0,0},rb_joint_acc{0,0,0};
     Vector3D lf_joint_torque{0,0,0},rf_joint_torque{0,0,0},
              lb_joint_torque{0,0,0},rb_joint_torque{0,0,0};
+    Vector3D wall_lf_joint_pos{0,0,0}, wall_rf_joint_pos{0,0,0},
+             wall_lb_joint_pos{0,0,0}, wall_rb_joint_pos{0,0,0};
 
     double lf_wheel_vel{0.0},rf_wheel_vel{0.0},lb_wheel_vel{0.0},rb_wheel_vel{0.0};
     double lf_wheel_force{0.0},rf_wheel_force{0.0},lb_wheel_force{0.0},rb_wheel_force{0.0};

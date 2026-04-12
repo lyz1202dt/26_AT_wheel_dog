@@ -42,7 +42,7 @@ def generate_launch_description():
         package="leg_driver",
         executable="leg_driver",
         parameters=[
-            {"publish_imu": True}
+            {"publish_imu": False}
         ]
     )
 

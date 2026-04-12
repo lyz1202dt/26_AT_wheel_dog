@@ -27,7 +27,7 @@
 using namespace std::chrono_literals;
 
 Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
-    : fsm(this, "idel") {
+    : fsm(this, "setup") {
     node_ = node;
 
     // 初始化参数回调vector
