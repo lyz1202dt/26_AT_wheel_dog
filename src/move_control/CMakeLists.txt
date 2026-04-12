@@ -19,6 +19,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(robot_interfaces REQUIRED)
 find_package(leg_driver REQUIRED)
 find_package(kdl_parser REQUIRED)
@@ -66,6 +67,7 @@ src/states/force.cpp
 src/states/forcewalk.cpp
 src/states/cross_wall.cpp
 src/states/heightlimit.cpp
+src/states/brige_b.cpp
 )
 
 add_executable(test_move_node
@@ -98,6 +100,7 @@ ament_target_dependencies(
   visualization_msgs
   tf2
   tf2_ros
+  tf2_geometry_msgs
   robot_interfaces
   leg_driver
   kdl_parser

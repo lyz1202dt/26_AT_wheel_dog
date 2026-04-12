@@ -21,6 +21,7 @@
 #include "states/jump.hpp"
 #include "states/walk.hpp"
 #include "states/cross_wall.hpp"
+#include "states/brige_b.hpp"
 
 using namespace std::chrono_literals;
 
@@ -101,6 +102,9 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
         }
         return result;
     });
+
+    tf_buffer_   = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
 
     // 读取所有默认参数
@@ -285,6 +289,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     //fsm.register_state(std::make_unique<ForceState>(this));
     //fsm.register_state(std::make_unique<ForcewalkState>(this));
     fsm.register_state(std::make_unique<Cross_WallState>(this));
+    fsm.register_state(std::make_unique<Brige_B>(this));
     fsm.register_state(std::make_unique<HeightlimitState>(this));
 
     control_timer   = node->create_wall_timer(4ms, [this]() {

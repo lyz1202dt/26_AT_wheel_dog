@@ -31,6 +31,8 @@
 #include <tf2/LinearMath/Matrix3x3.hpp>
 #include <tf2/LinearMath/Quaternion.hpp>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
 
 #include <map>
 #include <vector>
@@ -86,6 +88,9 @@ public:
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_state_sub;
     rclcpp::SyncParametersClient::SharedPtr robot_description_param_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> robot_tf_broadcaster;
+
+    tf2_ros::Buffer::SharedPtr tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
     // 可视化相关
     rclcpp::TimerBase::SharedPtr ui_update_timer;

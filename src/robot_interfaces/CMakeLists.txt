@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LegTarget.msg"
  "msg/JointTarget.msg"
  "msg/WheelTarget.msg"
+ "msg/Brigeb.msg"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs
 )
 
