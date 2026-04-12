@@ -9,7 +9,6 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <thread>
 
-
 using namespace std::chrono_literals;
 
 SerialNode::SerialNode()
@@ -143,6 +142,16 @@ SerialNode::SerialNode()
     });
 
     base_time = this->get_clock()->now();
+
+    csv_file.open("legs_rad_log.csv");
+
+    csv_file << "time,";
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 3; j++) {
+            csv_file << "leg" << i << "_joint" << j << "_rad,";
+        }
+    }
+    csv_file << "\n";
 }
 
 SerialNode::~SerialNode() {
@@ -153,6 +162,10 @@ SerialNode::~SerialNode() {
     }
     if (cdc_trans) {
         cdc_trans->close();
+    }
+
+    if (csv_file.is_open()) {
+        csv_file.close();
     }
 }
 
@@ -221,7 +234,8 @@ void SerialNode::publishLegState(const DogStatePack0_t* legs_state) {
     }
     if (legs_state->motor_state) {
         RCLCPP_INFO(get_logger(), "电机异常%d", legs_state->motor_state);
-        exit(-1);
+        rclcpp::shutdown();
+        return;
     }
     robot_pub->publish(msg);
 
@@ -279,7 +293,8 @@ void SerialNode::publishLegState(const DogStatePack1_t* legs_state) {
     }
     if (legs_state->motor_state) {
         RCLCPP_INFO(get_logger(), "电机异常%d", legs_state->motor_state);
-        exit(-1);
+        rclcpp::shutdown();
+        return;
     }
     robot_pub->publish(msg);
 }
@@ -297,6 +312,20 @@ void SerialNode::legsSubscribCb(const robot_interfaces::msg::RobotTarget& msg) {
         legs_target.leg[i].wheel.torque = msg.legs[i].wheel.torque;
         //legs_target.leg[i].wheel.kd     = msg.legs[i].wheel.kd;
     }
+    // 获取时间（秒）
+    auto now = std::chrono::steady_clock::now();
+    double t = std::chrono::duration<double>(now.time_since_epoch()).count();
+
+    csv_file << t << ",";
+
+    // 写 rad
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 3; j++) {
+            csv_file << legs_target.leg[i].joint[j].rad << ",";
+        }
+    }
+
+    csv_file << "\n";
 
     // if(enable_control)
     cdc_trans->send_struct(legs_target); // 一旦订阅到最新的包，立即发送到下位机

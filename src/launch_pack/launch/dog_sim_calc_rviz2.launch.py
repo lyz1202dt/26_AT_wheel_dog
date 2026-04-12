@@ -31,10 +31,10 @@ def generate_launch_description():
             "joint_kp": [50.0, 50.0, 50.0],
             "joint_kd": [3.0, 3.0, 3.0],
             "wheel_kd": 0.5,
-            "roll_vmc_kp": -300.0,
-            "roll_vmc_kd": -5.0,
-            "pitch_vmc_kp": 400.0,
-            "pitch_vmc_kd": 5.0,
+            "roll_vmc_kp": -550.0,
+            "roll_vmc_kd": -15.0,
+            "pitch_vmc_kp": 450.0,
+            "pitch_vmc_kd": 10.0,
             "lf_grivate": 22.0,
             "rf_grivate": 22.0,
             "lb_grivate": 28.0,
@@ -42,6 +42,12 @@ def generate_launch_description():
             "driver_or_sim": False
         }
     ]
+    )
+
+    test_node = Node(
+        package="move_control",     
+        executable="test_move_node",  
+        output="screen"      # 输出到屏幕
     )
 
     rviz2_config_path=os.path.join(
@@ -55,15 +61,10 @@ def generate_launch_description():
         arguments=["-d", rviz2_config_path]  # 可选，指定rviz配置文件
     )
 
-    remote_node = Node(
-        package="remote_node",
-        executable="remote_node",
-        name="remote_node",
-        output="screen"
-    )
+
     
     sim_launch = IncludeLaunchDescription(
     PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('launch_pack'), 'launch', simulate_env_launch_scripe)]))
     
-    return LaunchDescription([robot_state_pub,  leg_calc , rviz2 ,sim_launch, remote_node])
+    return LaunchDescription([robot_state_pub,  leg_calc , rviz2 ,sim_launch])

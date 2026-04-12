@@ -373,7 +373,19 @@ int IMUDriver::pack_parsing() {
         pose_msg.pose.orientation.y = q_new.y();
         pose_msg.pose.orientation.z = q_new.z();
         imu_posture_pub->publish(pose_msg);
+        static auto last_rx_time = std::chrono::steady_clock::now();
 
+        auto now = std::chrono::steady_clock::now();
+        double dt = std::chrono::duration<double>(now - last_rx_time).count();
+
+        // 超时判断（100ms）
+        if (dt > 0.1) {
+            RCLCPP_WARN(rclcpp::get_logger("imu_driver"),
+                                "IMU_Driver timeout: %.3f s", dt);
+                    rclcpp::shutdown();
+                    return -1;
+        }
+        last_rx_time = now;
         static int64_t cnt = 0;
         cnt++;
         if(cnt>=200)

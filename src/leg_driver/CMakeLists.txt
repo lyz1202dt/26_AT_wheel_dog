@@ -66,7 +66,8 @@ ament_target_dependencies(leg_driver
   geometry_msgs
   sensor_msgs
   tf2
-  robot_interfaces)
+  robot_interfaces
+)
 
 
 install(TARGETS

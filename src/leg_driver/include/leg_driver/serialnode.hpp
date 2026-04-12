@@ -13,11 +13,14 @@
 #include <robot_interfaces/msg/move_cmd.hpp>
 #include <robot_interfaces/msg/robot_target.hpp>
 #include "kalman_filter.hpp"
-
+#include <fstream>
+#include <chrono>
 
 
 class SerialNode : public rclcpp::Node
 {
+
+
 public:
     SerialNode();
     ~SerialNode();
@@ -61,6 +64,10 @@ private:
     float filtered_omega[4][3];
     bool filter_initialized = false;
     float alpha = 0.25f;   // 滤波系数
+
+
+
+    std::ofstream csv_file;
 };
 
 #endif

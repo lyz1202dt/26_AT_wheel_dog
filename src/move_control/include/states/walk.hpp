@@ -11,6 +11,7 @@ class Robot;
 class WalkState : public BaseState<Robot> {
 public:
     WalkState(Robot* robot);
+    ~WalkState();
     bool enter(Robot* robot, const std::string& last_status) override;
     std::string update(Robot* robot) override;
 
@@ -35,4 +36,7 @@ private:
     double roll_balance_step_compen{0.0};
     double pitch_balance_step_compen{0.0};
     double exp_roll,exp_pitch;
+
+
+
 };

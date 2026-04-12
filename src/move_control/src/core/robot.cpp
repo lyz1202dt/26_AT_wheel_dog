@@ -31,6 +31,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     : fsm(this, "setup") {
     node_ = node;
 
+    // log_thread = std::thread(&Robot::logWorker, this);
+    // log_start_time_ms = static_cast<double>(node_->get_clock()->now().nanoseconds()) / 1.0e6;
     // 初始化参数回调vector
     param_cb_vector.clear();
     joint_display_msg.position.resize(16);
@@ -81,7 +83,6 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter<std::vector<double>>("joint_kp", {3.0, 2.8, 2.8});
     node_->declare_parameter<std::vector<double>>("joint_kd", {0.17, 0.14, 0.11});
     node_->declare_parameter<double>("wheel_kd", 0.5);
-
 
 
     node_->get_parameter("joint_kp", kp);
@@ -309,7 +310,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     ui_update_timer = node_->create_wall_timer(10ms, std::bind(&Robot::show_callback, this));
 }
 
-Robot::~Robot() {}
+Robot::~Robot() {
+    //     running = false;
+    // if (log_thread.joinable()) log_thread.join();
+}
 
 void Robot::quaternionLowPassFilter(double& w, double& x, double& y, double& z, double w1, double x1, double y1, double z1, double alpha) {
 
@@ -707,4 +711,59 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
 
     // 未识别的参数
     return false;
+}
+
+
+
+void Robot::openNewFile() {
+    if (file.is_open()) file.close();
+
+    std::stringstream ss;
+    ss << "walk_" << std::setw(3) << std::setfill('0') << file_index++ << ".csv";
+
+    file.open(ss.str());
+
+    file << "t,mode,"
+         << "lf_0,lf_1,lf_2,rf_0,rf_1,rf_2,lb_0,lb_1,lb_2,rb_0,rb_1,rb_2,"
+         << "lf_fx,lf_fy,lf_fz,rf_fx,rf_fy,rf_fz,lb_fx,lb_fy,lb_fz,rb_fx,rb_fy,rb_fz\n";
+}
+
+
+
+void Robot::logWorker() {
+
+    openNewFile();
+
+    size_t line_count = 0;
+    LogData d;
+
+    while (running) {
+
+        while (log_buffer.pop(d)) {
+
+            file << d.t << "," << d.mode << ","
+
+                 << d.lf_pos[0] << "," << d.lf_pos[1] << "," << d.lf_pos[2] << ","
+                 << d.rf_pos[0] << "," << d.rf_pos[1] << "," << d.rf_pos[2] << ","
+                 << d.lb_pos[0] << "," << d.lb_pos[1] << "," << d.lb_pos[2] << ","
+                 << d.rb_pos[0] << "," << d.rb_pos[1] << "," << d.rb_pos[2] << ","
+
+                 << d.lf_force[0] << "," << d.lf_force[1] << "," << d.lf_force[2] << ","
+                 << d.rf_force[0] << "," << d.rf_force[1] << "," << d.rf_force[2] << ","
+                 << d.lb_force[0] << "," << d.lb_force[1] << "," << d.lb_force[2] << ","
+                 << d.rb_force[0] << "," << d.rb_force[1] << "," << d.rb_force[2] << "\n";
+
+            line_count++;
+
+            // 每5000行换文件
+            if (line_count > 5000) {
+                openNewFile();
+                line_count = 0;
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    file.close();
 }

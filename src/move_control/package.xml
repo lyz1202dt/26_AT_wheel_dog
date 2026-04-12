@@ -19,7 +19,6 @@
   <depend>leg_driver</depend>
   <depend>kdl_parser</depend>
   <depend>orocos_kdl</depend>
-
   <!-- External CMake library dependencies -->
   <build_depend>qpOASES</build_depend>
   <exec_depend>qpOASES</exec_depend>

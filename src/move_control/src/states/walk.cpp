@@ -1,9 +1,13 @@
 #include "states/walk.hpp"
 #include "core/robot.hpp"
+#include "leg/step.hpp"
 
 
 WalkState::WalkState(Robot* robot)
     : BaseState<Robot>("walk") {
+
+    
+
     robot->node_->declare_parameter("step_time", 0.5);
     robot->node_->declare_parameter("step_height", 0.08);
     robot->node_->declare_parameter("step_support_rate", 0.6);
@@ -31,6 +35,11 @@ WalkState::WalkState(Robot* robot)
         return true;
     });
 }
+
+WalkState::~WalkState() {
+
+}
+
 
 bool WalkState::enter(Robot* robot, const std::string& last_status) {
     (void)last_status;
@@ -134,11 +143,11 @@ std::string WalkState::update(Robot* robot) {
             // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
             lf_leg_step.update_flight_trajectory(
                 robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
-                step_time * (1.0 - step_support_rate), step_height, footstep_correction);
+                step_time * (1.0 - step_support_rate), step_height/*, footstep_correction*/);
             // 主相对角腿也需要规划飞行轨迹（右后）
             rb_leg_step.update_flight_trajectory(                           
                 robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), -Vector3D(rb_exp_vel[0], rb_exp_vel[1], 0.0), rb_exp_vel,
-                step_time * (1.0 - step_support_rate), step_height, footstep_correction);
+                step_time * (1.0 - step_support_rate), step_height/*, footstep_correction*/);
             // lf_leg_step.update_flight_trajectory(
             //     robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
             //     step_time * (1.0 - step_support_rate), step_height);
@@ -198,10 +207,10 @@ std::string WalkState::update(Robot* robot) {
             // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
             rf_leg_step.update_flight_trajectory(
                 robot->rf_leg_calc->foot_pos(robot->rf_joint_pos), -Vector3D(rf_exp_vel[0], rf_exp_vel[1], 0.0), rf_exp_vel,
-                (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
+                (1.0 - step_support_rate) * step_time, step_height/*, footstep_correction*/);
             lb_leg_step.update_flight_trajectory(
                 robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), -Vector3D(lb_exp_vel[0], lb_exp_vel[1], 0.0), lb_exp_vel,
-                (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
+                (1.0 - step_support_rate) * step_time, step_height/*, footstep_correction*/);
 
             // 从相两条腿同时进入飞行相（右前 & 左后）
             // rf_leg_step.update_flight_trajectory(
@@ -306,6 +315,26 @@ std::string WalkState::update(Robot* robot) {
     //     joints_target.legs[3].joints[0].torque,
     //     joints_target.legs[3].joints[1].torque,
     //     joints_target.legs[3].joints[2].torque);
+
+    //LogData d;
+
+    // double now_ms = robot->node_->get_clock()->now().nanoseconds() / 1.0e6;
+    // d.t = now_ms - robot->log_start_time_ms;
+    // d.mode = static_cast<int>(robot->move_cmd.step_mode);
+
+
+    // d.lf_pos = Vector3D(joints_target.legs[0].joints[0].rad, joints_target.legs[0].joints[1].rad, joints_target.legs[0].joints[2].rad);
+    // d.rf_pos = Vector3D(joints_target.legs[1].joints[0].rad, joints_target.legs[1].joints[1].rad, joints_target.legs[1].joints[2].rad);
+    // d.lb_pos = Vector3D(joints_target.legs[2].joints[0].rad, joints_target.legs[2].joints[1].rad, joints_target.legs[2].joints[2].rad);
+    // d.rb_pos = Vector3D(joints_target.legs[3].joints[0].rad, joints_target.legs[3].joints[1].rad, joints_target.legs[3].joints[2].rad);
+
+    // d.lf_force = lf_foot_exp_force;
+    // d.rf_force = rf_foot_exp_force;
+    // d.lb_force = lb_foot_exp_force;
+    // d.rb_force = rb_foot_exp_force;
+
+    // // 无锁写
+    // robot->log_buffer.push(d);   // 满了自动丢，不阻塞
 
     return next_state;
 }

@@ -31,7 +31,7 @@
 #include <tf2/LinearMath/Matrix3x3.hpp>
 #include <tf2/LinearMath/Quaternion.hpp>
 #include <tf2_ros/transform_broadcaster.h>
-
+#include <fstream>
 #include <map>
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
@@ -49,6 +49,52 @@
 #define sim    false
 
 class Estimater;
+
+
+struct LogData {
+    double t;
+    int mode;
+
+    Vector3D lf_pos, rf_pos, lb_pos, rb_pos;
+    Vector3D lf_force, rf_force, lb_force, rb_force;
+};
+
+template<typename T, size_t Size>
+class LockFreeRingBuffer {
+public:
+    bool push(const T& item) {
+        size_t h = head.load(std::memory_order_relaxed);
+        size_t next = (h + 1) % Size;
+
+        if (next == tail.load(std::memory_order_acquire)) {
+            return false; // 满了 → 丢数据（关键！）
+        }
+
+        buffer[h] = item;
+        head.store(next, std::memory_order_release);
+        return true;
+    }
+
+    bool pop(T& item) {
+        size_t t = tail.load(std::memory_order_relaxed);
+
+        if (t == head.load(std::memory_order_acquire)) {
+            return false; // 空
+        }
+
+        item = buffer[t];
+        tail.store((t + 1) % Size, std::memory_order_release);
+        return true;
+    }
+
+
+
+private:
+    std::array<T, Size> buffer;
+    std::atomic<size_t> head{0};
+    std::atomic<size_t> tail{0};
+};
+
 
 class Robot {
 public:
@@ -157,4 +203,19 @@ public:
     // 腿部参数
     std::vector<double> kp, kd;
     double wheel_kd;
+
+
+
+    void openNewFile();
+    void logWorker();
+
+    LockFreeRingBuffer<LogData, 8192> log_buffer;
+
+    std::thread log_thread;
+    std::atomic<bool> running{true};
+
+    int file_index = 0;
+    std::ofstream file;
+
+    double log_start_time_ms = 0.0;
 };

@@ -79,6 +79,24 @@ std::string StopState::update(Robot* robot) {
         &robot->rb_forward_torque, 0.0, 0.0);
     robot->legs_target_pub->publish(joints_target);
 
+    // LogData d;
+    
+    // double now_ms = robot->node_->get_clock()->now().nanoseconds() / 1.0e6;
+    // d.t = now_ms - robot->log_start_time_ms;
+    // d.mode = static_cast<int>(robot->move_cmd.step_mode);
+
+    // d.lf_pos = Vector3D(joints_target.legs[0].joints[0].rad, joints_target.legs[0].joints[1].rad, joints_target.legs[0].joints[2].rad);
+    // d.rf_pos = Vector3D(joints_target.legs[1].joints[0].rad, joints_target.legs[1].joints[1].rad, joints_target.legs[1].joints[2].rad);
+    // d.lb_pos = Vector3D(joints_target.legs[2].joints[0].rad, joints_target.legs[2].joints[1].rad, joints_target.legs[2].joints[2].rad);
+    // d.rb_pos = Vector3D(joints_target.legs[3].joints[0].rad, joints_target.legs[3].joints[1].rad, joints_target.legs[3].joints[2].rad);
+
+    // d.lf_force = lf_foot_exp_force;
+    // d.rf_force = rf_foot_exp_force;
+    // d.lb_force = lb_foot_exp_force;
+    // d.rb_force = rb_foot_exp_force;
+
+    // // 无锁写
+    // robot->log_buffer.push(d);   // 满了自动丢，不阻塞
     auto step_mode = robot->move_cmd.step_mode;
     if (step_mode == 2)                        // 如果请求移动，那么切到walk模式
         return "walk";
