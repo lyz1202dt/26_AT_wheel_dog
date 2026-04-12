@@ -503,8 +503,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
                 rf_step.update_support_trajectory(Vector3D(-1.5,1.08,-0.531),Vector3D(-0.60,1.25,-0.531),2.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),2.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.03),2.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.08,0.0,-0.03),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.08,0.0,-0.03),2.0);
                 
                 //change_flag=false;
                 cross_wall_stage=9;
@@ -536,8 +536,8 @@ std::string Cross_WallState::update(Robot* robot){
 
                 lf_step.update_support_trajectory(Vector3D(0.219,-1.19,0.488),Vector3D( 0.0267, 2.1,-0.2),2.0); 
                 rf_step.update_support_trajectory(Vector3D(-0.60,1.25,-0.531),Vector3D(-0.0267,-2.1, 0.2),2.0); 
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.06),2.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.06),2.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(-0.08,0.0,-0.08),2.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(-0.08,0.0,-0.08),2.0);
 
                 //change_flag=false;               
                 cross_wall_stage=10;     
