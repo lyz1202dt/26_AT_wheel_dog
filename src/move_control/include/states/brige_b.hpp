@@ -7,6 +7,8 @@
 #include <robot_interfaces/msg/brigeb.hpp>
 #include <leg/leg_calc.hpp>
 
+#include <tf2/LinearMath/Transform.hpp>
+
 // 前向声明
 class Robot;
 

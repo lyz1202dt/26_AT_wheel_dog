@@ -104,7 +104,6 @@ ament_target_dependencies(
   robot_interfaces
   leg_driver
   kdl_parser
-  kdl_parser
 )
 
 ament_target_dependencies(

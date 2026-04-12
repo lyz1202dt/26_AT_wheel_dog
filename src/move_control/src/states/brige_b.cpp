@@ -474,8 +474,15 @@ bool Brige_B::calc_edge_line(const robot_interfaces::msg::Brigeb& msg) {
     try {
         auto transfer = robot->tf_buffer_->lookupTransform("body_link", "camera_link", tf2::TimePointZero);
 
-        tf2::Transform camera_to_body;
-        tf2::fromMsg(transfer, camera_to_body);
+        // Manually construct tf2::Transform from geometry_msgs::TransformStamped
+        tf2::Vector3 translation(transfer.transform.translation.x, 
+                                  transfer.transform.translation.y, 
+                                  transfer.transform.translation.z);
+        tf2::Quaternion rotation(transfer.transform.rotation.x,
+                                 transfer.transform.rotation.y,
+                                 transfer.transform.rotation.z,
+                                 transfer.transform.rotation.w);
+        tf2::Transform camera_to_body(rotation, translation);
 
         const tf2::Vector3 point_in_camera(msg.point.x, msg.point.y, msg.point.z);
         const tf2::Vector3 direction_in_camera(msg.direction.x, msg.direction.y, msg.direction.z);
