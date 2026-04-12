@@ -118,7 +118,7 @@ private:
     double cross_x_lb{0.0},cross_y_lb{0.0},cross_z_lb{0.0};
     double cross_x_rb{0.0},cross_y_rb{0.0},cross_z_rb{0.0};
     double time_s{1.0};
-    bool change_flag{true};
+    bool change_flag{false};
     bool allow_vel{true};
 
     float k_F{1.0f};
