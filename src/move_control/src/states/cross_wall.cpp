@@ -779,8 +779,10 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.05),4.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.05),4.0);
+               
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.08),4.0);
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.08),4.0);
+                
 
                 //change_flag=false;
                 cross_wall_stage=17;
@@ -800,6 +802,7 @@ std::string Cross_WallState::update(Robot* robot){
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
             
+           
             std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
             std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
            
@@ -809,10 +812,11 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rf_foot_pos=rf_foot_exp_pos;
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
-                lf_leg_step.update_support_trajectory(wall_lf_joint_pos,Vector3D(-0.1,0.0,0.1),1.0);
-                rf_leg_step.update_support_trajectory(wall_rf_joint_pos,Vector3D(-0.1,0.0,0.1),1.0); 
-                rb_leg_step.update_support_trajectory(wall_rb_joint_pos,Vector3D(-0.1,0.0,0.1),1.0);
-                lb_leg_step.update_support_trajectory(wall_lb_joint_pos,Vector3D(-0.1,0.0,0.1),1.0);
+
+                lf_leg_step.update_support_trajectory(wall_lf_foot_pos,wall_lf_foot_pos,2.0);
+                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,2.0); 
+                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
+                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0),2.0);
               
                 //change_flag=false;
                 cross_wall_stage=18;
@@ -841,15 +845,27 @@ std::string Cross_WallState::update(Robot* robot){
             if(!success)
             {
                 change_flag=false;
-                // auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
-                // auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
-                // auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
-                // auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
-                // robot->lf_z_vmc->reset(lf_cart_pos.z(), 0.0);
-                // robot->rf_z_vmc->reset(rf_cart_pos.z(), 0.0);
-                // robot->lb_z_vmc->reset(lb_cart_pos.z(), 0.0);
-                // robot->rb_z_vmc->reset(rb_cart_pos.z(), 0.0);
-                return "stop";
+                // 打印四条腿的关节角度
+                RCLCPP_INFO(robot->node_->get_logger(),
+                    "\033[36m=== Joint Angles ===\n"
+                    "LF: (%.3f, %.3f, %.3f)\n"
+                    "RF: (%.3f, %.3f, %.3f)\n"
+                    "LB: (%.3f, %.3f, %.3f)\n"
+                    "RB: (%.3f, %.3f, %.3f)\033[0m",
+                    robot->lf_joint_pos[0], robot->lf_joint_pos[1], robot->lf_joint_pos[2],
+                    robot->rf_joint_pos[0], robot->rf_joint_pos[1], robot->rf_joint_pos[2],
+                    robot->lb_joint_pos[0], robot->lb_joint_pos[1], robot->lb_joint_pos[2],
+                    robot->rb_joint_pos[0], robot->rb_joint_pos[1], robot->rb_joint_pos[2]);
+                
+                auto lf_cart_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+                auto rf_cart_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+                auto lb_cart_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+                auto rb_cart_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+                robot->lf_z_vmc->reset(lf_cart_pos.z(), 0.0);
+                robot->rf_z_vmc->reset(rf_cart_pos.z(), 0.0);
+                robot->lb_z_vmc->reset(lb_cart_pos.z(), 0.0);
+                robot->rb_z_vmc->reset(rb_cart_pos.z(), 0.0);
+                return "idel";
             }
         }
 
@@ -943,7 +959,7 @@ std::string Cross_WallState::update(Robot* robot){
         }
 
         robot->legs_target_pub->publish(joints_target);
-
+        
         return "cross_wall";
     }
 
