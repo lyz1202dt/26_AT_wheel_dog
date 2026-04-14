@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <leg/leg_calc.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/time.hpp>
 #include <tuple>
 
 class Robot;
@@ -130,6 +131,8 @@ private:
     //力变量
     Vector2D mass_center_pos;
     double mass;
+
+    //rclcpp::Time cross_wall_to_walk_time;
 
 };
 

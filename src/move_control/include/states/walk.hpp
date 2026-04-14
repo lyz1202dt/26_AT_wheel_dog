@@ -35,4 +35,7 @@ private:
     double roll_balance_step_compen{0.0};
     double pitch_balance_step_compen{0.0};
     double exp_roll,exp_pitch;
+
+    Vector3D last_lf_foot_exp_pos{0.0,0.0,0.0},last_rf_foot_exp_pos{0.0,0.0,0.0},
+             last_lb_foot_exp_pos{0.0,0.0,0.0},last_rb_foot_exp_pos{0.0,0.0,0.0};
 };

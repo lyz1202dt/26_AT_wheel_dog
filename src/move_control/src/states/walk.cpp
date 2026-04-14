@@ -1,6 +1,7 @@
 #include "states/walk.hpp"
 #include "core/robot.hpp"
-
+#include "leg/step.hpp"
+#include "states/cross_wall.hpp"
 
 WalkState::WalkState(Robot* robot)
     : BaseState<Robot>("walk") {
@@ -33,8 +34,16 @@ WalkState::WalkState(Robot* robot)
 }
 
 bool WalkState::enter(Robot* robot, const std::string& last_status) {
+
     (void)last_status;
+    
+    last_lf_foot_exp_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+    last_rf_foot_exp_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+    last_lb_foot_exp_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+    last_rb_foot_exp_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+    
     auto now                = robot->node_->get_clock()->now();
+    
     main_phrase_start_time  = now;
     slave_phrase_start_time = now;
     slave_phrase_stop_time =
@@ -63,7 +72,8 @@ bool WalkState::enter(Robot* robot, const std::string& last_status) {
 
 std::string WalkState::update(Robot* robot) {
     std::string next_state("walk");
-    Vector3D lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
+    
+    Vector3D lf_foot_exp_pos = last_lf_foot_exp_pos, rf_foot_exp_pos = last_rf_foot_exp_pos, lb_foot_exp_pos = last_lb_foot_exp_pos, rb_foot_exp_pos = last_rb_foot_exp_pos;
     Vector3D lf_foot_exp_force = Vector3D::Zero(), rf_foot_exp_force = Vector3D::Zero(), lb_foot_exp_force = Vector3D::Zero(),
              rb_foot_exp_force = Vector3D::Zero();
     Vector3D lf_foot_exp_vel = Vector3D::Zero(), rf_foot_exp_vel = Vector3D::Zero(), lb_foot_exp_vel = Vector3D::Zero(),
@@ -186,6 +196,14 @@ std::string WalkState::update(Robot* robot) {
                 robot->lb_leg_stop_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
                 robot->rb_leg_stop_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
                 next_state             = "stop";
+            }else if(robot->move_cmd.step_mode == 5) {
+                next_state = "cross_wall";
+                robot->node_->set_parameters({
+                rclcpp::Parameter("lf_grivate", 34.0),
+                rclcpp::Parameter("rf_grivate", 34.0),
+                rclcpp::Parameter("lb_grivate", 33.0),
+                rclcpp::Parameter("rb_grivate", 33.0)
+                });
             }
             RCLCPP_INFO(robot->node_->get_logger(), "从相位支撑相规划");
         }
@@ -300,6 +318,10 @@ std::string WalkState::update(Robot* robot) {
         rb_foot_exp_pos, rb_foot_exp_vel, rb_foot_exp_acc, rb_foot_exp_force, &robot->rb_forward_torque);
     robot->legs_target_pub->publish(joints_target);
 
+    last_lb_foot_exp_pos = lb_foot_exp_pos;
+    last_rf_foot_exp_pos = rf_foot_exp_pos;
+    last_rb_foot_exp_pos = rb_foot_exp_pos;
+    last_lf_foot_exp_pos = lf_foot_exp_pos;
     // // 打印左后腿三个关节的期望力矩
     // RCLCPP_INFO(robot->node_->get_logger(),
     //     "RB joint torques - Joint1: %.3f, Joint2: %.3f, Joint3: %.3f",

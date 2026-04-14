@@ -139,6 +139,7 @@ public:
 
     // 共享参数
     bool legs_data_updated{false};
+    bool cross_wall_to_walk{true};
     Vector3D comm_pos;
     double robot_mass{1.0};
     Eigen::Vector3d lf_base_offset, rf_base_offset, lb_base_offset, rb_base_offset;
