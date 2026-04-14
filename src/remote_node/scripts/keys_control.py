@@ -183,6 +183,10 @@ class ProKeyboardTeleop(Node):
         if hasattr(self, 'listener') and self.listener.is_alive():
             self.listener.stop()
 
+    def cleanup(self):
+        if hasattr(self, 'listener') and self.listener.is_alive():
+            self.listener.stop()
+
 def main(args=None):
     rclpy.init(args=args)
     node = ProKeyboardTeleop()
@@ -191,8 +195,10 @@ def main(args=None):
     except KeyboardInterrupt:
         node.get_logger().info("Keyboard interrupt, shutting down.")
     finally:
+        node.cleanup()
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
