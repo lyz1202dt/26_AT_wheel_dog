@@ -321,7 +321,7 @@ void SerialNode::legsSubscribCb(const robot_interfaces::msg::RobotTarget& msg) {
     // 写 rad
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 3; j++) {
-            csv_file << legs_target.leg[i].joint[j].rad << ",";
+            csv_file << msg.legs[i].joints[j].rad << ",";
         }
     }
 

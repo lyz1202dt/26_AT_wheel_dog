@@ -38,10 +38,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     joint_display_msg.position.resize(16);
     joint_display_msg.name = joint_names;
 
-    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
-    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
-    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
-    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.1, 4ms);
+    lf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.06, 4ms);
+    rf_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.06, 4ms);
+    lb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.06, 4ms);
+    rb_z_vmc = std::make_shared<VMC>(500, 120, 4.0, 0.5, 1.2, 0.06, 4ms);
 
     lf_x_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
     lf_y_vmc = std::make_shared<VMC>(160, 60, 3.0, 0.5, 1.2, 0.1, 4ms);
@@ -78,7 +78,7 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("rf_dx", 0.0);
     node_->declare_parameter("lb_dx", 0.0);
     node_->declare_parameter("rb_dx", 0.0);
-    node_->declare_parameter("body_height", 0.25);
+    node_->declare_parameter("body_height", 0.21);
 
     node_->declare_parameter<std::vector<double>>("joint_kp", {3.0, 2.8, 2.8});
     node_->declare_parameter<std::vector<double>>("joint_kd", {0.17, 0.14, 0.11});
