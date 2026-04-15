@@ -70,6 +70,8 @@ src/states/cross_wall.cpp
 src/states/heightlimit.cpp
 )
 
+target_compile_options(move_control PRIVATE -O1)  // -O3
+
 add_executable(test_move_node
   src/test.cpp
 )
