@@ -11,7 +11,7 @@
 RemoteNode::RemoteNode()
     : Node("remote_node"), remote_control_cb_id_(0)
 {
-    std::string port = "/dev/ttyUSB0";
+    std::string port = "/dev/ttyCH341USB0";
     int baudrate = 115200;
     
     // 打开串口 - 使用极短的超时时间（10ms）以提高实时性
@@ -201,32 +201,36 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
     }   
     else if(key_data == 0x40)    //climb_steps
     {
-        msg.step_mode = 3;     
-        last_step_mode = 3;
+        msg.step_mode = 11;     
+        last_step_mode = 11;
     }
     else if(key_data == 0x800)   //climb_steps
     {
-        msg.step_mode = 4;      
-        last_step_mode = 4;
+        msg.step_mode = 12;      
+        last_step_mode = 12;
     }
     else if(key_data == 0x1000)  
     {
-        msg.step_mode = 5;       //cross_wall
-        last_step_mode = 5;
+        // msg.step_mode = 5;       //cross_wall
+        // last_step_mode = 5;
     }
     else if(key_data == 0x2000)  
     {
-        msg.step_mode = 6;       //jump
-        last_step_mode = 6;
+        // msg.step_mode = 6;       //jump
+        // last_step_mode = 6;
     }
     else if(key_data == 0x4000)  
     {
-        msg.step_mode = 7;      //amble
-        last_step_mode = 7;
+        // msg.step_mode = 7;      //amble
+        // last_step_mode = 7;
     }
     else if(key_data == 0x0)     
     {
         msg.step_mode = last_step_mode;  //保持上次模式
+        if(last_step_mode == 11 || last_step_mode == 12)
+        {
+            msg.step_mode = 1;
+        }
     }
 
     if(std::abs(rocker0) < 100)
@@ -237,9 +241,9 @@ void RemoteNode::on_remote_control_data(const uint8_t* data, uint16_t size, void
         rocker2 = 0.0f;
     if(std::abs(rocker3) < 100)
         rocker3 = 0.0f;
-    msg.vy = std::clamp(rocker0 / 1950.0f, -0.5f, 0.5f);
-    msg.vx = std::clamp(rocker1 / 1950.0f, -1.0f, 1.0f);
-    msg.vz = std::clamp(rocker2 / 1950.0f, -1.0f, 1.0f);
+    msg.vy = std::clamp(rocker0 / 19500.0f, -0.1f, 0.1f);
+    msg.vx = std::clamp(rocker1 / 3900.0f, -0.5f, 0.5f);
+    msg.vz = std::clamp(rocker2 / 3900.0f, -0.5f, 0.5f);
     msg.wheel_vel = 0 * std::clamp(rocker3 / 1950.0f, -1.0f, 1.0f);
 
     node->move_cmd_pub->publish(msg);
