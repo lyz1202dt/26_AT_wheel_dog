@@ -260,7 +260,7 @@ std::tuple<Vector3D, Vector3D, Vector3D> LegStep::get_target(double time, bool& 
     } else if (support_trajectory_is_available) {
         if(time>=support_trajectory.time)
         {
-            //time=support_trajectory.time;
+            time=support_trajectory.time;
             success=false;
         }
         else

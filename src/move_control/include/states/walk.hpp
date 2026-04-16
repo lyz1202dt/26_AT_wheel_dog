@@ -32,7 +32,8 @@ private:
     bool step1_flight_updated{false};
     bool step2_flight_updated{false};
 
-    double roll_balance_step_compen{0.0};
-    double pitch_balance_step_compen{0.0};
-    double exp_roll,exp_pitch;
+    double roll_balance_step_compen{0.3};
+    double pitch_balance_step_compen{0.3};
+    double exp_roll{0.0},exp_pitch{0.0};
+    bool first_update = true;
 };

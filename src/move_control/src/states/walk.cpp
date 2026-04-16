@@ -52,16 +52,21 @@ bool WalkState::enter(Robot* robot, const std::string& last_status) {
         robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), lb_exp_vel,
         (std::abs(2.0 * step_support_rate - 1.0) * 0.5 + 1.0 - step_support_rate) * step_time);
     rb_leg_step.update_flight_trajectory(
-        robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), Vector3D(0.0, 0.0, 0.0), lf_exp_vel, ((1.0 - step_support_rate) * step_time),
+        robot->lf_leg_calc->foot_pos(robot->rb_joint_pos), Vector3D(0.0, 0.0, 0.0), lf_exp_vel, ((1.0 - step_support_rate) * step_time),
         step_height);
     step1_support_updated = false;                                                                       // 设置足端轨迹更新状态
     step1_flight_updated  = true;
     step2_flight_updated  = false;
     step2_support_updated = true;
+    first_update = true;
     return true;
 }
 
 std::string WalkState::update(Robot* robot) {
+    if (first_update) {
+    first_update = false;
+    return "walk";   // 不做任何控制输出
+}
     std::string next_state("walk");
     Vector3D lf_foot_exp_pos, rf_foot_exp_pos, lb_foot_exp_pos, rb_foot_exp_pos;
     Vector3D lf_foot_exp_force = Vector3D::Zero(), rf_foot_exp_force = Vector3D::Zero(), lb_foot_exp_force = Vector3D::Zero(),
