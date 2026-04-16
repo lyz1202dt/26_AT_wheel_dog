@@ -139,11 +139,11 @@ std::string WalkState::update(Robot* robot) {
             // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
             lf_leg_step.update_flight_trajectory(
                 robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
-                step_time * (1.0 - step_support_rate), step_height);
+                step_time * (1.0 - step_support_rate), step_height, footstep_correction);
             // 主相对角腿也需要规划飞行轨迹（右后）
             rb_leg_step.update_flight_trajectory(                           
                 robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), -Vector3D(rb_exp_vel[0], rb_exp_vel[1], 0.0), rb_exp_vel,
-                step_time * (1.0 - step_support_rate), step_height);
+                step_time * (1.0 - step_support_rate), step_height, footstep_correction);
             // lf_leg_step.update_flight_trajectory(
             //     robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), -Vector3D(lf_exp_vel[0], lf_exp_vel[1], 0.0), lf_exp_vel,
             //     step_time * (1.0 - step_support_rate), step_height);
@@ -203,10 +203,10 @@ std::string WalkState::update(Robot* robot) {
             // 使用带回调函数的重载版本，在飞行到中点时重新规划落足点
             rf_leg_step.update_flight_trajectory(
                 robot->rf_leg_calc->foot_pos(robot->rf_joint_pos), -Vector3D(rf_exp_vel[0], rf_exp_vel[1], 0.0), rf_exp_vel,
-                (1.0 - step_support_rate) * step_time, step_height);
+                (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
             lb_leg_step.update_flight_trajectory(
                 robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), -Vector3D(lb_exp_vel[0], lb_exp_vel[1], 0.0), lb_exp_vel,
-                (1.0 - step_support_rate) * step_time, step_height);
+                (1.0 - step_support_rate) * step_time, step_height, footstep_correction);
 
             // 从相两条腿同时进入飞行相（右前 & 左后）
             // rf_leg_step.update_flight_trajectory(
