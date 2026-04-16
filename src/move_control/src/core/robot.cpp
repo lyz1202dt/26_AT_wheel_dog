@@ -31,8 +31,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     : fsm(this, "setup") {
     node_ = node;
 
-    // log_thread = std::thread(&Robot::logWorker, this);
-    // log_start_time_ms = static_cast<double>(node_->get_clock()->now().nanoseconds()) / 1.0e6;
+    log_thread = std::thread(&Robot::logWorker, this);
+    log_start_time_ms = static_cast<double>(node_->get_clock()->now().nanoseconds()) / 1.0e6;
     // 初始化参数回调vector
     param_cb_vector.clear();
     joint_display_msg.position.resize(16);
@@ -311,8 +311,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
 }
 
 Robot::~Robot() {
-    //     running = false;
-    // if (log_thread.joinable()) log_thread.join();
+        running = false;
+    if (log_thread.joinable()) log_thread.join();
 }
 
 void Robot::quaternionLowPassFilter(double& w, double& x, double& y, double& z, double w1, double x1, double y1, double z1, double alpha) {

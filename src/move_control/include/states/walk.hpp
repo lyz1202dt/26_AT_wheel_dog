@@ -33,10 +33,12 @@ private:
     bool step1_flight_updated{false};
     bool step2_flight_updated{false};
 
-    double roll_balance_step_compen{0.0};
-    double pitch_balance_step_compen{0.0};
-    double exp_roll,exp_pitch;
-
+    double roll_balance_step_compen{0.3};
+    double pitch_balance_step_compen{0.3};
+    double exp_roll{0.0},exp_pitch{0.0};
+    bool first_update = true;
+    Vector3D last_lf_foot_exp_pos{0.0,0.0,0.0},last_rf_foot_exp_pos{0.0,0.0,0.0},
+             last_lb_foot_exp_pos{0.0,0.0,0.0},last_rb_foot_exp_pos{0.0,0.0,0.0};
 
 
 };
