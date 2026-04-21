@@ -43,6 +43,16 @@ WalkState::~WalkState() {
 
 bool WalkState::enter(Robot* robot, const std::string& last_status) {
     (void)last_status;
+    first_update = true;
+    last_lf_foot_exp_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
+    last_rf_foot_exp_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
+    last_lb_foot_exp_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
+    last_rb_foot_exp_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
+    return true;
+}
+
+std::string WalkState::update(Robot* robot) {
+if (first_update) {
     auto now                = robot->node_->get_clock()->now();
     main_phrase_start_time  = now;
     slave_phrase_start_time = now;
@@ -61,28 +71,18 @@ bool WalkState::enter(Robot* robot, const std::string& last_status) {
         robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), lb_exp_vel,
         (std::abs(2.0 * step_support_rate - 1.0) * 0.5 + 1.0 - step_support_rate) * step_time);
     rb_leg_step.update_flight_trajectory(
-        robot->lf_leg_calc->foot_pos(robot->rb_joint_pos), Vector3D(0.0, 0.0, 0.0), lf_exp_vel, ((1.0 - step_support_rate) * step_time),
+        robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), Vector3D(0.0, 0.0, 0.0), rb_exp_vel, ((1.0 - step_support_rate) * step_time),
         step_height);
     step1_support_updated = false;                                                                       // 设置足端轨迹更新状态
     step1_flight_updated  = true;
     step2_flight_updated  = false;
     step2_support_updated = true;
-    first_update = true;
-    last_lf_foot_exp_pos = robot->lf_leg_calc->foot_pos(robot->lf_joint_pos);
-    last_rf_foot_exp_pos = robot->rf_leg_calc->foot_pos(robot->rf_joint_pos);
-    last_lb_foot_exp_pos = robot->lb_leg_calc->foot_pos(robot->lb_joint_pos);
-    last_rb_foot_exp_pos = robot->rb_leg_calc->foot_pos(robot->rb_joint_pos);
-    return true;
-}
-
-std::string WalkState::update(Robot* robot) {
-if (first_update) {
     first_update = false;
-    return "walk";   // 不做任何控制输出
 }
     std::string next_state("walk");
     Vector3D lf_foot_exp_pos = last_lf_foot_exp_pos, rf_foot_exp_pos = last_rf_foot_exp_pos, 
             lb_foot_exp_pos = last_lb_foot_exp_pos, rb_foot_exp_pos = last_rb_foot_exp_pos;
+
     Vector3D lf_foot_exp_force = Vector3D::Zero(), rf_foot_exp_force = Vector3D::Zero(), lb_foot_exp_force = Vector3D::Zero(),
              rb_foot_exp_force = Vector3D::Zero();
     Vector3D lf_foot_exp_vel = Vector3D::Zero(), rf_foot_exp_vel = Vector3D::Zero(), lb_foot_exp_vel = Vector3D::Zero(),
@@ -320,11 +320,11 @@ if (first_update) {
     robot->legs_target_pub->publish(joints_target);
 
     // 打印左后腿三个关节的期望力矩
-    RCLCPP_INFO(robot->node_->get_logger(),
-        "RB joint torques - Joint1: %.3f, Joint2: %.3f, Joint3: %.3f",
-        joints_target.legs[3].joints[0].torque,
-        joints_target.legs[3].joints[1].torque,
-        joints_target.legs[3].joints[2].torque);
+    // RCLCPP_INFO(robot->node_->get_logger(),
+    //     "RB joint torques - Joint1: %.3f, Joint2: %.3f, Joint3: %.3f",
+    //     joints_target.legs[3].joints[0].torque,
+    //     joints_target.legs[3].joints[1].torque,
+    //     joints_target.legs[3].joints[2].torque);
 
     LogData d;
 

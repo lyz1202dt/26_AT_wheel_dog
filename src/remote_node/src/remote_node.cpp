@@ -11,7 +11,7 @@
 RemoteNode::RemoteNode()
     : Node("remote_node"), remote_control_cb_id_(0)
 {
-    std::string port = "/dev/ttyCH341USB0";
+    std::string port = "/dev/ttyUSB0";
     int baudrate = 115200;
     
     // 打开串口 - 使用极短的超时时间（10ms）以提高实时性
