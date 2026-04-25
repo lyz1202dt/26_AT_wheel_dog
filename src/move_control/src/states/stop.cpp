@@ -89,11 +89,14 @@ std::string StopState::update(Robot* robot) {
     else if(step_mode==6)
         return "jump";
     else if(step_mode==7)
-        return "amble";
+        return "brige_b";
     else if(step_mode==0)
         return "idel";
     else if (step_mode==8)
     return "heightlimit";
+    else if(step_mode==9)
+        return "amble";
+
 
     return "stop";
 }

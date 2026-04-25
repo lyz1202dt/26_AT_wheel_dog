@@ -472,11 +472,11 @@ Vector3D AmbleState::get_next_available_pos(Robot* robot,Vector3D leg_offset, Ve
 //return {0.12, current_pos[1], 0.0};
     if(step_state == 3 || step_state == 5)
     {
-        return {0.12, 0.08, 0.0};
+        return {0.251, 0.08, 0.0};
     }else if (step_state ==9) {
-        return {0.12, -0.08, 0.0};
+        return {0.251, -0.08, 0.0};
     }else if (step_state == 11) {
-        return {0.12, -0.09, 0.0};
+        return {0.251, -0.09, 0.0};
     }
 }
 

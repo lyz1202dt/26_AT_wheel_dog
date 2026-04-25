@@ -52,7 +52,7 @@ bool WalkState::enter(Robot* robot, const std::string& last_status) {
         robot->lb_leg_calc->foot_pos(robot->lb_joint_pos), lb_exp_vel,
         (std::abs(2.0 * step_support_rate - 1.0) * 0.5 + 1.0 - step_support_rate) * step_time);
     rb_leg_step.update_flight_trajectory(
-        robot->lf_leg_calc->foot_pos(robot->lf_joint_pos), Vector3D(0.0, 0.0, 0.0), lf_exp_vel, ((1.0 - step_support_rate) * step_time),
+        robot->rb_leg_calc->foot_pos(robot->rb_joint_pos), Vector3D(0.0, 0.0, 0.0), rb_exp_vel, ((1.0 - step_support_rate) * step_time),
         step_height);
     step1_support_updated = false;                                                                       // 设置足端轨迹更新状态
     step1_flight_updated  = true;
