@@ -102,7 +102,7 @@ namespace mujoco_ros2_control {
         move_cmd_sub_ = nh_->create_subscription<robot_interfaces::msg::MoveCmd>(
             "robot_move_cmd", 10, 
             [this](const robot_interfaces::msg::MoveCmd::SharedPtr msg) {
-                move_cmd_callback(msg);
+                //move_cmd_callback(msg);
             });
         RCLCPP_INFO(nh_->get_logger(), "Sim environment setup complete");
     }
