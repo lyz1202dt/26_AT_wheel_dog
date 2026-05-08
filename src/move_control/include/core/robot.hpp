@@ -45,6 +45,9 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 
+#define driver true
+#define sim    false
+
 class Estimater;
 
 class Robot {
@@ -52,6 +55,7 @@ public:
     Robot(const std::shared_ptr<rclcpp::Node> node);
     ~Robot();
 
+    bool driver_or_sim{driver};// 机器人实际和仿真模式选择
 
     enum DogReqState { // 请求的机器人状态
         DOG_REQ_IDEL=0,

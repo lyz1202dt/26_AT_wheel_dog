@@ -163,7 +163,7 @@ void IMUDriver::data_recv() {
             uint8_t crc8_received = buffer[4];
             
             if (crc8_calc != crc8_received) {
-                RCLCPP_WARN(node_->get_logger(), "CRC8校验失败: 计算=%02X, pack=%02X,%02X,%02X,%02X", crc8_calc, buffer[1],buffer[2],buffer[3],buffer[4]);
+                //RCLCPP_WARN(node_->get_logger(), "CRC8校验失败: 计算=%02X, pack=%02X,%02X,%02X,%02X", crc8_calc, buffer[1],buffer[2],buffer[3],buffer[4]);
                 buffer_len = 0;
                 continue; // 重新开始步骤1
             }
@@ -178,7 +178,7 @@ void IMUDriver::data_recv() {
                 // 序号应该递增1，考虑28位循环
                 uint8_t expected = last_seq_num + 1;
                 if (seq_num != expected) {
-                    RCLCPP_WARN(node_->get_logger(), "检测到丢包: 上一序号=%u 当前=%u", last_seq_num, seq_num);
+                    //RCLCPP_WARN(node_->get_logger(), "检测到丢包: 上一序号=%u 当前=%u", last_seq_num, seq_num);
                 }
             } else {
                 first_packet = false;
@@ -203,7 +203,7 @@ void IMUDriver::data_recv() {
             uint16_t crc16_calc = calc_crc16(payload_start, data_len);
             
             if (crc16_calc != crc16_received) {
-                RCLCPP_WARN(node_->get_logger(), "CRC16校验失败: 计算=%04X, 接收=%04X", crc16_calc, crc16_received);
+                //RCLCPP_WARN(node_->get_logger(), "CRC16校验失败: 计算=%04X, 接收=%04X", crc16_calc, crc16_received);
                 buffer_len = 0;
                 continue; // 重新开始步骤1
             }
@@ -212,7 +212,7 @@ void IMUDriver::data_recv() {
             size_t end_pos = 7 + data_len; // 0xFC + header(4) + CRC16(2) + payload
             uint8_t end_marker = buffer[end_pos];
             if (end_marker != PACKET_END) {
-                RCLCPP_WARN(node_->get_logger(), "数据包结束标志错误: 期望=0xFD, 接收=%02X", end_marker);
+                //RCLCPP_WARN(node_->get_logger(), "数据包结束标志错误: 期望=0xFD, 接收=%02X", end_marker);
                 buffer_len = 0;
                 continue; // 重新开始步骤1
             }

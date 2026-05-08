@@ -115,10 +115,10 @@ std::string Cross_WallState::update(Robot* robot){
 
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
-            std::tie(lf_foot_exp_pos,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
-            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
-            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
+            std::tie(lf_foot_exp_pos,lf_foot_exp_vel,lf_foot_exp_acc)=lf_step.get_target(time, success);
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_step.get_target(time, success);
             
             auto lf_pos=(lf_foot_exp_pos+robot->lf_leg_calc->pos_offset).head(2);   //在简化的二维平面模型中，提供支撑力的位置
             auto rf_pos=(rf_foot_exp_pos+robot->rf_leg_calc->pos_offset).head(2);
@@ -171,9 +171,9 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_lb_foot_pos=lb_foot_exp_pos;
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
-                lf_leg_step.update_support_trajectory(wall_lf_foot_pos,wall_lf_foot_pos,1.0);
-                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,1.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,1.0);
+                lf_step.update_support_trajectory(wall_lf_foot_pos,wall_lf_foot_pos,1.0);
+                rf_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,1.0);
+                rb_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,1.0);
                 lb_leg_step.update_flight_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,0.0), Vector3D(0.12,0.08,0.0), Vector2D(0.0,0.0), 1.0,0.06);
                 //change_flag=false;
                 cross_wall_stage=2;     
@@ -192,10 +192,10 @@ std::string Cross_WallState::update(Robot* robot){
             use_limit_rb = false;
             use_limit_rf = false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
-            std::tie(lf_foot_exp_pos,lf_foot_exp_vel,lf_foot_exp_acc)=lf_leg_step.get_target(time, success);
-            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
+            std::tie(lf_foot_exp_pos,lf_foot_exp_vel,lf_foot_exp_acc)=lf_step.get_target(time, success);
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_step.get_target(time, success);
             std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_step.get_target(time, success);
             
             // 3足支撑力计算 (lf, rf, rb支撑，lb摆动)
             auto lf_pos=(lf_foot_exp_pos+robot->lf_leg_calc->pos_offset).head(2);
@@ -358,9 +358,9 @@ std::string Cross_WallState::update(Robot* robot){
             use_limit_rf = false;
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
-            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
-            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_step.get_target(time, success);
             
             
             // 三足支撑：rf, lb, rb
@@ -391,9 +391,9 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
                 lf_step.update_support_trajectory(Vector3D(1.44,-0.92,0.48),Vector3D(-0.12,-1.00,0.96),1.0);
-                rf_leg_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,1.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,wall_lb_foot_pos,1.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,1.0);
+                rf_step.update_support_trajectory(wall_rf_foot_pos,wall_rf_foot_pos,1.0);
+                lb_step.update_support_trajectory(wall_lb_foot_pos,wall_lb_foot_pos,1.0);
+                rb_step.update_support_trajectory(wall_rb_foot_pos,wall_rb_foot_pos,1.0);
                 //change_flag=false;
                 cross_wall_stage=6;
             }
@@ -412,9 +412,9 @@ std::string Cross_WallState::update(Robot* robot){
             bool success=false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();  
             std::tie(lf_joint_exp_pos_,lf_foot_exp_vel,lf_foot_exp_acc)=lf_step.get_target(time, success);
-            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_leg_step.get_target(time, success);
-            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            std::tie(rb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
+            std::tie(rf_foot_exp_pos,rf_foot_exp_vel,rf_foot_exp_acc)=rf_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_step.get_target(time, success);
 
             // 三足支撑：rf, lb, rb
             auto rf_pos = (rf_foot_exp_pos + robot->rf_leg_calc->pos_offset).head(2);
@@ -445,8 +445,8 @@ std::string Cross_WallState::update(Robot* robot){
                 wall_rb_foot_pos=rb_foot_exp_pos;
 
                 rf_step.update_support_trajectory(rf_joint_exp_pos_,Vector3D(-1.35,-0.827,-0.531),1.0);
-                lb_leg_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),1.0);
-                rb_leg_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.07),1.0);
+                lb_step.update_support_trajectory(wall_lb_foot_pos,Vector3D(0.0,0.0,-0.03),1.0);
+                rb_step.update_support_trajectory(wall_rb_foot_pos,Vector3D(0.0,0.0,-0.07),1.0);
                 //change_flag=false;
                 cross_wall_stage=7;
             }
@@ -465,8 +465,8 @@ std::string Cross_WallState::update(Robot* robot){
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
 
             std::tie(rf_joint_exp_pos_,rf_foot_exp_vel,rf_foot_exp_acc)=rf_step.get_target(time, success);
-            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_step.get_target(time, success);
             
             if(!success)
             {
@@ -525,8 +525,8 @@ std::string Cross_WallState::update(Robot* robot){
             bool success = false;
             double time=(robot->node_->get_clock()->now()-cross_wall_stage_time).seconds();
             std::tie(rf_joint_exp_pos_,rf_foot_exp_vel,rf_foot_exp_acc)=rf_step.get_target(time, success);
-            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_leg_step.get_target(time, success);
-            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_leg_step.get_target(time, success);
+            std::tie(lb_foot_exp_pos,lb_foot_exp_vel,lb_foot_exp_acc)=lb_step.get_target(time, success);
+            std::tie(rb_foot_exp_pos,rb_foot_exp_vel,rb_foot_exp_acc)=rb_step.get_target(time, success);
             lf_joint_exp_pos_=wall_lf_foot_pos;
            
             if(!success)
@@ -934,6 +934,7 @@ void Cross_Step::update_support_trajectory(const Vector3D& cur_pos,
                                            const Vector3D final_pos,
                                            double time)
 {
+    traj.time = time;
     T = time;
 
     for (int i = 0; i < 3; i++)
@@ -941,19 +942,18 @@ void Cross_Step::update_support_trajectory(const Vector3D& cur_pos,
         double p0 = cur_pos[i];
         double pT = final_pos[i];
 
-        // ⭐ 平均速度（关键！避免前段冲）
-        double v_avg = (pT - p0) / time;
-
-        // ⭐ 给一点初速度（非常重要）
-        double v0 = 0.3 * v_avg;
+        // ⭐ Quintic：直接保证平滑
+        double v0 = 0.0;
         double vT = 0.0;
+        double a0 = 0.0;
+        double aT = 0.0;
 
         if (i == 0)
-            set_cubic(lx.lx, p0, v0, pT, vT, time);
+            set_quintic(traj.x, p0, v0, a0, pT, vT, aT, time);
         else if (i == 1)
-            set_cubic(ly.ly, p0, v0, pT, vT, time);
+            set_quintic(traj.y, p0, v0, a0, pT, vT, aT, time);
         else
-            set_cubic(lz.lz, p0, v0, pT, vT, time);
+            set_quintic(traj.z, p0, v0, a0, pT, vT, aT, time);
     }
 }
 
@@ -972,18 +972,17 @@ Cross_Step::get_target(double time, bool &success)
         success = true;
     }
 
-    // ⭐ 计算三轴
-    pos[0] = get_cubic_value(lx.lx, time);
-    vel[0] = get_cubic_dt(lx.lx, time);
-    acc[0] = get_cubic_dtdt(lx.lx, time);
+    pos[0] = get_quintic_value(traj.x, time);
+    vel[0] = get_quintic_dt(traj.x, time);
+    acc[0] = get_quintic_dtdt(traj.x, time);
 
-    pos[1] = get_cubic_value(ly.ly, time);
-    vel[1] = get_cubic_dt(ly.ly, time);
-    acc[1] = get_cubic_dtdt(ly.ly, time);
+    pos[1] = get_quintic_value(traj.y, time);
+    vel[1] = get_quintic_dt(traj.y, time);
+    acc[1] = get_quintic_dtdt(traj.y, time);
 
-    pos[2] = get_cubic_value(lz.lz, time);
-    vel[2] = get_cubic_dt(lz.lz, time);
-    acc[2] = get_cubic_dtdt(lz.lz, time);
+    pos[2] = get_quintic_value(traj.z, time);
+    vel[2] = get_quintic_dt(traj.z, time);
+    acc[2] = get_quintic_dtdt(traj.z, time);
 
     return {pos, vel, acc};
 }

@@ -52,6 +52,9 @@
 
 // cmake config
 #include "config.h"
+#include "robot_interfaces/msg/move_cmd.hpp"
+#include <fstream>
+#include <iomanip>
 
 // std libraries
 #include <algorithm>
@@ -165,6 +168,23 @@ namespace mujoco_ros2_control
         void update();
 
     private:
+
+        /**
+         * @brief Callback function for move command messages.
+         *
+         * This method handles incoming move command messages to determine when to start/stop CSV recording.
+         * Recording starts when transitioning from stop (mode=1) to walk (mode=2).
+         */
+        void move_cmd_callback(const robot_interfaces::msg::MoveCmd::SharedPtr msg);
+        
+        /**
+         * @brief Records current robot state to CSV file.
+         *
+         * This method extracts the complete robot state from mujoco_data_ and writes it to the CSV file
+         * in the required format.
+         */
+        void record_csv_data();
+
         /**
          * @brief Publishes the current simulation time.
          *
@@ -213,6 +233,31 @@ namespace mujoco_ros2_control
         // Parameters from ROS2 using generate_parameter_library
         std::shared_ptr<ParamListener> param_listener_;
         Params params_;
+
+
+
+
+        // ... existing member variables ...
+        
+        // CSV recording related variables
+        rclcpp::Subscription<robot_interfaces::msg::MoveCmd>::SharedPtr move_cmd_sub_; ///< Subscription to move commands
+        std::ofstream csv_file_; ///< CSV file stream
+        bool recording_enabled_ = false; ///< Flag to enable/disable recording
+        int current_step_mode_ = 0; ///< Current step mode (0=idle, 1=stop, 2=walk)
+        double recording_start_time_ = 0.0; ///< Simulation time when recording started
+        
+        // Joint name to index mapping for CSV output order
+        std::vector<std::string> joint_names_ = {
+            "rf_joint1", "rf_joint2", "rf_joint3",  // FR_hip, FR_thigh, FR_calf
+            "lf_joint1", "lf_joint2", "lf_joint3",  // FL_hip, FL_thigh, FL_calf  
+            "rb_joint1", "rb_joint2", "rb_joint3",  // RR_hip, RR_thigh, RR_calf
+            "lb_joint1", "lb_joint2", "lb_joint3"   // RL_hip, RL_thigh, RL_calf
+        };
+        
+        
+        
+
+
 
         // realtime_tools publisher for the clock message
         using ClockPublisher = realtime_tools::RealtimePublisher<rosgraph_msgs::msg::Clock>;

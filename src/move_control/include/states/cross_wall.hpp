@@ -16,13 +16,15 @@ class Robot;
         double b;
         double c;
         double d;
-    } CubicLineParam_t;
+        double e;
+        double f;
+    } QuinticLineParam_t;
 
     typedef struct {
-        CubicLineParam_t lx;
-        CubicLineParam_t ly;
-        CubicLineParam_t lz;
-        double time;      
+        QuinticLineParam_t x;
+        QuinticLineParam_t y;
+        QuinticLineParam_t z;
+        double time;
     } StepTrajectory_t;
 
 class Cross_Step {
@@ -33,42 +35,52 @@ public:
     std::tuple<Vector3D, Vector3D, Vector3D> get_target(double time,bool &success);
 
 private:
-    StepTrajectory_t lx,ly,lz;
-    double T; 
-    static void set_cubic(CubicLineParam_t& seg,
-                double p0, double v0,
-                double pT, double vT,
-                double T)
+    StepTrajectory_t traj;
+    double T;
+    static void set_quintic(QuinticLineParam_t& seg,
+                        double p0, double v0, double a0,
+                        double pT, double vT, double aT,
+                        double T)
     {
         double T2 = T * T;
         double T3 = T2 * T;
+        double T4 = T3 * T;
+        double T5 = T4 * T;
 
         seg.a = p0;
         seg.b = v0;
+        seg.c = 0.5 * a0;
 
-        seg.c = (3*(pT - p0) - (2*v0 + vT)*T) / T2;
-        seg.d = (2*(p0 - pT) + (v0 + vT)*T) / T3;
+        seg.d = (10 * (pT - p0) - (6 * v0 + 4 * vT) * T - (1.5 * a0 - 0.5 * aT) * T2) / T3;
+        seg.e = (-15 * (pT - p0) + (8 * v0 + 7 * vT) * T + (1.5 * a0 - aT) * T2) / T4;
+        seg.f = (6 * (pT - p0) - (3 * v0 + 3 * vT) * T - (0.5 * a0 - 0.5 * aT) * T2) / T5;
     }
 
-    static inline double get_cubic_value(const CubicLineParam_t& line, double t)
+    static inline double get_quintic_value(const QuinticLineParam_t& line, double t)
     {
         return line.a
             + line.b * t
             + line.c * t * t
-            + line.d * t * t * t;
+            + line.d * t * t * t
+            + line.e * t * t * t * t
+            + line.f * t * t * t * t * t;
     }
 
-    static inline double get_cubic_dt(const CubicLineParam_t& line, double t)
+    static inline double get_quintic_dt(const QuinticLineParam_t& line, double t)
     {
         return line.b
             + 2.0 * line.c * t
-            + 3.0 * line.d * t * t;
+            + 3.0 * line.d * t * t
+            + 4.0 * line.e * t * t * t
+            + 5.0 * line.f * t * t * t * t;
     }
 
-    static inline double get_cubic_dtdt(const CubicLineParam_t& line, double t)
+    static inline double get_quintic_dtdt(const QuinticLineParam_t& line, double t)
     {
         return 2.0 * line.c
-            + 6.0 * line.d * t;
+            + 6.0 * line.d * t
+            + 12.0 * line.e * t * t
+            + 20.0 * line.f * t * t * t;
     }
 
 };

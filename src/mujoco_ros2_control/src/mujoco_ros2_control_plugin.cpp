@@ -47,6 +47,10 @@
 */
 
 #include "mujoco_ros2_control/mujoco_ros2_control_plugin.hpp"
+#include "robot_interfaces/msg/move_cmd.hpp"
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 
 namespace mujoco_ros2_control {
     MujocoRos2Control::MujocoRos2Control(rclcpp::Node::SharedPtr &node) : nh_(node) {
@@ -94,11 +98,20 @@ namespace mujoco_ros2_control {
 #endif
 
         registerSensors();
+        // Initialize CSV recording
+        move_cmd_sub_ = nh_->create_subscription<robot_interfaces::msg::MoveCmd>(
+            "robot_move_cmd", 10, 
+            [this](const robot_interfaces::msg::MoveCmd::SharedPtr msg) {
+                //move_cmd_callback(msg);
+            });
         RCLCPP_INFO(nh_->get_logger(), "Sim environment setup complete");
     }
 
     MujocoRos2Control::~MujocoRos2Control()
     {
+        if (csv_file_.is_open()) {
+            csv_file_.close();
+        }
         stop_.store(true);
         for (auto &thread : camera_threads_) {
             thread.join();
@@ -111,6 +124,127 @@ namespace mujoco_ros2_control {
         mj_deleteData(mujoco_data_);
 
         mj_vis_.terminate();
+    }
+
+    void MujocoRos2Control::move_cmd_callback(const robot_interfaces::msg::MoveCmd::SharedPtr msg) {
+        int new_step_mode = static_cast<int>(msg->step_mode);
+        
+        // Check for transition from stop (1) to walk (2)
+        if (current_step_mode_ == 2 && new_step_mode == 20) {
+            // Start recording
+            recording_start_time_ = mujoco_data_->time;
+            std::string csv_filename = "/home/qpz/26_AT_wheel_dog/dog_simulation_" + 
+                std::to_string(static_cast<int>(recording_start_time_ * 1000)) + ".csv";
+            csv_file_.open(csv_filename);
+            
+            if (csv_file_.is_open()) {
+                // Write CSV header
+                csv_file_ << "time_sec,root_pos_x,root_pos_y,root_pos_z,root_quat_w,root_quat_x,root_quat_y,root_quat_z,"
+                         << "base_lin_vel_x,base_lin_vel_y,base_lin_vel_z,base_ang_vel_x,base_ang_vel_y,base_ang_vel_z,"
+                         << "FR_hip_joint,FR_thigh_joint,FR_calf_joint,FL_hip_joint,FL_thigh_joint,FL_calf_joint,"
+                         << "RR_hip_joint,RR_thigh_joint,RR_calf_joint,RL_hip_joint,RL_thigh_joint,RL_calf_joint,"
+                         << "FR_hip_joint_vel,FR_thigh_joint_vel,FR_calf_joint_vel,FL_hip_joint_vel,FL_thigh_joint_vel,FL_calf_joint_vel,"
+                         << "RR_hip_joint_vel,RR_thigh_joint_vel,RR_calf_joint_vel,RL_hip_joint_vel,RL_thigh_joint_vel,RL_calf_joint_vel"
+                         << std::endl;
+                recording_enabled_ = true;
+                RCLCPP_INFO(nh_->get_logger(), "Started CSV recording to %s", csv_filename.c_str());
+            } else {
+                RCLCPP_ERROR(nh_->get_logger(), "Failed to open CSV file for writing");
+                recording_enabled_ = false;
+            }
+        } 
+        // Check for transition to idle or stop - stop recording
+        else if ((new_step_mode == 0 || new_step_mode == 1) && recording_enabled_) {
+            recording_enabled_ = false;
+            if (csv_file_.is_open()) {
+                csv_file_.close();
+                RCLCPP_INFO(nh_->get_logger(), "Stopped CSV recording");
+            }
+        }
+        
+        current_step_mode_ = new_step_mode;
+    }
+
+    void MujocoRos2Control::record_csv_data() {
+        if (!recording_enabled_ || !csv_file_.is_open()) {
+            return;
+        }
+        
+        // Get simulation time relative to recording start
+        double relative_time = mujoco_data_->time - recording_start_time_;
+        
+        // Extract root position and quaternion from qpos (first 7 elements for free joint)
+        double root_pos_x = mujoco_data_->qpos[0];
+        double root_pos_y = mujoco_data_->qpos[1];
+        double root_pos_z = mujoco_data_->qpos[2];
+        double root_quat_w = mujoco_data_->qpos[3];
+        double root_quat_x = mujoco_data_->qpos[4];
+        double root_quat_y = mujoco_data_->qpos[5];
+        double root_quat_z = mujoco_data_->qpos[6];
+        
+        // Extract linear and angular velocity from qvel (first 6 elements for free joint)
+        double base_lin_vel_x = mujoco_data_->qvel[0];
+        double base_lin_vel_y = mujoco_data_->qvel[1];
+        double base_lin_vel_z = mujoco_data_->qvel[2];
+        double base_ang_vel_x = mujoco_data_->qvel[3];
+        double base_ang_vel_y = mujoco_data_->qvel[4];
+        double base_ang_vel_z = mujoco_data_->qvel[5];
+        
+        // Find joint indices in mujoco model
+        std::vector<int> joint_qpos_indices(joint_names_.size());
+        std::vector<int> joint_qvel_indices(joint_names_.size());
+        
+        for (size_t i = 0; i < joint_names_.size(); i++) {
+            int joint_id = mj_name2id(mujoco_model_, mjOBJ_JOINT, joint_names_[i].c_str());
+            if (joint_id >= 0) {
+                joint_qpos_indices[i] = mujoco_model_->jnt_qposadr[joint_id];
+                joint_qvel_indices[i] = mujoco_model_->jnt_dofadr[joint_id];
+            } else {
+                joint_qpos_indices[i] = -1;
+                joint_qvel_indices[i] = -1;
+                RCLCPP_WARN_ONCE(nh_->get_logger(), "Joint %s not found in model", joint_names_[i].c_str());
+            }
+        }
+        
+        // Extract joint positions
+        std::vector<double> joint_positions(joint_names_.size(), 0.0);
+        for (size_t i = 0; i < joint_names_.size(); i++) {
+            if (joint_qpos_indices[i] >= 0) {
+                joint_positions[i] = mujoco_data_->qpos[joint_qpos_indices[i]];
+            }
+        }
+        
+        // Extract joint velocities
+        std::vector<double> joint_velocities(joint_names_.size(), 0.0);
+        for (size_t i = 0; i < joint_names_.size(); i++) {
+            if (joint_qvel_indices[i] >= 0) {
+                joint_velocities[i] = mujoco_data_->qvel[joint_qvel_indices[i]];
+            }
+        }
+        
+        // Write data to CSV with high precision
+        csv_file_ << std::fixed << std::setprecision(6) << relative_time << ",";
+        csv_file_ << root_pos_x << "," << root_pos_y << "," << root_pos_z << ",";
+        csv_file_ << root_quat_w << "," << root_quat_x << "," << root_quat_y << "," << root_quat_z << ",";
+        csv_file_ << base_lin_vel_x << "," << base_lin_vel_y << "," << base_lin_vel_z << ",";
+        csv_file_ << base_ang_vel_x << "," << base_ang_vel_y << "," << base_ang_vel_z << ",";
+        
+        // Joint positions (FR, FL, RR, RL order)
+        for (size_t i = 0; i < joint_positions.size(); i++) {
+            csv_file_ << joint_positions[i];
+            if (i < joint_positions.size() - 1) csv_file_ << ",";
+        }
+        csv_file_ << ",";
+        
+        // Joint velocities (FR, FL, RR, RL order)
+        for (size_t i = 0; i < joint_velocities.size(); i++) {
+            csv_file_ << joint_velocities[i];
+            if (i < joint_velocities.size() - 1) csv_file_ << ",";
+        }
+        csv_file_ << std::endl;
+        
+        // Flush to ensure data is written immediately
+        csv_file_.flush();
     }
 
     void MujocoRos2Control::update() {
@@ -141,6 +275,10 @@ namespace mujoco_ros2_control {
                     }
                     // Calculate the next mujoco step
                     mj_step(mujoco_model_, mujoco_data_);
+                    // Record CSV data if enabled (500Hz = simulation frequency)
+                    if (recording_enabled_) {
+                        record_csv_data();
+                    }
                 }
             }
         } else {

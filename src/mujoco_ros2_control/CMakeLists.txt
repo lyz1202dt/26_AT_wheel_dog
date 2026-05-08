@@ -39,6 +39,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     generate_parameter_library
     Eigen3
     tf2_ros
+    robot_interfaces
 )
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
@@ -137,6 +138,7 @@ ament_target_dependencies(${PROJECT_NAME}
     PCL
     pcl_conversions
     tf2_ros
+    robot_interfaces
 )
 
 # Link libraries to the main executable

@@ -24,11 +24,11 @@ add_executable(remote_node
   src/remote_comm.cpp
 )
 
-add_executable(keys
+add_executable(keys_cpp
   src/keys_control.cpp
 )
 
-target_include_directories(keys
+target_include_directories(keys_cpp
 PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>
@@ -51,7 +51,7 @@ ament_target_dependencies(remote_node
   tf2
 )
 
-ament_target_dependencies(keys
+ament_target_dependencies(keys_cpp
     rclcpp
     robot_interfaces
 )
@@ -63,13 +63,19 @@ target_link_libraries(remote_node
 # Install targets
 install(TARGETS
   remote_node
-  keys
+  keys_cpp
   DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install headers
 install(DIRECTORY include/
   DESTINATION include
+)
+
+install(PROGRAMS
+  scripts/keys_control.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME keys_py   # 重命名为 keys_py
 )
 
 if(BUILD_TESTING)

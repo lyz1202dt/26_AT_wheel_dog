@@ -143,7 +143,7 @@ private:
         msg.vz = static_cast<float>(-vz_);
         msg.step_mode = mode_;
         msg.vx = std::clamp(msg.vx,-1.0f,1.0f);
-        msg.vy = std::clamp(msg.vy,-0.4f,0.4f);
+        msg.vy = std::clamp(msg.vy,-0.3f,0.3f);
         msg.vz = std::clamp(msg.vz,-1.0f,1.0f);
         pub_->publish(msg);
     }
