@@ -53,8 +53,14 @@ std::string IdelState::update(Robot* robot) {
     }
 
     robot->legs_target_pub->publish(joints_target);
-    if (robot->move_cmd.step_mode == 1)  // 如果希望跳转到STOP状态（VMC站立），那么跳转
+    if (robot->move_cmd.step_mode == 1)
+    {  // 如果希望跳转到STOP状态（VMC站立），那么跳转
+        // robot->lf_z_vmc->reset(robot->lf_leg_calc->foot_pos(robot->lf_joint_pos).z(), 0.0);
+        // robot->rf_z_vmc->reset(robot->rf_leg_calc->foot_pos(robot->rf_joint_pos).z(), 0.0);
+        // robot->lb_z_vmc->reset(robot->lb_leg_calc->foot_pos(robot->lb_joint_pos).z(), 0.0);
+        // robot->rb_z_vmc->reset(robot->rb_leg_calc->foot_pos(robot->rb_joint_pos).z(), 0.0);
         return "stop";
+    }
     if (robot->move_cmd.step_mode == 10) // 切到测试纯VMC状态
         return "force";
     return "idel";

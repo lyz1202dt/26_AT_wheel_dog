@@ -4,6 +4,7 @@
 #include <robot_interfaces/msg/jump_cmd.hpp>
 #include <memory>
 #include <chrono>
+#include <random>
 
 using namespace std::chrono_literals;
 
@@ -114,14 +115,73 @@ public:
         vy_ = static_cast<float>(this->get_parameter("vy").as_double());
         vz_ = static_cast<float>(this->get_parameter("vz").as_double());
         step_type_ = static_cast<uint32_t>(this->get_parameter("step_type").as_int());
+        //update_cmd_by_mode();
         publish_move_cmd();
 
         update_timer=this->create_wall_timer(100ms ,[this](){
+            //update_cmd_by_mode();
             publish_move_cmd();
         });
     }
 
 private:
+
+    rclcpp::Time start_time_;
+    bool running_ = false;
+
+    void update_cmd_by_mode()
+    {
+        // 只有 step_type == 2 才执行
+        if (step_type_ != 2)
+        {
+            running_ = false;
+            vx_ = vy_ = vz_ = 0.0f;
+            return;
+        }
+
+        if (!running_)
+        {
+            start_time_ = this->now();
+            running_ = true;
+        }
+
+        double t = (this->now() - start_time_).seconds();
+
+        if (t >= 120.0)
+        {
+            step_type_ = 1;
+            vx_ = vy_ = vz_ = 0.0f;
+            running_ = false;
+            return;
+        }
+
+        int segment = static_cast<int>(t / 10.0);  // 0~11
+        double phase_t = fmod(t, 10.0) / 10.0;     // 0~1
+
+        int axis = segment / 4;   // 0=vx,1=vy,2=vz
+        int phase = segment % 4;  // 0~3
+
+        float amp = (axis == 1) ? 0.5f : 1.0f;
+
+        float value = 0.0f;
+
+        switch (phase)
+        {
+        case 0: value =  amp * phase_t; break;           // 0 → +
+        case 1: value =  amp * (1 - phase_t); break;     // + → 0
+        case 2: value = -amp * phase_t; break;           // 0 → -
+        case 3: value = -amp * (1 - phase_t); break;     // - → 0
+        }
+
+        // 清零全部
+        vx_ = vy_ = vz_ = 0.0f;
+
+        // 只激活一个轴
+        if (axis == 0) vx_ = value;
+        if (axis == 1) vy_ = value;
+        if (axis == 2) vz_ = value;
+    }
+
     void publish_move_cmd()
     {
         robot_interfaces::msg::MoveCmd msg;

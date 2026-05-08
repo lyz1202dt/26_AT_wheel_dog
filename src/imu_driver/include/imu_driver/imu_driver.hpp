@@ -7,6 +7,7 @@
 #include <tf2/LinearMath/Vector3.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <fstream>
 
 class IMUDriver{
 public:
@@ -54,4 +55,11 @@ private:
     
     // CRC16 lookup table
     static const uint16_t CRC16_Table[256];
+
+
+    std::ofstream csv_file;
+
+    geometry_msgs::msg::Vector3 latest_gyro;
+    geometry_msgs::msg::Quaternion latest_quat;
+    rclcpp::Time latest_time;
 };

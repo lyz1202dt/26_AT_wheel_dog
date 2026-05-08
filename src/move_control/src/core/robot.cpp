@@ -55,8 +55,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     pitch_vmc = std::make_shared<SimpleVMC>(500.0, 100.0, 100);
 
     node_->declare_parameter("direction_filter_gate", 0.6);
-    node_->declare_parameter("vmc_kp", 80.0);
-    node_->declare_parameter("vmc_kd", 50.0);
+    node_->declare_parameter("vmc_kp", 180.0);
+    node_->declare_parameter("vmc_kd", 120.0);
     node_->declare_parameter("vmc_mass", 0.3);
 
     node_->declare_parameter("horizontal_vmc_kp", 500.0);
@@ -68,8 +68,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node)
     node_->declare_parameter("pitch_vmc_kp", 550.0);
     node_->declare_parameter("pitch_vmc_kd", 50.0);
 
-    node_->declare_parameter("lf_grivate", 32.0);   //32
-    node_->declare_parameter("rf_grivate", 32.0);
+    node_->declare_parameter("lf_grivate", 30.0);   //32
+    node_->declare_parameter("rf_grivate", 30.0);
     node_->declare_parameter("lb_grivate", 40.0);   //40
     node_->declare_parameter("rb_grivate", 40.0);
     node_->declare_parameter("lf_dx", 0.0);
@@ -702,6 +702,32 @@ bool Robot::default_param_cb(const rclcpp::Parameter& param) {
         return true;
     }else if (name == "driver_or_sim") {
         driver_or_sim = param.as_bool();
+        return true;
+    }else if (name == "wheel_kd") {
+        wheel_kd = param.as_double();
+        return true;
+    }else if (name == "joint_kp")
+    {
+        kp = param.as_double_array();
+        for(int i = 0; i < 3; i++)
+        {
+            lf_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+            rf_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+            lb_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+            rb_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+        }
+        return true;
+    }else if (name == "joint_kd")
+    {
+        kd = param.as_double_array();
+        for(int i = 0; i < 3; i++)
+        {
+            lf_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+            rf_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+            lb_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+            rb_leg_calc->set_joint_pd(i,kp[0],kd[0]);
+        }
+        
         return true;
     }
 
