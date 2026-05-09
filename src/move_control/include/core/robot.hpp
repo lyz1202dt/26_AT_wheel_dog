@@ -147,7 +147,7 @@ public:
     Vector3D comm_pos;
     double robot_mass{1.0};
     Eigen::Vector3d lf_base_offset, rf_base_offset, lb_base_offset, rb_base_offset;
-    double body_height{0.25};
+    double body_height{0.28};
     double robot_lf_grivate{0.0};
     double robot_rf_grivate{0.0};
     double robot_lb_grivate{0.0};
